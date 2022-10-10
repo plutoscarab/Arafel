@@ -1,0 +1,123 @@
+
+ARAFEL
+
+Arafel is a strict, lazy, statically-typed functional programming language. 
+Source files contain comments on non-indented lines and code on indented 
+lines. You're reading a valid Arafel source file. Files must be encoded in 
+either ASCII or UTF-8.
+
+
+VALUES
+
+An Arafel program produces values. An Arafel "host" decides what to do with
+those values. The default console host just writes them to the console.
+
+Nat values represent natural (non-negative) numbers. They are either 0 or a 
+sequence of digits that doesn't start with zero. Digit group separators can 
+be used to make it easier to read large numbers. Here are some Nat values:
+
+    0
+    500
+    1_000_000
+    43252003274489856000
+    ੨੦੨੨
+    𝟞𝟜
+    
+Those last two values show that you can use decimal digits from scripts other
+than arabic numerals.
+
+
+EXPRESSIONS
+
+Expressions use values and operators together to compute a result. Common
+operators include +, -, * (for multiplication), and / (for division).
+
+    365 * 24 * 60 * 60
+
+This prints "31536000" which is the number of seconds in a normal year.
+
+Operators can have higher or lower precedence than other operators.
+Understanding precendence allows you to avoid using unnecesary parenthesis.
+For example, * is higher precedence than +, so these two expressions both
+evaluate as -2:
+
+    2 * 5 + 3 * -4
+    (2 * 5) + (3 * -4)
+
+You can add parenthesis when necessary to override the operator precedence.
+This expression evaluates as 64:
+
+    2 * (5 + 3) * -4
+
+
+FUNCTIONS
+
+Functions in Arafel are written like this which returns the square
+of a number:
+
+    square(x) = x * x
+
+Functions that you define this way can be used in expressions later in
+the program.
+
+    365 * 24 * square(60)
+    hypot(3, 4)
+
+There are many built-in functions, such as "sqrt":
+
+    hypot(a, b) = sqrt(a * a + b * b)
+
+The "power" operator for exponentiation is "**". It is right-associative, so 
+these two expressions are equivalent:
+
+    5 ** 4 ** 3 ** 2
+    5 ** (4 ** (3 ** 2))
+
+
+LISTS
+
+    []
+    [1]
+    [1, 2]
+    [3, 4, 5..]
+    [1..100]
+
+
+TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
+
+Binary tree with data in the leaf nodes:
+
+    type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+
+This defines two different functions for creating trees, one called Leaf
+that takes a value and returns a tree with a single leaf node, and one
+called Node that returns a tree with two sub-trees.
+
+It also defines a function called Tree that takes a type argument and
+returns a type. For example Tree(Int) is a tree of Int values and Tree(Char)
+is a tree of Char values. Tree is not a type, but is a function that returns
+a type.
+
+Here we create a Tree(Char):
+
+    x = Node(Leaf('a'), Node(Leaf('b'), Leaf('c')))
+
+This produces the following tree where "*" indicate Nodes:
+
+:     b   c
+:      \ /
+:   a   *
+:    \ /
+:     *
+
+To use a union type, we use the "case" function to match with each of the
+functions that were used to create the tree. Here's a function to count the
+leaf nodes in our tree.
+
+    count(t) = case t of 
+        Leaf(_) -> 1 
+        Node(left, right) -> count(left) + count(right)
+
+    count(x)
+
+This prints "3" for the tree we created above.
