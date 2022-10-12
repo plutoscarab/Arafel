@@ -1,15 +1,16 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 
 internal sealed class Lexer
 {
-    static Dictionary<char, Func<Cursor, Token>> symbols = new Dictionary<char, Type>
+    static Dictionary<Rune, Func<Cursor, Token>> symbols = new Dictionary<Rune, Type>
     {
-        { '(', typeof(OpenParensToken) },
-        { ')', typeof(CloseParensToken) },
-        { '[', typeof(OpenBracketToken) },
-        { ']', typeof(CloseBracketToken) },
-        { ',', typeof(SeparatorToken) },
+        { new Rune('('), typeof(LParenToken) },
+        { new Rune(')'), typeof(RParenToken) },
+        { new Rune('['), typeof(LBrackToken) },
+        { new Rune(']'), typeof(RBrackToken) },
+        { new Rune(','), typeof(CommaToken) },
     }.ToDictionary(e => e.Key, e =>
     {
         var ctor = e.Value.GetConstructor(BindingFlags.Public | BindingFlags.Instance, new[] { typeof(Cursor) });
@@ -31,16 +32,16 @@ internal sealed class Lexer
 
         while (cursor.More)
         {
-            var ch = cursor.Current;
+            var rune = cursor.Current;
 
-            if (ch == '\r' || ch == '\n')
+            if (rune.Is("\r") || rune.Is("\n"))
             {
                 indented = false;
                 cursor = cursor.Next();
                 continue;
             }
 
-            if (char.IsWhiteSpace(ch))
+            if (Rune.IsWhiteSpace(rune))
             {
                 cursor = cursor.Next();
                 indented = true;
@@ -55,16 +56,15 @@ internal sealed class Lexer
             }
 
             var start = cursor;
-            var previous = cursor;
 
-            if (cursor.Current == '"')
+            if (rune.Is("\""))
             {
                 cursor = cursor.Next();
 
-                while (cursor.More && cursor.Current != '"')
+                while (cursor.More && cursor.Current.IsNot("\""))
                     cursor = cursor.Next();
 
-                if (cursor.Current == '"')
+                if (cursor.Current.Is("\""))
                 {
                     yield return new StringToken(start, cursor - start);
                     continue;
@@ -76,32 +76,68 @@ internal sealed class Lexer
                 continue;
             }
 
-            if (cursor.Current == '\'')
+            if (rune.Is("'"))
             {
                 var end = cursor.Next().Next();
 
-                if (end.Current == '\'')
+                if (end.Current.Is("'"))
                 {
                     cursor = end.Next();
                     yield return new CharToken(start, cursor - start);
-                    continue;
                 }
+                else
+                {
+                    cursor = cursor.Next();
+                    yield return new UnknownToken(start, 1);
+                }
+
+                continue;
             }
 
-            while (char.IsDigit(text, cursor.Offset) || cursor.Current == '_')
+            while ("⁰¹²³⁴⁵⁶⁷⁸⁹".Contains(cursor.Current.ToString()))
             {
-                if (cursor.Current == '_' && previous.Current == '_')
-                    break;
-
-                previous = cursor;
                 cursor = cursor.Next();
             }
 
             if (cursor > start)
             {
-                if (start.Current != '_' && previous.Current != '_')
+                yield return new SuperToken(start, cursor - start);
+                continue;
+            }
+
+            var previous = cursor;
+
+            if (Rune.IsDigit(rune))
+            {
+                while (Rune.IsDigit(cursor.Current) || cursor.Current.Is("_"))
                 {
-                    yield return new NatToken(start, cursor - start);
+                    if (cursor.Current.Is("_") && previous.Current.Is("_"))
+                        break;
+
+                    previous = cursor;
+                    cursor = cursor.Next();
+                }
+            }
+
+            if (cursor > start)
+            {
+                if (previous.Current.IsNot("_"))
+                {
+                    if (cursor.Current.Is("."))
+                    {
+                        cursor = cursor.Next();
+
+                        while (Rune.IsDigit(cursor.Current))
+                        {
+                            cursor = cursor.Next();
+                        }
+
+                        yield return new DecimalToken(start, cursor - start);
+                        continue;
+                    }
+
+                    var s = text.Substring(start.Offset, cursor - start);
+                    yield return new NatToken(start, cursor - start, NatToken.UnicodeParse(s));
                     continue;
                 }
 
@@ -115,11 +151,11 @@ internal sealed class Lexer
                 continue;
             }
 
-            if (char.IsLetter(text, cursor.Offset) || cursor.Current == '_')
+            if (Rune.IsLetter(rune) || rune.Is("_"))
             {
                 cursor = cursor.Next();
 
-                while (char.IsLetter(text, cursor.Offset) || char.IsDigit(text, cursor.Offset))
+                while (Rune.IsLetter(cursor.Current) || Rune.IsDigit(cursor.Current))
                 {
                     cursor = cursor.Next();
                 }
@@ -132,11 +168,17 @@ internal sealed class Lexer
                     continue;
                 }
 
-                yield return new IdentifierToken(start, cursor - start);
+                if (s == "false" || s == "true")
+                {
+                    yield return new BoolToken(start, cursor - start);
+                    continue;
+                }
+
+                yield return new IdToken(start, cursor - start);
                 continue;
             }
 
-            while ("+-*/%<=>.|&^".Contains(cursor.Current))
+            while ("+-*/%<=>.|&^".Contains(cursor.Current.ToString()))
             {
                 cursor = cursor.Next();
             }

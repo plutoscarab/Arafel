@@ -1,7 +1,7 @@
 
-internal record Tursor(IList<Token> Tokens, int Offset)
+internal record Tursor(IReadOnlyList<Token> Tokens, int Offset)
 {
-    public Tursor(IList<Token> tokens)
+    public Tursor(IReadOnlyList<Token> tokens)
     : this(tokens, 0)
     { }
 

@@ -1,0 +1,44 @@
+<#@ output extension=".cs" #>
+<#
+    Empty("End");
+    Characters("LParen", "RParen", "LBrack", "RBrack", "Comma");
+    Strings("Char", "Id", "Keyword", "Operator", "String", "Bool", "Unknown", "Super", "Decimal");
+#>
+
+<#+
+    void Empty(params string[] ids)
+    {
+        foreach (var id in ids)
+        {
+#>
+internal sealed record <#= id #>Token() : Token(Cursor.Empty, 0)
+{
+    public static readonly <#= id #>Token Instance = new EndToken();
+}
+
+<#+
+        }
+    }
+
+    void Characters(params string[] ids)
+    {
+        foreach (var id in ids)
+        {
+#>
+internal sealed record <#= id #>Token(Cursor Start) : Token(Start, 1);
+
+<#+
+        }
+    }
+
+    void Strings(params string[] ids)
+    {
+        foreach (var id in ids)
+        {
+#>
+internal sealed record <#= id #>Token(Cursor Start, int Length) : Token(Start, Length);
+
+<#+
+        }
+    }
+#>

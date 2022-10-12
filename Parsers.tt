@@ -1,0 +1,117 @@
+<#@ output extension=".cs" #>
+using System.Text;
+<#
+    Parser("Token", "Rune");
+    Parser("TokenTree", "Token");
+#>
+<#+
+void Parser(string resultType, string cursorType)
+{
+    var ctype = (cursorType == "Rune" ? "" : cursorType) + "Cursor";
+    var lctype = cursorType.ToLower();
+    var ptype = cursorType + "Parser";
+
+    if (ctype != "Cursor")
+    {
+#>
+
+internal sealed class <#= ctype #>
+{
+    public readonly IReadOnlyList<<#= cursorType #>> Source;
+
+    public readonly int Offset;
+
+    public <#= ctype #>(IList<<#= cursorType #>> source)
+    {
+        Source = (IReadOnlyList<<#= cursorType #>>)source;
+        Offset = 0;
+    }
+
+    private <#= ctype #>(<#= ctype #> cursor, int offset)
+    {
+        Source = cursor.Source;
+        Offset = offset;
+    }
+
+    public bool More => Offset < Source.Count;
+
+    public <#= cursorType #> Current => More ? Source[Offset] : new <#= cursorType #>();
+
+    public <#= ctype #> Next() => More ? new <#= ctype #>(this, Offset + 1) : this;
+}
+<#+
+    }
+#>    
+
+internal delegate (<#= resultType #>? Result, <#= ctype #> Next) <#= ptype #>(<#= ctype #> cursor);
+
+internal sealed class <#= cursorType #>Parsers
+{
+    public static <#= ptype #> Any =
+        cursor => (new <#= resultType #>(cursor), cursor.Next());
+
+    public static <#= ptype #> Expect(Predicate<<#= cursorType #>> predicate) =>
+        cursor => predicate(cursor.Current) ? (new <#= resultType #>(cursor), cursor.Next()) : (null, cursor);
+
+    public static <#= ptype #> Expect<T>() =>
+        Expect(<#= lctype #> => <#= lctype #> is T);
+
+    public static <#= ptype #> Expect(params <#= cursorType #>[] values) =>
+        Expect(<#= lctype #> => values.Contains(<#= lctype #>));
+
+    public static <#= ptype #> OneOf(params <#= ptype #>[] parsers) =>
+        cursor =>
+        {
+            foreach (var parser in parsers)
+            {
+                var (result, next) = parser(cursor);
+                if (result is not null) return (result, next);
+            }
+
+            return (null, cursor);
+        };
+
+    public static <#= ptype #> Seq(params <#= ptype #>[] parsers) =>
+        cursor =>
+        {
+            var start = cursor;
+
+            foreach (var parser in parsers)
+            {
+                var (result, next) = parser(cursor);
+                if (result is null) return (null, cursor);
+                cursor = next;
+            }
+
+            return (new <#= resultType #>(start, cursor), cursor);
+        };
+
+    public static <#= ptype #> OneOrMore(<#= ptype #> parser) =>
+        cursor =>
+        {
+            var start = cursor;
+            
+            while (true)
+            {
+                var (result, next) = parser(cursor);
+                if (result is null) break;
+                cursor = next;
+            }
+            
+            if (cursor.Offset > start.Offset)
+                return (new <#= resultType #>(start, cursor), cursor);
+                
+            return (null, start);
+        };
+
+    public static <#= ptype #> Opt(<#= ptype #> parser, <#= resultType #> defaultValue) =>
+        cursor =>
+        {
+            var (result, next) = parser(cursor);
+            if (result is null) return (defaultValue, cursor);
+            return (result, next);
+        };
+}
+<#+
+}
+#>

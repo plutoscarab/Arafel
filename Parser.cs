@@ -97,7 +97,7 @@ internal static class Arafel
     static Parser ListOf(Parser parser, Parser? delimiter = null) =>
         tursor =>
         {
-            delimiter ??= From<SeparatorToken>();
+            delimiter ??= From<CommaToken>();
 
             var assoc = Sequence(TreeKind.Association, 
                 parser.Label(TreeLabel.First),
@@ -136,10 +136,10 @@ internal static class Arafel
     {
         var delayedExpr = From<Token>();
         var expr = Delay(() => delayedExpr);
-        var open = From<OpenParensToken>();
-        var close = From<CloseParensToken>();
+        var open = From<LParenToken>();
+        var close = From<RParenToken>();
 
-        var identifier = From<IdentifierToken>()
+        var identifier = From<IdToken>()
             .Kind(TreeKind.Identifier)
             .Label(TreeLabel.Identifier);
         
@@ -159,15 +159,15 @@ internal static class Arafel
             close);
 
         var emptyList = Sequence(TreeKind.List,
-            From<OpenBracketToken>(),
-            From<CloseBracketToken>());
+            From<LBrackToken>(),
+            From<RBrackToken>());
 
         var list = OneOf(Sequence(TreeKind.List,
-            From<OpenBracketToken>(),
+            From<LBrackToken>(),
             ListOf(expr).Label(TreeLabel.Values),
             (Sequence(TreeKind.Etc, Operator(".."), expr.Label(TreeLabel.Final).Optional()))
                 .Label(TreeLabel.Etc).Optional(),
-            From<CloseBracketToken>()), emptyList);
+            From<RBrackToken>()), emptyList);
 
         var constructorPattern =
             Sequence(TreeKind.ConstructorPattern,
@@ -239,7 +239,7 @@ internal static class Arafel
 
         var typeDef = union;
         var parser = OneOf(assignment, typeDef, function, expr);
-        var tursor = new Tursor(tokens);
+        var tursor = new Tursor((IReadOnlyList<Token>)tokens);
 
         while (tursor.More)
         {
@@ -266,7 +266,7 @@ static class ParserExtensions
             var result = parser(tursor);
             if (result == null) return null;
             var value = result.Value;
-            return (new TokenTree(kind, value.Result.Token, value.Result.Parts), value.Next);
+            return (new TokenTree(kind, value.Result.Start, value.Result.Next, value.Result.Parts), value.Next);
         };
 
     public static Parser OneOrMore(this Parser parser, TreeKind kind) =>
@@ -310,7 +310,7 @@ static class ParserExtensions
             var result = parser(tursor);
 
             if (result == null)
-                return (new TokenTree(TreeKind.Nop, default(Tursor)), tursor);
+                return (new TokenTree(TreeKind.Nop, tursor, tursor), tursor);
 
             return (result.Value.Result, result.Value.Next);
         };

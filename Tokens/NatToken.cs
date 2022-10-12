@@ -1,19 +1,15 @@
 using System.Numerics;
 
-internal sealed record NatToken(Cursor Start, int Length) 
+internal sealed record NatToken(Cursor Start, int Length, BigInteger Value) 
 : Token(Start, Length)
 {
     public override string ToString() =>
-        base.ToString();
+        Value.ToString();
 
-    public override object Value =>
-        BigInteger.TryParse(Text, out var value) ? value : UnicodeParse();
-
-    private BigInteger UnicodeParse()
+    public static BigInteger UnicodeParse(string s)
     {
         BigInteger b = 0;
         var index = 0;
-        var s = Text;
 
         while (index < s.Length)
         {

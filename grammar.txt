@@ -1,0 +1,43 @@
+program ::= (assignment | typeDef | function | infix | expr)*
+
+assignment ::= 'let' pattern '=' expr
+
+expr ::= ('if' or 'then' or ('else' or)?) | or
+or ::= xor ('|' xor)*
+xor ::= and ('^' and)*
+and ::= eq ('&' eq)*
+eq ::= compare (('==' | '!=' | '≠') compare)*
+compare ::= threeWay (('<' | '<=' | '≤' | '>' | '>=' | '≥') threeWay)*
+threeWay ::= shift ('<=>' shift)*
+cons ::= sum ((':' | '++') sum)*
+sum ::= shift (('+' | '-') shift)*
+shift ::= sum (('<<' | '>>') sum)*
+term ::= atIndex (('*' | '/' | './' | '%') atIndex)*
+atIndex ::= power ('!!' power)*
+power ::= unary ('**' unary)*
+unary ::= ('+' | '-' | '~' | '√' | '∛' | '∜')* atom SUPER?
+atom ::= CHAR | STRING | BOOL | DECIMAL | NAT | parens | exfix | call | list | array | match | ID | 'π'
+
+parens ::= '(' expr (',' expr)* ')'
+exfix ::= '`' ( OPERATOR expr? | expr OPERATOR ) '`'
+
+call ::= ID '(' expr (',' expr)* ')'
+
+list ::= '[' (expr ((',' expr)* | (',' expr)? '..' expr?))? ']'
+array ::= '{' expr (',' expr)* '}'
+
+match ::= 'case' expr 'of' ((pattern | CHAR | STRING | BOOL | DECIMAL | '-'? NAT) '->' expr)+ ('else' '->' expr)?
+pattern ::= ctorPattern | listPattern | tuplePattern | arrayPattern
+ctorPattern ::= ID ids
+ids ::= '(' ID (',' ID)* ')'
+listPattern ::= (ID ':')+ ID | (ID ':')* '[]'
+tuplePattern ::= ID (',' ID)+
+
+arrayPattern ::= '{' ((ID (',' (ID ',')* '..')? | '..' ',' ID) (',' ID)*)? '}'
+
+function ::= 'fn' ID ids '=' expr
+infix ::= ('infixl' | 'infixr') NAT ID (OPERATOR | ID) ID NAT?
+
+typeDef ::= 'type' ID union
+union ::= ids? '=' unionElem ('|' unionElem)*
+unionElem ::= ID ('(' unionElem (',' unionElem)* ')')?

@@ -121,3 +121,32 @@ leaf nodes in our tree.
     count(x)
 
 This prints "3" for the tree we created above.
+
+
+FUNCTIONS AS VALUES, ALSO LAMBDAS 𝑎.𝑘.𝑎. ANONYMOUS FUNCTIONS
+
+Functions are values in and of themselves, and can be passed as arguments to
+other functions. Here's a function that accepts a function as input and applies
+it to each value in a list to produce a new list.
+
+:    map(list, func) = case list of
+:        [] -> []
+:        head:tail -> func(head) : map(tail, func)
+
+We can use this to apply our "square" function to each item in the list.
+
+:    map([1..5], square)
+
+This produces [1, 4, 9, 16, 25]. We can also supply a function directly in the 
+call to map without defining a named function first.
+
+:    map([1..5], (x) = x * x)
+
+An unnamed function like this is called a lambda function, after Lambda
+calculus.
+
+If the lambda function is the last argument passed to another function, it can
+be pulled outside the parenthesis to make it a little more readible.
+
+:    map([1..5]) (x) = x * x
+
