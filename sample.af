@@ -55,7 +55,7 @@ FUNCTIONS
 Functions in Arafel are written like this which returns the square
 of a number:
 
-    square(x) = x * x
+    fn square(x) = x * x
 
 Functions that you define this way can be used in expressions later in
 the program.
@@ -65,7 +65,7 @@ the program.
 
 There are many built-in functions, such as "sqrt":
 
-    hypot(a, b) = sqrt(a * a + b * b)
+    fn hypot(a, b) = sqrt(a * a + b * b)
 
 The "power" operator for exponentiation is "**". It is right-associative, so 
 these two expressions are equivalent:
@@ -76,11 +76,30 @@ these two expressions are equivalent:
 
 LISTS
 
+Empty list.
+
     []
-    [1]
-    [1, 2]
-    [3, 4, 5..]
-    [1..100]
+
+Finite lists.
+
+    [1]    
+    [2, 3]
+
+Integers from four through one-hundred:
+
+    [4..100]
+
+Odd numbers 5 through 99:
+
+    [5, 7..100]
+
+Infinite list 6, 7, 8, etc.
+
+    [6..]
+
+Odd numbers starting with 7:
+
+    [7, 9..]
 
 
 TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
@@ -100,7 +119,7 @@ a type.
 
 Here we create a Tree(Char):
 
-    x = Node(Leaf('a'), Node(Leaf('b'), Leaf('c')))
+    let x = Node(Leaf('a'), Node(Leaf('b'), Leaf('c')))
 
 This produces the following tree where "*" indicate Nodes:
 
@@ -114,7 +133,7 @@ To use a union type, we use the "case" function to match with each of the
 functions that were used to create the tree. Here's a function to count the
 leaf nodes in our tree.
 
-    count(t) = case t of 
+    fn count(t) = case t of 
         Leaf(_) -> 1 
         Node(left, right) -> count(left) + count(right)
 
@@ -129,7 +148,7 @@ Functions are values in and of themselves, and can be passed as arguments to
 other functions. Here's a function that accepts a function as input and applies
 it to each value in a list to produce a new list.
 
-:    map(list, func) = case list of
+:    fn map(list, func) = case list of
 :        [] -> []
 :        head:tail -> func(head) : map(tail, func)
 
@@ -140,7 +159,7 @@ We can use this to apply our "square" function to each item in the list.
 This produces [1, 4, 9, 16, 25]. We can also supply a function directly in the 
 call to map without defining a named function first.
 
-:    map([1..5], (x) = x * x)
+:    map([1..5], fn (x) = x * x)
 
 An unnamed function like this is called a lambda function, after Lambda
 calculus.
@@ -148,5 +167,5 @@ calculus.
 If the lambda function is the last argument passed to another function, it can
 be pulled outside the parenthesis to make it a little more readible.
 
-:    map([1..5]) (x) = x * x
+:    map([1..5]) fn (x) = x * x
 

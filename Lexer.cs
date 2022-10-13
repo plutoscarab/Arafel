@@ -23,7 +23,7 @@ internal sealed class Lexer
         return (Func<Cursor, Token>)del;
     });
 
-    static HashSet<string> keywords = new HashSet<string>{ "type", "case", "of" };
+    static HashSet<string> keywords = new HashSet<string>{ "type", "case", "of", "fn", "let", "infixl", "infixr" };
 
     public static IEnumerable<Token> Tokenize(string text)
     {
@@ -66,12 +66,12 @@ internal sealed class Lexer
 
                 if (cursor.Current.Is("\""))
                 {
-                    yield return new StringToken(start, cursor - start);
+                    yield return new StringToken(start, cursor);
                     continue;
                 }
 
                 cursor = start;
-                yield return new UnknownToken(cursor, 1);
+                yield return new UnknownToken(cursor, cursor);
                 cursor = cursor.Next();
                 continue;
             }
@@ -83,12 +83,12 @@ internal sealed class Lexer
                 if (end.Current.Is("'"))
                 {
                     cursor = end.Next();
-                    yield return new CharToken(start, cursor - start);
+                    yield return new CharToken(start, cursor);
                 }
                 else
                 {
                     cursor = cursor.Next();
-                    yield return new UnknownToken(start, 1);
+                    yield return new UnknownToken(start, start.Next());
                 }
 
                 continue;
@@ -101,7 +101,7 @@ internal sealed class Lexer
 
             if (cursor > start)
             {
-                yield return new SuperToken(start, cursor - start);
+                yield return new SuperToken(start, cursor);
                 continue;
             }
 
@@ -123,7 +123,7 @@ internal sealed class Lexer
             {
                 if (previous.Current.IsNot("_"))
                 {
-                    if (cursor.Current.Is("."))
+                    if (cursor.Current.Is(".") && Rune.IsDigit(cursor.Next().Current))
                     {
                         cursor = cursor.Next();
 
@@ -132,12 +132,11 @@ internal sealed class Lexer
                             cursor = cursor.Next();
                         }
 
-                        yield return new DecimalToken(start, cursor - start);
+                        yield return new DecimalToken(start, cursor);
                         continue;
                     }
 
-                    var s = text.Substring(start.Offset, cursor - start);
-                    yield return new NatToken(start, cursor - start, NatToken.UnicodeParse(s));
+                    yield return new NatToken(start, cursor);
                     continue;
                 }
 
@@ -164,17 +163,17 @@ internal sealed class Lexer
 
                 if (keywords.Contains(s))
                 {
-                    yield return new KeywordToken(start, cursor - start);
+                    yield return new KeywordToken(start, cursor);
                     continue;
                 }
 
                 if (s == "false" || s == "true")
                 {
-                    yield return new BoolToken(start, cursor - start);
+                    yield return new BoolToken(start, cursor);
                     continue;
                 }
 
-                yield return new IdToken(start, cursor - start);
+                yield return new IdToken(start, cursor);
                 continue;
             }
 
@@ -185,11 +184,11 @@ internal sealed class Lexer
 
             if (cursor > start)
             {
-                yield return new OperatorToken(start, cursor - start);
+                yield return new OperatorToken(start, cursor);
                 continue;
             }
 
-            yield return new UnknownToken(start, 1);
+            yield return new UnknownToken(start, start.Next());
             cursor = cursor.Next();
         }
     }

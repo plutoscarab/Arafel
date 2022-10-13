@@ -1,17 +1,31 @@
 <#@ output extension=".cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
 <#
     Empty("End");
     Characters("LParen", "RParen", "LBrack", "RBrack", "Comma");
-    Strings("Char", "Id", "Keyword", "Operator", "String", "Bool", "Unknown", "Super", "Decimal");
+    Strings("Char", "Id", "Keyword", "Operator", "String", "Bool", "Nat", "Unknown", "Super", "Decimal");
 #>
 
+internal sealed class Tokens
+{
+    public static Dictionary<string, TokenParser> Lookup = new()
+    {
+<# foreach (var (type, arity) in types) { #>        { "<#= type.ToUpperInvariant() #>", TokenParsers.Expect<<#= type #>Token>() },
+<# } #>
+    };
+}
 <#+
+    System.Collections.Generic.List<(string, int)> types = new();
+
     void Empty(params string[] ids)
     {
+        types.AddRange(ids.Select(id => (id, 0)));
+
         foreach (var id in ids)
         {
 #>
-internal sealed record <#= id #>Token() : Token(Cursor.Empty, 0)
+internal sealed partial record <#= id #>Token() : Token(Cursor.Empty, Cursor.Empty)
 {
     public static readonly <#= id #>Token Instance = new EndToken();
 }
@@ -22,10 +36,12 @@ internal sealed record <#= id #>Token() : Token(Cursor.Empty, 0)
 
     void Characters(params string[] ids)
     {
+        types.AddRange(ids.Select(id => (id, 1)));
+        
         foreach (var id in ids)
         {
 #>
-internal sealed record <#= id #>Token(Cursor Start) : Token(Start, 1);
+internal sealed partial record <#= id #>Token(Cursor Start) : Token(Start);
 
 <#+
         }
@@ -33,10 +49,12 @@ internal sealed record <#= id #>Token(Cursor Start) : Token(Start, 1);
 
     void Strings(params string[] ids)
     {
+        types.AddRange(ids.Select(id => (id, 2)));
+        
         foreach (var id in ids)
         {
 #>
-internal sealed record <#= id #>Token(Cursor Start, int Length) : Token(Start, Length);
+internal sealed partial record <#= id #>Token(Cursor Start, Cursor Next) : Token(Start, Next);
 
 <#+
         }

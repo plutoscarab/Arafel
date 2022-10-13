@@ -1,20 +1,27 @@
-using System.Reflection;
+using System.Text;
 
-internal record Token(Cursor Start, int Length)
+internal partial record Token
 {
-    static Dictionary<string, Type> TokenTypes = 
-        Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(Token).IsAssignableFrom(t)).ToDictionary(
-            t => t.Name.Replace("Token", ""), t => t, StringComparer.InvariantCultureIgnoreCase);
-
-    public Token() : this(Cursor.Empty, 0) { }
-
-    public Token(Cursor start) : this(start, 1) { }
-
-    public Token(Cursor start, Cursor next) : this(start, next - start) { }
+    public int Length => Next.Offset - Start.Offset;
 
     public string Text => 
-        Start.SourceText.Substring(Start.Offset, Length);
+        Children.Any() ? "" : FullText();
 
-    public override string ToString() => 
-        $"Line {Start.Line} Col {Start.Col} '{Text}'";
+    public string FullText()
+    {
+        var s = new StringBuilder();
+
+        foreach (var t in Runes())
+        {
+            s.Append(t.ToString());
+        }
+
+        return s.ToString();
+    }
+
+    public string ChildText() =>
+        Children.Any() ? string.Join("", Children.Select(t => t.ChildText())) : FullText();
+
+    public override string ToString() =>
+        Text;
 }

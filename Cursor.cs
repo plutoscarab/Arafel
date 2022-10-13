@@ -1,17 +1,16 @@
 using System.Text;
 
-internal record Cursor(string SourceText, int Offset, int Line, int Col)
+internal partial record Cursor
 {
     public static Cursor Empty = new Cursor(string.Empty);
+
+    public int Line { get; init; } = 1;
+
+    public int Col { get; init; } = 1;
     
     public Cursor(string text)
-    : this(text, 0, 1, 1)
+    : this(text.EnumerateRunes().ToList(), 0)
     {}
-
-    public bool More => Offset < SourceText.Length;
-
-    public Rune Current => 
-        More && Rune.TryGetRuneAt(SourceText, Offset, out var rune) ? rune : new Rune(0);
 
     public Cursor Next()
     {
@@ -19,18 +18,23 @@ internal record Cursor(string SourceText, int Offset, int Line, int Col)
             return this;
 
         if (Current.ToString() == "\n")
-            return new Cursor(SourceText, Offset + 1, Line + 1, 1);
+            return new Cursor(Source, Offset + 1) { Line = Line + 1, Col = 1 };
 
         if (Current.ToString() != "\r")
-            return new Cursor(SourceText, Offset + Current.Utf16SequenceLength, Line, Col + 1);
+            return new Cursor(Source, Offset + Current.Utf16SequenceLength) { Line = Line, Col = Col + 1 };
 
-        var crlf = Offset + 1 < SourceText.Length && SourceText[Offset + 1] == '\n';
-        return new Cursor(SourceText, Offset + (crlf ? 2 : 1), Line + 1, 1);
+        var crlf = Offset + 1 < Source.Count && Source[Offset + 1].ToString() == "\n";
+        return new Cursor(Source, Offset + (crlf ? 2 : 1)) { Line = Line + 1, Col = 1 };
     }
+}
 
-    public static bool operator >(Cursor a, Cursor b) => a.Offset > b.Offset;
-    public static bool operator <(Cursor a, Cursor b) => a.Offset < b.Offset;
-    public static int operator -(Cursor a, Cursor b) => a.Offset - b.Offset;
+internal sealed partial record TokenCursor
+{
+    public TokenCursor Next() => More ? new TokenCursor(this, Offset + 1) : this;    
+
+    public int Line => Current.Start.Line;
+
+    public int Col => Current.Start.Col;
 }
 
 internal static class RuneExtensions

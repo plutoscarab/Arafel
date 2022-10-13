@@ -1,47 +1,84 @@
-<#@ output extension=".cs" #>
+<#@ output extension=".cs" encoding="utf-8" #>
 using System.Text;
 <#
-    Parser("Token", "Rune");
-    Parser("TokenTree", "Token");
+    Parser("Token", "Rune", "new Rune()");
+    Parser("TokenTree", "Token", "new Token(Cursor.Empty, Cursor.Empty)");
 #>
 <#+
-void Parser(string resultType, string cursorType)
+void Parser(string resultType, string cursorType, string endValue)
 {
     var ctype = (cursorType == "Rune" ? "" : cursorType) + "Cursor";
     var lctype = cursorType.ToLower();
     var ptype = cursorType + "Parser";
-
-    if (ctype != "Cursor")
-    {
 #>
 
-internal sealed class <#= ctype #>
+internal sealed partial record <#= ctype #>(IReadOnlyList<<#= cursorType #>> Source, int Offset)
 {
-    public readonly IReadOnlyList<<#= cursorType #>> Source;
-
-    public readonly int Offset;
-
     public <#= ctype #>(IList<<#= cursorType #>> source)
-    {
-        Source = (IReadOnlyList<<#= cursorType #>>)source;
-        Offset = 0;
-    }
+    : this((IReadOnlyList<<#= cursorType #>>)source, 0)
+    { }
 
     private <#= ctype #>(<#= ctype #> cursor, int offset)
-    {
-        Source = cursor.Source;
-        Offset = offset;
-    }
+    : this(cursor.Source, offset)
+    { }
 
     public bool More => Offset < Source.Count;
 
-    public <#= cursorType #> Current => More ? Source[Offset] : new <#= cursorType #>();
+    public <#= cursorType #> Current => More ? Source[Offset] : <#= endValue #>;
 
-    public <#= ctype #> Next() => More ? new <#= ctype #>(this, Offset + 1) : this;
+    public static bool operator >(<#= ctype #> a, <#= ctype #> b) => a.Offset > b.Offset;
+    
+    public static bool operator <(<#= ctype #> a, <#= ctype #> b) => a.Offset < b.Offset;
+
+    public static int operator -(<#= ctype #> a, <#= ctype #> b) => a.Offset - b.Offset;
 }
-<#+
+
+internal partial record <#= resultType #>(<#= ctype #> Start, <#= ctype #> Next)
+{
+    public readonly List<<#= resultType #>> Children = new();
+
+    public string Production = string.Empty;
+
+    public <#= resultType #>(<#= ctype #> start) : this(start, start.Next()) { }
+
+    public <#= resultType #>(<#= ctype #> start, <#= ctype #> next, IEnumerable<<#= resultType #>> children) 
+    : this(start, next) 
+    { 
+        Children = children.ToList(); 
     }
-#>    
+
+    public IEnumerable<<#= cursorType #>> <#= cursorType #>s()
+    {
+        var t = Start;
+
+        while (t.More && t.Offset < Next.Offset)
+        {
+            yield return t.Current;
+            t = t.Next();
+        }
+    }
+
+    public void Dump(TextWriter writer)
+    {
+        writer.WriteLine($"Line {Start.Line} Col {Start.Col}");
+        Dump(writer, string.Empty);
+    }
+
+    private void Dump(TextWriter writer, string indent, bool last = true)
+    {
+        var branch = last ? "└" : "├";
+        var prod = Production;
+        if (prod != "") prod += ": ";
+        var token = Children.Any() ? "" : string.Join("", <#= cursorType #>s().Select(t => t.ToString()));
+        writer.WriteLine($"{indent}{branch}─{prod}{token}");
+        indent += last ? "  " : "│ ";
+        
+        foreach (var (child, i) in Children.Select((c, i) => (c, i)))
+        {
+            child.Dump(writer, indent, i == Children.Count - 1);
+        }
+    }
+}
 
 internal delegate (<#= resultType #>? Result, <#= ctype #> Next) <#= ptype #>(<#= ctype #> cursor);
 
@@ -75,40 +112,132 @@ internal sealed class <#= cursorType #>Parsers
         cursor =>
         {
             var start = cursor;
+            List<<#= resultType #>> list = new();
 
             foreach (var parser in parsers)
             {
                 var (result, next) = parser(cursor);
                 if (result is null) return (null, cursor);
+
+                if (result.Next.Offset > result.Start.Offset) 
+                    if (result.Children.Any() && string.IsNullOrEmpty(result.Production))
+                        list.AddRange(result.Children);
+                    else
+                        list.Add(result);
+
                 cursor = next;
             }
 
-            return (new <#= resultType #>(start, cursor), cursor);
+            if (list.Count == 1)
+                return (list[0], cursor);
+
+            return (new <#= resultType #>(start, cursor, list), cursor);
         };
 
     public static <#= ptype #> OneOrMore(<#= ptype #> parser) =>
         cursor =>
         {
             var start = cursor;
+            List<<#= resultType #>> list = new();
             
             while (true)
             {
                 var (result, next) = parser(cursor);
                 if (result is null) break;
+
+                if (result.Next.Offset > result.Start.Offset) 
+                    if (result.Children.Any() && string.IsNullOrEmpty(result.Production))
+                        list.AddRange(result.Children);
+                    else
+                        list.Add(result);
+
                 cursor = next;
             }
             
             if (cursor.Offset > start.Offset)
-                return (new <#= resultType #>(start, cursor), cursor);
+            {
+                if (list.Count == 1)
+                    return (list[0], cursor);
+                    
+                return (new <#= resultType #>(start, cursor, list), cursor);
+            }
                 
             return (null, start);
         };
 
-    public static <#= ptype #> Opt(<#= ptype #> parser, <#= resultType #> defaultValue) =>
+    public static <#= ptype #> ZeroOrMore(<#= ptype #> parser) =>
+        cursor =>
+        {
+            var start = cursor;
+            List<<#= resultType #>> list = new();
+            
+            while (true)
+            {
+                var (result, next) = parser(cursor);
+                if (result is null) break;
+
+                if (result.Next.Offset > result.Start.Offset) 
+                    if (result.Children.Any() && string.IsNullOrEmpty(result.Production))
+                        list.AddRange(result.Children);
+                    else
+                        list.Add(result);
+
+                cursor = next;
+            }
+            
+            if (cursor.Offset > start.Offset)
+            {
+                if (list.Count == 1)
+                    return (list[0], cursor);
+                    
+                return (new <#= resultType #>(start, cursor, list), cursor);
+            }
+                
+            return (new <#= resultType #>(start, start), start);
+        };
+
+    public static <#= ptype #> Opt(<#= ptype #> parser) =>
         cursor =>
         {
             var (result, next) = parser(cursor);
-            if (result is null) return (defaultValue, cursor);
+            if (result is null) return (new <#= resultType #>(cursor, cursor), cursor);
+            return (result, next);
+        };
+
+    public static <#= ptype #> Delay(Func<<#= ptype #>> delayed) =>
+        cursor => delayed()(cursor);
+
+    static System.CodeDom.Compiler.IndentedTextWriter writer = new (Console.Out);
+
+    public static <#= ptype #> Prod(string production, <#= ptype #> parser) =>
+        cursor => 
+        {
+            //writer.WriteLine($"{production} at {cursor.Offset}");
+            //writer.Indent++;
+            var (result, next) = parser(cursor);
+            //var message = result is null ? $"failed" : $"succeeded";
+            //writer.WriteLine($"{production} {message}");
+            //writer.Indent--;
+            if (result is not null && string.IsNullOrEmpty(result.Production)) result.Production = production;
+            return (result, next);
+        };
+
+    public static <#= ptype #> Ignore(<#= ptype #> parser) =>
+        cursor =>
+        {
+            var (result, next) = parser(cursor);
+            if (result is null) return (null, cursor);
+            result = new <#= resultType #>(next, next, result.Children) { Production = result.Production };
+            return (result, next);
+        };
+
+    public static <#= ptype #> Merge(<#= ptype #> parser) =>
+        cursor =>
+        {
+            var (result, next) = parser(cursor);
+            if (result is null) return (null, cursor);
+            if (!result.Children.Any()) return (result, next);
+            result = new <#= resultType #>(result.Children[0].Start, result.Children[^1].Next) { Production = result.Production };
             return (result, next);
         };
 }

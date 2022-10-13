@@ -1,11 +1,7 @@
 using System.Numerics;
 
-internal sealed record NatToken(Cursor Start, int Length, BigInteger Value) 
-: Token(Start, Length)
+internal sealed partial record NatToken
 {
-    public override string ToString() =>
-        Value.ToString();
-
     public static BigInteger UnicodeParse(string s)
     {
         BigInteger b = 0;
