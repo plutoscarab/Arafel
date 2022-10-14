@@ -101,6 +101,61 @@ Odd numbers starting with 7:
 
     [7, 9..]
 
+List by item concatenation.
+
+    1 : 2 : 3 : []
+    let L = 4 : 5 : []
+    6 : L
+
+List item extraction:
+
+    case L of
+        h:tail -> Just(h)
+        else -> Nothing
+
+
+ARRAYS
+
+    {}
+    {1, 2, 3}
+    {3+5, 3-5, 3*5, 3/5}
+    {{'a', 'b'}, {'c', 'd'}}
+    {[1], [1,2], [1,2,3]}
+
+Array pattern matching.
+
+    case arr of
+        {} -> "empty"
+        {x} -> "one element"
+        {x, y} -> "two elements"
+        {x, ..} -> "at least one element"
+        {x, y, ..} -> "at least two elements"
+        {.., x} -> "get last element"
+        {.., x, y} -> "get last two elements"
+        {x, .., y} -> "get first and last element"
+        else -> "else"
+
+Array element indexing. This returns "3":
+
+    {1, 2, 3, 4} !! 2
+
+This returns "1" because (20 % 4) == 0:
+
+    {1, 2, 3, 4} !! 20
+
+Array views (a.k.a. slicing) using map:
+
+    toArray(map([-2..-1], fn (i) = {1, 2, 3, 4} !! i))
+
+Syntactic sugar, does not wrap around the ends of the array,
+so this returns {3, 4}:
+
+    {1, 2, 3, 4} !! [2..]
+
+Blows up memory:
+
+    toArray([0..])
+
 
 TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
 
@@ -148,18 +203,18 @@ Functions are values in and of themselves, and can be passed as arguments to
 other functions. Here's a function that accepts a function as input and applies
 it to each value in a list to produce a new list.
 
-:    fn map(list, func) = case list of
-:        [] -> []
-:        head:tail -> func(head) : map(tail, func)
+    fn map(list, func) = case list of
+        [] -> []
+        head:tail -> func(head) : map(tail, func)
 
 We can use this to apply our "square" function to each item in the list.
 
-:    map([1..5], square)
+    map([1..5], square)
 
 This produces [1, 4, 9, 16, 25]. We can also supply a function directly in the 
 call to map without defining a named function first.
 
-:    map([1..5], fn (x) = x * x)
+    map([1..5], fn (x) = x * x)
 
 An unnamed function like this is called a lambda function, after Lambda
 calculus.

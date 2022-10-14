@@ -66,7 +66,8 @@ internal sealed class Lexer
 
                 if (cursor.Current.Is("\""))
                 {
-                    yield return new StringToken(start, cursor);
+                    yield return new StringToken(start.Next(), cursor);
+                    cursor = cursor.Next();
                     continue;
                 }
 

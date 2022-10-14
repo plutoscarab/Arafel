@@ -22,6 +22,5 @@ internal partial record Token
     public string ChildText() =>
         Children.Any() ? string.Join("", Children.Select(t => t.ChildText())) : FullText();
 
-    public override string ToString() =>
-        Text;
+    public override string ToString() => Text;
 }

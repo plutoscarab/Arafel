@@ -24,13 +24,13 @@ exfix ::= '`' ( OPERATOR expr? | expr OPERATOR ) '`'
 call ::= ID '(' expr (',' expr)* ')'
 
 list ::= '[' ((expr (',' expr)?)? '..' expr? | expr (',' expr)*)? ']'
-array ::= '{' expr (',' expr)* '}'
+array ::= '{' (expr (',' expr)*)? '}'
 
 match ::= 'case' expr 'of' ((pattern | CHAR | STRING | BOOL | DECIMAL | '-'? NAT) '->' expr)+ ('else' '->' expr)?
-pattern ::= ctorPattern | listPattern | tuplePattern | arrayPattern
+pattern ::= listPattern | tuplePattern | arrayPattern | ctorPattern
 ctorPattern ::= ID ids?
 ids ::= '(' ID (',' ID)* ')'
-listPattern ::= (ID ':')+ ID | (ID ':')* '[]'
+listPattern ::= (ID ':')+ (ID | '[]') | '[]'
 tuplePattern ::= ID (',' ID)+
 
 arrayPattern ::= '{' ((ID (',' (ID ',')* '..')? | '..' ',' ID) (',' ID)*)? '}'

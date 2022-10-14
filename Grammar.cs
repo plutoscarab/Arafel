@@ -64,7 +64,7 @@ internal sealed class Grammar
             case "id":
                 if (t.Text != t.Text.ToUpperInvariant())
                     return TokenParsers.Delay(() => productions[t.Text]);
-
+ 
                 return Tokens.Lookup[t.Text];
 
             case "atom":

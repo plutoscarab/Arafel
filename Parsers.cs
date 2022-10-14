@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Threading;
 
 internal sealed partial record Cursor(IReadOnlyList<Rune> Source, int Offset)
 {
@@ -329,6 +330,8 @@ internal sealed class TokenParsers
     public static TokenParser Seq(params TokenParser[] parsers) =>
         cursor =>
         {
+            var production = _local.Value;
+            //if (production == "match") System.Diagnostics.Debugger.Break();
             var start = cursor;
             List<TokenTree> list = new();
 
@@ -427,9 +430,12 @@ internal sealed class TokenParsers
 
     static System.CodeDom.Compiler.IndentedTextWriter writer = new (Console.Out);
 
+    static AsyncLocal<string> _local = new();
+
     public static TokenParser Prod(string production, TokenParser parser) =>
         cursor => 
         {
+            _local.Value = production;
             //writer.WriteLine($"{production} at {cursor.Offset}");
             //writer.Indent++;
             var (result, next) = parser(cursor);

@@ -3,35 +3,95 @@ internal sealed partial record EndToken() : Token(Cursor.Empty, Cursor.Empty)
     public static readonly EndToken Instance = new EndToken();
 }
 
-internal sealed partial record LParenToken(Cursor Start) : Token(Start);
+internal sealed partial record LParenToken(Cursor Start) 
+: Token(Start, Start.Next())
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record RParenToken(Cursor Start) : Token(Start);
+internal sealed partial record RParenToken(Cursor Start) 
+: Token(Start, Start.Next())
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record LBrackToken(Cursor Start) : Token(Start);
+internal sealed partial record LBrackToken(Cursor Start) 
+: Token(Start, Start.Next())
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record RBrackToken(Cursor Start) : Token(Start);
+internal sealed partial record RBrackToken(Cursor Start) 
+: Token(Start, Start.Next())
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record CommaToken(Cursor Start) : Token(Start);
+internal sealed partial record CommaToken(Cursor Start) 
+: Token(Start, Start.Next())
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record CharToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record CharToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record IdToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record IdToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record KeywordToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record KeywordToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record OperatorToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record OperatorToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record StringToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record StringToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record BoolToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record BoolToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record NatToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record NatToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record UnknownToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record UnknownToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record SuperToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record SuperToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
-internal sealed partial record DecimalToken(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record DecimalToken(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
 
 internal sealed class Tokens

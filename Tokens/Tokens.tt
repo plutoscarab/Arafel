@@ -41,7 +41,11 @@ internal sealed partial record <#= id #>Token() : Token(Cursor.Empty, Cursor.Emp
         foreach (var id in ids)
         {
 #>
-internal sealed partial record <#= id #>Token(Cursor Start) : Token(Start);
+internal sealed partial record <#= id #>Token(Cursor Start) 
+: Token(Start, Start.Next())
+{
+    public override string ToString() => Text;
+}
 
 <#+
         }
@@ -54,7 +58,11 @@ internal sealed partial record <#= id #>Token(Cursor Start) : Token(Start);
         foreach (var id in ids)
         {
 #>
-internal sealed partial record <#= id #>Token(Cursor Start, Cursor Next) : Token(Start, Next);
+internal sealed partial record <#= id #>Token(Cursor Start, Cursor Next) 
+: Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
 
 <#+
         }
