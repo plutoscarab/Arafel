@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 internal sealed partial record EndToken() : Token(Cursor.Empty, Cursor.Empty)
 {
     public static readonly EndToken Instance = new EndToken();
@@ -94,9 +95,9 @@ internal sealed partial record DecimalToken(Cursor Start, Cursor Next)
 }
 
 
-internal sealed class Tokens
+internal static class Tokens
 {
-    public static Dictionary<string, TokenParser> Lookup = new()
+    public static readonly Dictionary<string, TokenParser> Lookup = new()
     {
         { "END", TokenParsers.Expect<EndToken>() },
         { "LPAREN", TokenParsers.Expect<LParenToken>() },

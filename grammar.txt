@@ -1,22 +1,22 @@
-program ::= (assignment | typeDef | function | infix | expr)+
+program ::= (assignment | typeDef | function | customop | expr)+
 
 assignment ::= 'let' pattern '=' expr
 
-expr ::= ('if' or 'then' or ('else' or)?) | or
-or ::= xor ('|' xor)*
-xor ::= and ('^' and)*
-and ::= eq ('&' eq)*
-eq ::= compare (('==' | '!=' | '≠') compare)*
-compare ::= threeWay (('<' | '<=' | '≤' | '>' | '>=' | '≥') threeWay)*
-threeWay ::= cons ('<=>' cons)*
-cons ::= sum ((':' | '++') sum)*
-sum ::= shift (('+' | '-') shift)*
-shift ::= term (('<<' | '>>') term)*
-term ::= atIndex (('*' | '/' | './' | '%') atIndex)*
-atIndex ::= power ('!!' power)*
-power ::= unary ('**' unary)*
-unary ::= ('+' | '-' | '~' | '√' | '∛' | '∜')* atom SUPER?
-atom ::= CHAR | STRING | BOOL | DECIMAL | NAT | parens | exfix | call | list | array | match | ID | 'π'
+expr ::= ('if' op1 'then' op1 'else' op1) | op1
+op1 ::= op2 (OP1 op2)*
+op2 ::= op3 (OP2 op3)*
+op3 ::= op4 (OP3 op4)*
+op4 ::= op5 (OP4 op5)*
+op5 ::= op6 (OP5 op6)*
+op6 ::= op7 (OP6 op7)*
+op7 ::= op8 (OP7 op8)*
+op8 ::= op9 (OP8 op9)*
+op9 ::= op10 (OP9 op10)*
+op10 ::= op11 (OP10 op11)*
+op11 ::= op12 (OP11 op12)*
+op12 ::= unary (OP12 unary)*
+unary ::= PREFIX* atom (SUPER | POSTFIX)*
+atom ::= CHAR | STRING | BOOL | DECIMAL | NAT | exfix | lambda | parens | call | ID | list | array | match
 
 parens ::= '(' expr (',' expr)* ')'
 exfix ::= '`' ( OPERATOR expr? | expr OPERATOR ) '`'
@@ -30,13 +30,17 @@ match ::= 'case' expr 'of' ((pattern | CHAR | STRING | BOOL | DECIMAL | '-'? NAT
 pattern ::= listPattern | tuplePattern | arrayPattern | ctorPattern
 ctorPattern ::= ID ids?
 ids ::= '(' ID (',' ID)* ')'
-listPattern ::= (ID ':')+ (ID | '[]') | '[]'
+listPattern ::= (ID ':')+ (ID | '[' ']') | '[' ']'
 tuplePattern ::= ID (',' ID)+
 
 arrayPattern ::= '{' ((ID (',' (ID ',')* '..')? | '..' ',' ID) (',' ID)*)? '}'
 
-function ::= 'fn' ID ids '=' expr
-infix ::= ('infixl' | 'infixr') NAT ID (OPERATOR | ID) ID NAT? '=' expr
+function ::= ID ids '=' expr
+lambda ::= ids '=' expr
+customop ::= 'op' (infix | prefix | postfix) '=' expr
+infix ::= '-'? NAT ID (OPERATOR | ID) ID
+prefix ::= OPERATOR ID
+postfix ::= ID OPERATOR
 
 typeDef ::= 'type' ID ids? '=' (unionDef | tupleDef)
 unionDef ::= typeName ('|' typeName)+

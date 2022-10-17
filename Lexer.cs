@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -13,7 +17,12 @@ internal sealed class Lexer
         { new Rune(','), typeof(CommaToken) },
     }.ToDictionary(e => e.Key, e =>
     {
-        var ctor = e.Value.GetConstructor(BindingFlags.Public | BindingFlags.Instance, new[] { typeof(Cursor) });
+        var ctor = e.Value.GetConstructor(
+            BindingFlags.Public | BindingFlags.Instance, 
+            null,
+            new[] { typeof(Cursor) },
+            null);
+            
         if (ctor == null) throw new ArgumentNullException();
         var param = Expression.Parameter(typeof(Cursor), "Start");
         var newExpr = Expression.New(ctor, new[] {param});
@@ -23,11 +32,11 @@ internal sealed class Lexer
         return (Func<Cursor, Token>)del;
     });
 
-    static HashSet<string> keywords = new HashSet<string>{ "type", "case", "of", "fn", "let", "infixl", "infixr" };
+    static HashSet<string> keywords = new HashSet<string>{ "type", "case", "of", "let", "op" };
 
-    public static IEnumerable<Token> Tokenize(string text)
+    public static IEnumerable<Token> Tokenize(string text, Operators operators)
     {
-        var cursor = new Cursor(text);
+        var cursor = new Cursor(text, new Context(operators));
         var indented = false;
 
         while (cursor.More)
@@ -160,7 +169,7 @@ internal sealed class Lexer
                     cursor = cursor.Next();
                 }
 
-                var s = text.Substring(start.Offset, cursor - start);
+                var s = new Token(start, cursor).ToString();
 
                 if (keywords.Contains(s))
                 {
@@ -178,9 +187,12 @@ internal sealed class Lexer
                 continue;
             }
 
-            while ("+-*/%<=>.|&^".Contains(cursor.Current.ToString()))
+            while ("~!@#$%^&*-+=|\\:;<>.?/√∛∜".Contains(cursor.Current.ToString()))
             {
                 cursor = cursor.Next();
+
+                if (cursor.Offset == start.Offset + 2 && start.Current.ToString() + start.Next().Current.ToString() == "..")
+                    break;
             }
 
             if (cursor > start)

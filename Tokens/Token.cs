@@ -1,6 +1,7 @@
+using System.Linq;
 using System.Text;
 
-internal partial record Token
+public partial record Token
 {
     public int Length => Next.Offset - Start.Offset;
 

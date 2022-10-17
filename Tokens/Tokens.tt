@@ -1,15 +1,16 @@
 <#@ output extension=".cs" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
+using System.Collections.Generic;
 <#
     Empty("End");
     Characters("LParen", "RParen", "LBrack", "RBrack", "Comma");
     Strings("Char", "Id", "Keyword", "Operator", "String", "Bool", "Nat", "Unknown", "Super", "Decimal");
 #>
 
-internal sealed class Tokens
+internal static class Tokens
 {
-    public static Dictionary<string, TokenParser> Lookup = new()
+    public static readonly Dictionary<string, TokenParser> Lookup = new()
     {
 <# foreach (var (type, arity) in types) { #>        { "<#= type.ToUpperInvariant() #>", TokenParsers.Expect<<#= type #>Token>() },
 <# } #>

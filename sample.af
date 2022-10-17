@@ -55,7 +55,7 @@ FUNCTIONS
 Functions in Arafel are written like this which returns the square
 of a number:
 
-    fn square(x) = x * x
+    square(x) = x * x
 
 Functions that you define this way can be used in expressions later in
 the program.
@@ -65,7 +65,7 @@ the program.
 
 There are many built-in functions, such as "sqrt":
 
-    fn hypot(a, b) = sqrt(a * a + b * b)
+    hypot(a, b) = sqrt(a * a + b * b)
 
 The "power" operator for exponentiation is "**". It is right-associative, so 
 these two expressions are equivalent:
@@ -143,9 +143,9 @@ This returns "1" because (20 % 4) == 0:
 
     {1, 2, 3, 4} !! 20
 
-Array views (a.k.a. slicing) using map:
+Array views (a.k.a. slicing) attempt using map:
 
-    toArray(map([-2..-1], fn (i) = {1, 2, 3, 4} !! i))
+    toArray(map([-2..-1], (i) = {1, 2, 3, 4} !! i))
 
 Syntactic sugar, does not wrap around the ends of the array,
 so this returns {3, 4}:
@@ -188,7 +188,7 @@ To use a union type, we use the "case" function to match with each of the
 functions that were used to create the tree. Here's a function to count the
 leaf nodes in our tree.
 
-    fn count(t) = case t of 
+    count(t) = case t of 
         Leaf(_) -> 1 
         Node(left, right) -> count(left) + count(right)
 
@@ -203,7 +203,7 @@ Functions are values in and of themselves, and can be passed as arguments to
 other functions. Here's a function that accepts a function as input and applies
 it to each value in a list to produce a new list.
 
-    fn map(list, func) = case list of
+    map(list, func) = case list of
         [] -> []
         head:tail -> func(head) : map(tail, func)
 
@@ -214,13 +214,31 @@ We can use this to apply our "square" function to each item in the list.
 This produces [1, 4, 9, 16, 25]. We can also supply a function directly in the 
 call to map without defining a named function first.
 
-    map([1..5], fn (x) = x * x)
+    map([1..5], (x) = x * x)
 
 An unnamed function like this is called a lambda function, after Lambda
 calculus.
 
-If the lambda function is the last argument passed to another function, it can
-be pulled outside the parenthesis to make it a little more readible.
 
-:    map([1..5]) fn (x) = x * x
+CUSTOM OPERATORS
+
+Infix operator with precedence 7.
+
+    op 7 list1 \\ list2 = case list1 of
+        [] -> list2
+        x:xs -> x : (xs \\ list2)
+
+    [1, 2] \\ [3, 4, 5]
+
+Custom postfix operator "|>" which returns zero for negative numbers.
+
+    op x|> = if x < 0 then 0 else x
+
+    (-42)|>
+
+Custom prefix operator "+." which returns 1 more than the argument.
+
+    op +.x = x + 1
+
+    +.364
 
