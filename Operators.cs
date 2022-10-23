@@ -5,14 +5,14 @@ using System.Linq;
 
 public sealed partial class Operators
 {
-    private readonly Dictionary<string, List<string>> lookup;
+    private readonly Dictionary<string, HashSet<string>> lookup;
 
     public Operators()
     {
-        lookup = new Dictionary<string, List<string>>();
+        lookup = new Dictionary<string, HashSet<string>>();
     }
 
-    private Operators(Dictionary<string, List<string>> lookup)
+    private Operators(Dictionary<string, HashSet<string>> lookup)
     {
         this.lookup = lookup;
     }
@@ -21,7 +21,7 @@ public sealed partial class Operators
     {
         lookup = File.ReadAllLines(filename)
             .Select(line => line.Split(' '))
-            .ToDictionary(p => p[0], p => p.Skip(1).ToList());
+            .ToDictionary(p => p[0], p => p.Skip(1).Where(q => q.Length > 0).ToHashSet());
     }
 
     public Operators WithOperator(string production, string op)

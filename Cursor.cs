@@ -22,7 +22,7 @@ public partial record Cursor
             return new Cursor(Source, Offset + 1, Context) { Line = Line + 1, Col = 1 };
 
         if (Current.ToString() != "\r")
-            return new Cursor(Source, Offset + Current.Utf16SequenceLength, Context) { Line = Line, Col = Col + 1 };
+            return new Cursor(Source, Offset + 1, Context) { Line = Line, Col = Col + 1 };
 
         var crlf = Offset + 1 < Source.Count && Source[Offset + 1].ToString() == "\n";
         return new Cursor(Source, Offset + (crlf ? 2 : 1), Context) { Line = Line + 1, Col = 1 };

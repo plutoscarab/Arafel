@@ -23,7 +23,7 @@ public sealed partial class Grammar
     static RuneParser charSet = Prod("charSet", Seq(Ignore(Char('[')), Opt(Char('^')), OneOrMore(OneOf(charRange, charOrCode)), Ignore(Char(']'))));
     static RuneParser atom = Prod("atom", Seq(ws, OneOf(id, quoted, parens, charCode, charSet), Opt(Prod("modifier", OneOf(Char('?'), Char('*'), Char('+'))))));
     static RuneParser sequence = Prod("seq", OneOrMore(atom));
-    static RuneParser production = Prod("production", Seq(ws, id, ws, Ignore(Str("::=")), ws, expr, lb));
+    static RuneParser production = Prod("production", Seq(ws, id, ws, Ignore(Str("::=")), ws, expr, ws, lb));
     static RuneParser grammar = Prod("grammar", OneOrMore(production));
 
     static Grammar()

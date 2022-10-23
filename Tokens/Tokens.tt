@@ -4,8 +4,9 @@
 using System.Collections.Generic;
 <#
     Empty("End");
-    Characters("LParen", "RParen", "LBrack", "RBrack", "Comma");
-    Strings("Char", "Id", "Keyword", "Operator", "String", "Bool", "Nat", "Unknown", "Super", "Decimal");
+    Characters("LParen", "RParen", "LBrack", "RBrack", "Comma", "LBrace", "RBrace");
+    Strings("Literal", "Id", "Keyword", "Operator", "Unknown", "Super", "NatList");
+    Literals("Char", "String", "Bool", "Nat", "Decimal");
 #>
 
 internal static class Tokens
@@ -28,7 +29,7 @@ internal static class Tokens
 #>
 internal sealed partial record <#= id #>Token() : Token(Cursor.Empty, Cursor.Empty)
 {
-    public static readonly <#= id #>Token Instance = new EndToken();
+    public static readonly <#= id #>Token Instance = new <#= id #>Token();
 }
 
 <#+
@@ -59,8 +60,25 @@ internal sealed partial record <#= id #>Token(Cursor Start)
         foreach (var id in ids)
         {
 #>
-internal sealed partial record <#= id #>Token(Cursor Start, Cursor Next) 
+internal <#= id == "Literal" ? "" : "sealed " #>partial record <#= id #>Token(Cursor Start, Cursor Next) 
 : Token(Start, Next)
+{
+    public override string ToString() => Text;
+}
+
+<#+
+        }
+    }
+
+    void Literals(params string[] ids)
+    {
+        types.AddRange(ids.Select(id => (id, 2)));
+        
+        foreach (var id in ids)
+        {
+#>
+internal sealed partial record <#= id #>Token(Cursor Start, Cursor Next) 
+: LiteralToken(Start, Next)
 {
     public override string ToString() => Text;
 }
