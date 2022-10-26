@@ -1,7 +1,8 @@
 <#@ output extension=".cs" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
-using System.Collections.Generic;
+namespace Plutoscarab.Arafel;
+
 <#
     Empty("End");
     Characters("LParen", "RParen", "LBrack", "RBrack", "Comma", "LBrace", "RBrace");

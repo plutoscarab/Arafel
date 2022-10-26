@@ -1,4 +1,4 @@
-using static TokenParsers;
+namespace Plutoscarab.Arafel;
 
 public sealed partial class Arafel
 {

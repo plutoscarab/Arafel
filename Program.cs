@@ -1,5 +1,6 @@
-﻿using System.CodeDom.Compiler;
-using System.Diagnostics;
+﻿namespace Plutoscarab.Arafel;
+
+using System.CodeDom.Compiler;
 using System.Text;
 
 internal sealed class Program
@@ -13,7 +14,7 @@ internal sealed class Program
             using (var cs = File.CreateText("language.cs"))
             using (var writer = new IndentedTextWriter(cs))
             {
-                writer.WriteLine("using static TokenParsers;");
+                writer.WriteLine("namespace Plutoscarab.Arafel;");
                 writer.WriteLine();
                 writer.WriteLine("public sealed partial class Arafel");
                 writer.WriteLine("{");

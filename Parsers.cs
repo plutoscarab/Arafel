@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
+﻿namespace Plutoscarab.Arafel;
+
 using System.Text;
 
 public sealed partial record Cursor(IReadOnlyList<Rune> Source, int Offset, Context Context)

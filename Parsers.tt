@@ -1,9 +1,6 @@
 <#@ output extension=".cs" encoding="utf-8" #>
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
+namespace Plutoscarab.Arafel;
+
 using System.Text;
 <#
     Parser("Token", "Rune", "new Rune()");

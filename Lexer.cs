@@ -1,9 +1,9 @@
-using System.Diagnostics;
+namespace Plutoscarab.Arafel;
+
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 
 internal sealed class Lexer
 {
