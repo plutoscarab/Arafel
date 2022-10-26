@@ -1247,6 +1247,12 @@ public sealed partial class Arafel
     
     static bool atom_7(ref TokenCursor cursor, out TokenTree? result)
     {
+        (result, cursor) = match(cursor);
+        return result is not null;
+    }
+    
+    static bool atom_8(ref TokenCursor cursor, out TokenTree? result)
+    {
         if (cursor.Current is IdToken)
         {
             result = new TokenTree(cursor);
@@ -1258,21 +1264,15 @@ public sealed partial class Arafel
         return false;
     }
     
-    static bool atom_8(ref TokenCursor cursor, out TokenTree? result)
+    static bool atom_9(ref TokenCursor cursor, out TokenTree? result)
     {
         (result, cursor) = list(cursor);
         return result is not null;
     }
     
-    static bool atom_9(ref TokenCursor cursor, out TokenTree? result)
-    {
-        (result, cursor) = array(cursor);
-        return result is not null;
-    }
-    
     static bool atom_10(ref TokenCursor cursor, out TokenTree? result)
     {
-        (result, cursor) = match(cursor);
+        (result, cursor) = array(cursor);
         return result is not null;
     }
     
@@ -2030,7 +2030,49 @@ public sealed partial class Arafel
         return false;
     }
     
+    static bool match_2(ref TokenCursor cursor, out TokenTree? result)
+    {
+        (result, cursor) = matchCase(cursor);
+        return result is not null;
+    }
+    
+    static bool match_3(ref TokenCursor cursor, out TokenTree? result)
+    {
+        (result, cursor) = ifCase(cursor);
+        return result is not null;
+    }
+    
     static bool match_1(ref TokenCursor cursor, out TokenTree? result)
+    {
+        if (match_2(ref cursor, out result)) return true;
+        if (match_3(ref cursor, out result)) return true;
+        result = null;
+        return false;
+    }
+    
+    static bool match_0(ref TokenCursor cursor, out TokenTree? result)
+    {
+        var start = cursor;
+        var list = new List<TokenTree>();
+        if (!quoted_14(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (!match_1(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (list.Count == 1) result = list[0];
+        else result = new TokenTree(start, cursor, list);
+        return true;
+    }
+    
+    public static Func<TokenTree?, TokenCursor, (TokenTree?, TokenCursor)> matchCaseHook = (result, cursor) => (result, cursor);
+    
+    public static (TokenTree? Result, TokenCursor Next) matchCase(TokenCursor cursor)
+    {
+        if (!matchCase_0(ref cursor, out var result)) return (null, cursor);
+        if (result is not null && string.IsNullOrEmpty(result.Production)) result.Production = "matchCase";
+        return matchCaseHook(result, cursor);
+    }
+    
+    static bool matchCase_1(ref TokenCursor cursor, out TokenTree? result)
     {
         (result, cursor) = expr(cursor);
         return result is not null;
@@ -2049,13 +2091,13 @@ public sealed partial class Arafel
         return false;
     }
     
-    static bool match_5(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_5(ref TokenCursor cursor, out TokenTree? result)
     {
         (result, cursor) = pattern(cursor);
         return result is not null;
     }
     
-    static bool match_6(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_6(ref TokenCursor cursor, out TokenTree? result)
     {
         if (cursor.Current is LiteralToken)
         {
@@ -2081,7 +2123,7 @@ public sealed partial class Arafel
         return false;
     }
     
-    static bool match_8(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_8(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
         if (quoted_16(ref cursor, out result)) return true;
@@ -2089,7 +2131,7 @@ public sealed partial class Arafel
         return true;
     }
     
-    static bool match_9(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_9(ref TokenCursor cursor, out TokenTree? result)
     {
         if (cursor.Current is NatToken)
         {
@@ -2102,24 +2144,24 @@ public sealed partial class Arafel
         return false;
     }
     
-    static bool match_7(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_7(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
         var list = new List<TokenTree>();
-        if (!match_8(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_8(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
-        if (!match_9(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_9(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
         if (list.Count == 1) result = list[0];
         else result = new TokenTree(start, cursor, list);
         return true;
     }
     
-    static bool match_4(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_4(ref TokenCursor cursor, out TokenTree? result)
     {
-        if (match_5(ref cursor, out result)) return true;
-        if (match_6(ref cursor, out result)) return true;
-        if (match_7(ref cursor, out result)) return true;
+        if (matchCase_5(ref cursor, out result)) return true;
+        if (matchCase_6(ref cursor, out result)) return true;
+        if (matchCase_7(ref cursor, out result)) return true;
         result = null;
         return false;
     }
@@ -2137,33 +2179,33 @@ public sealed partial class Arafel
         return false;
     }
     
-    static bool match_10(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_10(ref TokenCursor cursor, out TokenTree? result)
     {
         (result, cursor) = expr(cursor);
         return result is not null;
     }
     
-    static bool match_3(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_3(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
         var list = new List<TokenTree>();
-        if (!match_4(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_4(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
         if (!quoted_17(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
-        if (!match_10(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_10(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
         if (list.Count == 1) result = list[0];
         else result = new TokenTree(start, cursor, list);
         return true;
     }
     
-    static bool match_2(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_2(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
         var list = new List<TokenTree>();
         
-        while (match_3(ref cursor, out result))
+        while (matchCase_3(ref cursor, out result))
         {
             Append(list, result);
         }
@@ -2179,48 +2221,118 @@ public sealed partial class Arafel
         return false;
     }
     
-    static bool match_13(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_13(ref TokenCursor cursor, out TokenTree? result)
     {
         (result, cursor) = expr(cursor);
         return result is not null;
     }
     
-    static bool match_12(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_12(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
         var list = new List<TokenTree>();
         if (!quoted_4(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
-        if (!quoted_17(ref cursor, out result)) { cursor = start; return false; }
-        Append(list, result);
-        if (!match_13(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_13(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
         if (list.Count == 1) result = list[0];
         else result = new TokenTree(start, cursor, list);
         return true;
     }
     
-    static bool match_11(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_11(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
-        if (match_12(ref cursor, out result)) return true;
+        if (matchCase_12(ref cursor, out result)) return true;
         result = new TokenTree(start, start);
         return true;
     }
     
-    static bool match_0(ref TokenCursor cursor, out TokenTree? result)
+    static bool matchCase_0(ref TokenCursor cursor, out TokenTree? result)
     {
         var start = cursor;
         var list = new List<TokenTree>();
-        if (!quoted_14(ref cursor, out result)) { cursor = start; return false; }
-        Append(list, result);
-        if (!match_1(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_1(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
         if (!quoted_15(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
-        if (!match_2(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_2(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
-        if (!match_11(ref cursor, out result)) { cursor = start; return false; }
+        if (!matchCase_11(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (list.Count == 1) result = list[0];
+        else result = new TokenTree(start, cursor, list);
+        return true;
+    }
+    
+    public static Func<TokenTree?, TokenCursor, (TokenTree?, TokenCursor)> ifCaseHook = (result, cursor) => (result, cursor);
+    
+    public static (TokenTree? Result, TokenCursor Next) ifCase(TokenCursor cursor)
+    {
+        if (!ifCase_0(ref cursor, out var result)) return (null, cursor);
+        if (result is not null && string.IsNullOrEmpty(result.Production)) result.Production = "ifCase";
+        return ifCaseHook(result, cursor);
+    }
+    
+    static bool ifCase_3(ref TokenCursor cursor, out TokenTree? result)
+    {
+        (result, cursor) = expr(cursor);
+        return result is not null;
+    }
+    
+    static bool ifCase_4(ref TokenCursor cursor, out TokenTree? result)
+    {
+        (result, cursor) = expr(cursor);
+        return result is not null;
+    }
+    
+    static bool ifCase_2(ref TokenCursor cursor, out TokenTree? result)
+    {
+        var start = cursor;
+        var list = new List<TokenTree>();
+        if (!ifCase_3(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (!quoted_17(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (!ifCase_4(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (list.Count == 1) result = list[0];
+        else result = new TokenTree(start, cursor, list);
+        return true;
+    }
+    
+    static bool ifCase_1(ref TokenCursor cursor, out TokenTree? result)
+    {
+        var start = cursor;
+        var list = new List<TokenTree>();
+        
+        while (ifCase_2(ref cursor, out result))
+        {
+            Append(list, result);
+        }
+        
+        if (list.Count == 1) result = list[0];
+        else result = new TokenTree(start, cursor, list);
+        return true;
+    }
+    
+    static bool ifCase_5(ref TokenCursor cursor, out TokenTree? result)
+    {
+        (result, cursor) = expr(cursor);
+        return result is not null;
+    }
+    
+    static bool ifCase_0(ref TokenCursor cursor, out TokenTree? result)
+    {
+        var start = cursor;
+        var list = new List<TokenTree>();
+        if (!quoted_15(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (!ifCase_1(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (!quoted_4(ref cursor, out result)) { cursor = start; return false; }
+        Append(list, result);
+        if (!ifCase_5(ref cursor, out result)) { cursor = start; return false; }
         Append(list, result);
         if (list.Count == 1) result = list[0];
         else result = new TokenTree(start, cursor, list);

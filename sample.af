@@ -121,7 +121,7 @@ List item extraction:
 
     case L of
         h:tail -> Just(h)
-        else -> Nothing
+        else Nothing
 
 
 ARRAYS
@@ -143,7 +143,7 @@ Array pattern matching.
         {.., x} -> "get last element"
         {.., x, y} -> "get last two elements"
         {x, .., y} -> "get first and last element"
-        else -> "else"
+        else "else"
 
 Array element indexing. This returns "3":
 

@@ -57,7 +57,7 @@ internal sealed class Program
         }
 
         var operators = new Operators("grammar.op.txt");
-        var text = File.ReadAllText("sample.af");
+        var text = File.ReadAllText("basic.af");
         var tokens = Lexer.Tokenize(text, operators).ToList();
 
 #if PERF

@@ -33,7 +33,7 @@ internal sealed class Lexer
         return (Func<Cursor, Token>)del;
     });
 
-    static HashSet<string> keywords = new HashSet<string>{ "type", "case", "of", "let", "op" };
+    static HashSet<string> keywords = new HashSet<string>{ }; //"type", "case", "of", "let", "op" };
     const string super = "⁰¹²³⁴⁵⁶⁷⁸⁹";
     const string ops = "~!@#$%^&*-+=|\\:;<>.?/√∛∜";
 
