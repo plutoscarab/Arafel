@@ -1,9 +1,9 @@
-using System.Diagnostics;
+namespace Plutoscarab.Arafel;
+
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 
 internal sealed class Lexer
 {
@@ -33,7 +33,7 @@ internal sealed class Lexer
         return (Func<Cursor, Token>)del;
     });
 
-    static HashSet<string> keywords = new HashSet<string>{ "type", "case", "of", "let", "op" };
+    static HashSet<string> keywords = new HashSet<string>{ }; //"type", "case", "of", "let", "op" };
     const string super = "⁰¹²³⁴⁵⁶⁷⁸⁹";
     const string ops = "~!@#$%^&*-+=|\\:;<>.?/√∛∜";
 

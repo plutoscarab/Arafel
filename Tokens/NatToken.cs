@@ -1,3 +1,5 @@
+namespace Plutoscarab.Arafel;
+
 using System.Numerics;
 
 internal sealed partial record NatToken

@@ -1,4 +1,5 @@
-using System.Linq;
+namespace Plutoscarab.Arafel;
+
 using System.Text;
 
 public partial record Token

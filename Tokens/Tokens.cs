@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+namespace Plutoscarab.Arafel;
+
 internal sealed partial record EndToken() : Token(Cursor.Empty, Cursor.Empty)
 {
     public static readonly EndToken Instance = new EndToken();

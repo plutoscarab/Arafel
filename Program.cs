@@ -1,5 +1,6 @@
-﻿using System.CodeDom.Compiler;
-using System.Diagnostics;
+﻿namespace Plutoscarab.Arafel;
+
+using System.CodeDom.Compiler;
 using System.Text;
 
 internal sealed class Program
@@ -9,7 +10,7 @@ internal sealed class Program
         var grammar = new Grammar("grammar.txt");
         UpdateLanguage(grammar);
         var operators = new Operators("grammar.op.txt");
-        var text = File.ReadAllText("sample.af");
+        var text = File.ReadAllText("basic.af");
         var tokens = Lexer.Tokenize(text, operators).ToList();
 
 #if PERF

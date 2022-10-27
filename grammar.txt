@@ -16,7 +16,7 @@ op10 ::= op11 (OP10 op11)*
 op11 ::= op12 (OP11 op12)* 
 op12 ::= unary (OP12 unary)*
 unary ::= PREFIX* atom (SUPER | POSTFIX)*
-atom ::= LITERAL | ifthen | exfix | lambda | parens | call | ID | list | array | match
+atom ::= LITERAL | ifthen | exfix | lambda | parens | call | match | ID | list | array
 
 ifthen ::= 'if' expr 'then' expr 'else' expr
 
@@ -28,7 +28,9 @@ call ::= ID '(' expr (',' expr)* ')'
 list ::= '[' ((expr (',' expr)?)? '..' expr? | expr (',' expr)*)? ']'
 array ::= '{' (expr (',' expr)*)? '}'
 
-match ::= 'case' expr 'of' ((pattern | LITERAL | '-'? NAT) '->' expr)+ ('else' '->' expr)?
+match ::= 'case' (matchCase | ifCase)
+matchCase ::= expr 'of' ((pattern | LITERAL | '-'? NAT) '->' expr)+ ('else' expr)?
+ifCase ::= 'of' (expr '->' expr)* 'else' expr
 pattern ::= listPattern | tuplePattern | arrayPattern | ctorPattern
 ctorPattern ::= ID ids?
 ids ::= '(' ID (',' ID)* ')'
