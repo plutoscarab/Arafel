@@ -7,7 +7,70 @@ internal sealed class Program
     public static void Main()
     {
         var grammar = new Grammar("grammar.txt");
+        UpdateLanguage(grammar);
+        var operators = new Operators("grammar.op.txt");
+        var text = File.ReadAllText("sample.af");
+        var tokens = Lexer.Tokenize(text, operators).ToList();
 
+#if PERF
+        var dfa = Lexer.Dfa(text, operators).ToList();
+
+        for (var i = 0; i < dfa.Count; i++)
+        {
+            if (tokens[i].GetType() != dfa[i].GetType() || tokens[i].Text != dfa[i].Text)
+                Debugger.Break();
+        }
+
+        var timer = Stopwatch.StartNew();
+
+        while (true)
+        {
+            timer.Restart();
+            for (var i = 0; i < 1000; i++)
+                tokens = Lexer.Tokenize(text, operators).ToList();
+            var t1 = timer.ElapsedMilliseconds;
+            timer.Restart();
+            for (var i = 0; i < 1000; i++)
+                dfa = Lexer.Dfa(text, operators).ToList();
+            var t2 = timer.ElapsedMilliseconds;
+            Console.WriteLine($"{t1}\t{t2}");
+            if (t2 < 0) break;
+        }
+#endif
+
+        if (!tokens.Any()) throw new NotImplementedException();
+        var cursor = new TokenCursor(tokens, new Context(operators));
+        Arafel.infixHook = Infix;
+        Arafel.prefixHook = Prefix;
+        Arafel.postfixHook = Postfix;
+        var parser = Arafel.program;
+        //var parser = grammar.GetTokenParsers().Productions["program"];
+        var (parseTree, next) = parser(cursor);
+        if (parseTree is null) throw new NotImplementedException();
+        Console.OutputEncoding = Encoding.Unicode;
+        Console.WriteLine();
+        parseTree.Dump(Console.Out);
+        if (next.More) throw new NotImplementedException();
+    }
+
+    static (TokenTree? Result, TokenCursor Cursor) Infix(TokenTree? result, TokenCursor cursor)
+    {
+        if (result is null) return (null, cursor);
+        var rightAssoc = result.Children[0].Start.Current.Text == "-";
+        var index = rightAssoc ? 1 : 0;
+
+        if (!int.TryParse(result.Children[index].Start.Current.Text, out var precedence))
+            return (null, cursor);
+
+        if (precedence < 1 || precedence > 12)
+            return (null, cursor);
+
+        var op = result.Children[index + 2].Start.Current.Text;
+        return (result, cursor.WithOperator("OP" + precedence, op));
+    }
+
+    static void UpdateLanguage(Grammar grammar)
+    {
         if (!File.Exists("language.cs") || File.GetLastWriteTime("grammar.txt") > File.GetLastWriteTime("language.cs"))
         {
             using (var cs = File.CreateText("language.cs"))
@@ -54,66 +117,6 @@ internal sealed class Program
 
             throw new Exception();
         }
-
-        var operators = new Operators("grammar.op.txt");
-        var text = File.ReadAllText("sample.af");
-        var tokens = Lexer.Tokenize(text, operators).ToList();
-
-#if PERF
-        var dfa = Lexer.Dfa(text, operators).ToList();
-
-        for (var i = 0; i < dfa.Count; i++)
-        {
-            if (tokens[i].GetType() != dfa[i].GetType() || tokens[i].Text != dfa[i].Text)
-                Debugger.Break();
-        }
-
-        var timer = Stopwatch.StartNew();
-
-        while (true)
-        {
-            timer.Restart();
-            for (var i = 0; i < 1000; i++)
-                tokens = Lexer.Tokenize(text, operators).ToList();
-            var t1 = timer.ElapsedMilliseconds;
-            timer.Restart();
-            for (var i = 0; i < 1000; i++)
-                dfa = Lexer.Dfa(text, operators).ToList();
-            var t2 = timer.ElapsedMilliseconds;
-            Console.WriteLine($"{t1}\t{t2}");
-            if (t2 < 0) break;
-        }
-#endif
-
-        if (!tokens.Any()) throw new NotImplementedException();
-        var cursor = new TokenCursor(tokens, new Context(operators));
-        Arafel.infixHook = Infix;
-        Arafel.prefixHook = Prefix;
-        Arafel.postfixHook = Postfix;
-        var parser = Arafel.program;
-        //var parser = grammar.GetTokenParsers().Productions["program"];
-        var (result, next) = parser(cursor);
-        if (result is null) throw new NotImplementedException();
-        Console.OutputEncoding = Encoding.Unicode;
-        Console.WriteLine();
-        result.Dump(Console.Out);
-        if (next.More) throw new NotImplementedException();
-    }
-
-    static (TokenTree? Result, TokenCursor Cursor) Infix(TokenTree? result, TokenCursor cursor)
-    {
-        if (result is null) return (null, cursor);
-        var rightAssoc = result.Children[0].Start.Current.Text == "-";
-        var index = rightAssoc ? 1 : 0;
-
-        if (!int.TryParse(result.Children[index].Start.Current.Text, out var precedence))
-            return (null, cursor);
-
-        if (precedence < 1 || precedence > 12)
-            return (null, cursor);
-
-        var op = result.Children[index + 2].Start.Current.Text;
-        return (result, cursor.WithOperator("OP" + precedence, op));
     }
 
     static (TokenTree? Result, TokenCursor Cursor) Prefix(TokenTree? result, TokenCursor cursor)
