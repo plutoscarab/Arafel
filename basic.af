@@ -14,11 +14,11 @@ Either data type.
 
     type Either(t, u) = Left(t) | Right(u)
 
-    either(leftSelector, rightSelector, e) = case e of
+    either(leftSelector, rightSelector, m) = case m of
         Left(x) -> leftSelector(x)
         Right(x) -> rightSelector(x)
 
-    fmap(selector, e) = either((x) = Left(x), selector, e)
+    fmap(selector, m) = either((x) = Left(x), selector, m)
 
 
 Ordering data type.
@@ -54,6 +54,10 @@ Lists
         [] -> zero
         x:xs -> agg(op, op(zero, x), xs)
 
+    aggr(op, zero, list) = case list of
+        [] -> zero
+        x:xs -> op(x, agg(op, zero, xs))
+
     sum(list) = agg(`+`, 0, list)
 
     prod(list) = agg(`*`, 1, list)
@@ -63,9 +67,30 @@ Lists
             [] -> []
             x:xs -> x : take(n - 1, xs)
 
+    takeWhile(pred, list) = case list of
+        [] -> []
+        x:xs -> if pred(x) then x:takeWhile(pred, xs) else []
+
+    takeUntil(pred, list) = case list of
+        [] -> []
+        x:xs -> if pred(x) then [] else x:takeUntil(pred, xs)
+
     skip(n, list) = case list of
         [] -> []
         x:xs -> if n < 1 then [] else x : skip(n - 1, xs)
+
+    skipWhile(pred, list) = case list of
+        [] -> []
+        x:xs -> if pred(x) then skipWhile(pred, xs) else list
+
+    skipUntil(pred, list) = case list of
+        [] -> []
+        x:xs -> if pred(x) then list else skipUntil(pred, xs)
+
+    filter(pred, list) = case list of
+        [] -> []
+        x:xs -> let f = filter(pred, xs) 
+            if pred(x) x:f else f
 
     repeat(x, n) = case of
         n < 1 -> [] 
@@ -104,4 +129,7 @@ Miscellaneous
         go(x) = if pred(x) then x else go(fn(x))
         go
 
-    
+    iterate(fn, x) = x:iterate(fn, fn(x))
+
+    not(p) = (b) = ~p(b)
+

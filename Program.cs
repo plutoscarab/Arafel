@@ -1,7 +1,6 @@
 ﻿namespace Plutoscarab.Arafel;
 
 using System.CodeDom.Compiler;
-using System.Diagnostics;
 using System.Text;
 
 internal sealed class Program
