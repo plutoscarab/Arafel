@@ -38,18 +38,10 @@ Convert a function that takes a pair into a function that takes two separate arg
 
     curry(f) = (a, b) = f((a, b))
 
-    example1(pair) = fst(pair) + snd(pair)
-    let example2 = curry(example1)
-    let x2 = example2(5, 10)
-
 Convert a function of two arguments into a function that takes one pair argument.
 
     uncurry(f) = (p) = case p of
         a, b -> f(a, b)
-
-    example3(a, b) = a + b
-    let example4 = uncurry(example3)
-    let x4 = example4((5, 10))
 
 
 Lists
@@ -84,10 +76,10 @@ Lists
         _ -> false
 
     cycle(list) =
-        cycle_(list) = list ++ cycle_(list)
+        cycle'(list) = list ++ cycle'(list)
         case list of
             [] -> []
-            _ -> cycle_(list)
+            _ -> cycle'(list)
 
     tail(list) = case list of
         [] -> []
@@ -97,10 +89,19 @@ Lists
         [] -> Nothing
         x:xs -> Just(x)
 
-    len(list) =
-        len(n, list) = case list of
-            [] -> n
-            x:xs -> len(n + 1, xs)
-        len(0, list)
+    len(list) = agg((n, _) = n + 1, 0, list)
+
+    
+Miscellaneous
+
+    id(x) = x
+
+    op 12 f∘g = (x) = f(g(x))
+
+    flip(f) = (a, b) = f(b, a)
+
+    until(pred, fn) = 
+        go(x) = if pred(x) then x else go(fn(x))
+        go
 
     

@@ -1,54 +1,35 @@
 ﻿namespace Plutoscarab.Arafel;
 
 using System.CodeDom.Compiler;
+using System.Diagnostics;
 using System.Text;
 
 internal sealed class Program
 {
     public static void Main()
     {
+        Console.OutputEncoding = Encoding.Unicode;
         var grammar = new Grammar("grammar.txt");
         UpdateLanguage(grammar);
         var operators = new Operators("grammar.op.txt");
-        var text = File.ReadAllText("basic.af");
-        var tokens = Lexer.Tokenize(text, operators).ToList();
-
-#if PERF
-        var dfa = Lexer.Dfa(text, operators).ToList();
-
-        for (var i = 0; i < dfa.Count; i++)
-        {
-            if (tokens[i].GetType() != dfa[i].GetType() || tokens[i].Text != dfa[i].Text)
-                Debugger.Break();
-        }
-
-        var timer = Stopwatch.StartNew();
-
-        while (true)
-        {
-            timer.Restart();
-            for (var i = 0; i < 1000; i++)
-                tokens = Lexer.Tokenize(text, operators).ToList();
-            var t1 = timer.ElapsedMilliseconds;
-            timer.Restart();
-            for (var i = 0; i < 1000; i++)
-                dfa = Lexer.Dfa(text, operators).ToList();
-            var t2 = timer.ElapsedMilliseconds;
-            Console.WriteLine($"{t1}\t{t2}");
-            if (t2 < 0) break;
-        }
-#endif
-
-        if (!tokens.Any()) throw new NotImplementedException();
-        var cursor = new TokenCursor(tokens, new Context(operators));
         Arafel.infixHook = Infix;
         Arafel.prefixHook = Prefix;
         Arafel.postfixHook = Postfix;
-        var parser = Arafel.program;
+        TokenParser parser = Arafel.program;
         //var parser = grammar.GetTokenParsers().Productions["program"];
+
+        Do("sample.af", operators, parser);
+        Do("basic.af", operators, parser);
+    }
+
+    static void Do(string filename, Operators operators, TokenParser parser)
+    {
+        var text = File.ReadAllText(filename);
+        var tokens = Lexer.Tokenize(text, operators).ToList();
+        if (!tokens.Any()) throw new NotImplementedException();
+        var cursor = new TokenCursor(tokens, new Context(operators));
         var (parseTree, next) = parser(cursor);
         if (parseTree is null) throw new NotImplementedException();
-        Console.OutputEncoding = Encoding.Unicode;
         Console.WriteLine();
         parseTree.Dump(Console.Out);
         if (next.More) throw new NotImplementedException();

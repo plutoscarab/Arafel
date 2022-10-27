@@ -23,7 +23,7 @@ public sealed partial class Operators
 
     public Operators WithOperator(string production, string op)
     {
-        var dict = lookup.ToDictionary(p => p.Key, p => p.Value);
+        var dict = lookup.ToDictionary(p => p.Key, p => p.Value.ToHashSet());
         dict[production].Add(op);
         return new Operators(dict);
     }

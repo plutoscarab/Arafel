@@ -46,4 +46,10 @@ internal static class RuneExtensions
 
     public static bool IsNot(this Rune rune, string comparand) =>
         rune.ToString() != comparand;
+
+    private static HashSet<Rune> idContSymbols = 
+        "_'`′″‴‵‶‷".Select(ch => new Rune(ch)).ToHashSet();
+
+    public static bool IsIdContinuation(this Rune rune) =>
+        Rune.IsLetter(rune) || Rune.IsDigit(rune) || idContSymbols.Contains(rune);
 }

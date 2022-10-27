@@ -107,7 +107,7 @@ internal sealed class Lexer
             .Concat(Make(Rune.IsDigit, 6)),
 
             // 7: identifier
-            Make(r => r.Is("_") || Rune.IsLetter(r) || Rune.IsDigit(r), 7),
+            Make(r => r.IsIdContinuation(), 7),
 
             // 8: // second character of operator starting with "."
             MakeC(c => c == '.', 2, (_, st, cu) => new OperatorToken(st, cu.Next()))
@@ -367,7 +367,7 @@ stationary:
             {
                 cursor = cursor.Next();
 
-                while (Rune.IsLetter(cursor.Current) || Rune.IsDigit(cursor.Current) || cursor.Current.Is("_"))
+                while (cursor.Current.IsIdContinuation())
                 {
                     cursor = cursor.Next();
                 }
