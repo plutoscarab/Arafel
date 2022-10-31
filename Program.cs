@@ -8,8 +8,10 @@ internal sealed class Program
     public static void Main()
     {
         Console.OutputEncoding = Encoding.Unicode;
+        var core = new Grammar("core.grammar.txt");
+        UpdateLanguage("Core", "core.cs", "core.grammar.txt", core);
         var grammar = new Grammar("grammar.txt");
-        UpdateLanguage(grammar);
+        UpdateLanguage("Arafel", "language.cs", "grammar.txt", grammar);
         var operators = new Operators("grammar.op.txt");
         Arafel.infixHook = Infix;
         Arafel.prefixHook = Prefix;
@@ -50,16 +52,16 @@ internal sealed class Program
         return (result, cursor.WithOperator("OP" + precedence, op));
     }
 
-    static void UpdateLanguage(Grammar grammar)
+    static void UpdateLanguage(string languageName, string languageFile, string grammarFile, Grammar grammar)
     {
-        if (!File.Exists("language.cs") || File.GetLastWriteTime("grammar.txt") > File.GetLastWriteTime("language.cs"))
+        if (!File.Exists(languageFile) || File.GetLastWriteTime(grammarFile) > File.GetLastWriteTime(languageFile))
         {
-            using (var cs = File.CreateText("language.cs"))
+            using (var cs = File.CreateText(languageFile))
             using (var writer = new IndentedTextWriter(cs))
             {
-                writer.WriteLine("using static TokenParsers;");
+                writer.WriteLine("namespace Plutoscarab.Arafel;");
                 writer.WriteLine();
-                writer.WriteLine("public sealed partial class Arafel");
+                writer.WriteLine($"public sealed partial class {languageName}");
                 writer.WriteLine("{");
                 writer.Indent++;
 
@@ -91,7 +93,51 @@ internal sealed class Program
                 writer.WriteLine("        list.Add(result);");
                 writer.Indent--;
                 writer.WriteLine("}");
-
+                writer.WriteLine();
+                writer.WriteLine("static bool Literal(string literal, ref TokenCursor cursor, out TokenTree? result)");
+                writer.WriteLine("{");
+                writer.WriteLine("    if (cursor.Current.Text == literal)");
+                writer.WriteLine("    {");
+                writer.WriteLine("        result = new TokenTree(cursor);");
+                writer.WriteLine("        cursor = cursor.Next();");
+                writer.WriteLine("        return true;");
+                writer.WriteLine("    }");
+                writer.WriteLine();
+                writer.WriteLine("    result = null;");
+                writer.WriteLine("    return false;");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                writer.WriteLine("static bool Production(TokenParser parser, ref TokenCursor cursor, out TokenTree? result)");
+                writer.WriteLine("{");
+                writer.WriteLine("    (result, cursor) = parser(cursor);");
+                writer.WriteLine("    return result is not null;");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                writer.WriteLine("static bool TokenType<T>(ref TokenCursor cursor, out TokenTree? result)");
+                writer.WriteLine("{");
+                writer.WriteLine("    if (cursor.Current is T)");
+                writer.WriteLine("    {");
+                writer.WriteLine("        result = new TokenTree(cursor);");
+                writer.WriteLine("        cursor = cursor.Next();");
+                writer.WriteLine("        return true;");
+                writer.WriteLine("    }");
+                writer.WriteLine();
+                writer.WriteLine("    result = null;");
+                writer.WriteLine("    return false;");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                writer.WriteLine("static bool Operator(string op, ref TokenCursor cursor, out TokenTree? result)");
+                writer.WriteLine("{");
+                writer.WriteLine("    if (cursor.Context.Operators.Contains(op, cursor.Current.Text))");
+                writer.WriteLine("    {");
+                writer.WriteLine("        result = new TokenTree(cursor);");
+                writer.WriteLine("        cursor = cursor.Next();");
+                writer.WriteLine("        return true;");
+                writer.WriteLine("    }");
+                writer.WriteLine();
+                writer.WriteLine("    result = null;");
+                writer.WriteLine("    return false;");
+                writer.WriteLine("}");
                 writer.Indent--;
                 writer.WriteLine("}");
             }
@@ -131,87 +177,35 @@ internal sealed class Program
 
     static string Gen(Token t, string pname, ref int depth, IndentedTextWriter writer)
     {
-        var name = pname + "_" + (depth + 1);
+        var fn = pname + "_" + (depth + 1) + "(";
 
         switch (t.Production)
         {
             case "seq": Seq(t, pname, ref depth, writer); break;
             case "atom": Atom(t, pname, ref depth, writer); break;
             case "expr": OneOf(t, pname, ref depth, writer); break;
-            case "id": Id(t, pname, ref depth, writer); break;
-            case "quoted": return Quoted(t, pname, ref depth, writer);
+            case "id": return Id(t, pname, ref depth, writer); 
+            case "quoted": return $"Literal(\"{t.Text}\", ";
             default: throw new NotImplementedException();
         }
 
-        return name;
+        return fn;
     }
 
-    static Dictionary<string, int> quotedCache = new();
+    static Dictionary<string, int> idCache = new();
 
-    static string Quoted(Token t, string pname, ref int depth, IndentedTextWriter writer)
+    static string Id(Token t, string pname, ref int depth, IndentedTextWriter writer)
     {
-        if (!quotedCache.TryGetValue(t.Text, out var n))
-        {
-            quotedCache[t.Text] = n = quotedCache.Count;
-            var d = n - 1;
-            Prelude("quoted", ref d, writer);
-            writer.WriteLine($"if (cursor.Current.Text == \"{t.Text}\")");
-            writer.WriteLine("{");
-            writer.Indent++;
-            writer.WriteLine("result = new TokenTree(cursor);");
-            writer.WriteLine("cursor = cursor.Next();");
-            writer.WriteLine("return true;");
-            writer.Indent--;
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("result = null;");
-            writer.WriteLine("return false;");
-            Postlude(writer);
-        }
-
-        return "quoted_" + n;
-    }
-
-    static void Id(Token t, string pname, ref int depth, IndentedTextWriter writer)
-    {
-        Prelude(pname, ref depth, writer);
-
         if (t.Text.ToUpper() != t.Text)
-        {
-            writer.WriteLine($"(result, cursor) = {t.Text}(cursor);");
-            writer.WriteLine("return result is not null;");
-        }
-        else if (Tokens.Lookup.TryGetValue(t.Text, out var _))
+            return $"Production({t.Text}, ";
+
+        if (Tokens.Lookup.TryGetValue(t.Text, out var _))
         {
             var id = t.Text[0] + t.Text.Substring(1).ToLower();
-            writer.WriteLine($"if (cursor.Current is {id}Token)");
-            writer.WriteLine("{");
-            writer.Indent++;
-            writer.WriteLine("result = new TokenTree(cursor);");
-            writer.WriteLine("cursor = cursor.Next();");
-            writer.WriteLine("return true;");
-            writer.Indent--;
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("result = null;");
-            writer.WriteLine("return false;");
-        }
-        else
-        {
-            writer.WriteLine($"if (cursor.Context.Operators.Contains(\"{t.Text}\", cursor.Current.Text))");
-            writer.WriteLine("{");
-            writer.Indent++;
-            writer.WriteLine("result = new TokenTree(cursor);");
-            writer.WriteLine("cursor = cursor.Next();");
-            writer.WriteLine("return true;");
-            writer.Indent--;
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("result = null;");
-            writer.WriteLine("return false;");
+            return $"TokenType<{id}Token>(";
         }
 
-        Postlude(writer);
+        return $"Operator(\"{t.Text}\", ";
     }
 
     static void Atom(Token t, string pname, ref int depth, IndentedTextWriter writer)
@@ -255,7 +249,7 @@ internal sealed class Program
 
         foreach (var g in list)
         {
-            writer.WriteLine($"if ({g}(ref cursor, out result)) return true;");
+            writer.WriteLine($"if ({g}ref cursor, out result)) return true;");
         }
 
         writer.WriteLine("result = null;");
@@ -272,8 +266,13 @@ internal sealed class Program
         depth = d - 1;
         Prelude(pname, ref depth, writer);
         writer.WriteLine("var start = cursor;");
-        writer.WriteLine($"if ({g}(ref cursor, out result)) return true;");
-        writer.WriteLine("result = new TokenTree(start, start);");
+        writer.WriteLine();
+        writer.WriteLine($"if (!{g}ref cursor, out result))");
+        writer.WriteLine("{");
+        writer.WriteLine("    cursor = start;");
+        writer.WriteLine("    result = new TokenTree(start, start);");
+        writer.WriteLine("}");
+        writer.WriteLine();
         writer.WriteLine("return true;");
         Postlude(writer);
         depth = d2;
@@ -289,7 +288,7 @@ internal sealed class Program
         writer.WriteLine("var start = cursor;");
         writer.WriteLine("var list = new List<TokenTree>();");
         writer.WriteLine();
-        writer.WriteLine($"while ({g}(ref cursor, out result))");
+        writer.WriteLine($"while ({g}ref cursor, out result))");
         writer.WriteLine("{");
         writer.Indent++;
         writer.WriteLine("Append(list, result);");
@@ -321,7 +320,7 @@ internal sealed class Program
         writer.WriteLine("var start = cursor;");
         writer.WriteLine("var list = new List<TokenTree>();");
         writer.WriteLine();
-        writer.WriteLine($"while ({g}(ref cursor, out result))");
+        writer.WriteLine($"while ({g}ref cursor, out result))");
         writer.WriteLine("{");
         writer.Indent++;
         writer.WriteLine("Append(list, result);");
@@ -353,7 +352,7 @@ internal sealed class Program
 
         foreach (var g in list)
         {
-            writer.WriteLine($"if (!{g}(ref cursor, out result)) {{ cursor = start; return false; }}");
+            writer.WriteLine($"if (!{g}ref cursor, out result)) {{ cursor = start; return false; }}");
             writer.WriteLine("Append(list, result);");
         }
 

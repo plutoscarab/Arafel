@@ -1,0 +1,14 @@
+    let true = λt.λf.t in
+    let false = λt.λf.f in
+    let and = λx.λy.x y x in
+    let or = λx.λy.x x y in
+
+type Maybe(t) = Nothing | Just(t)
+
+    let Nothing = λn.λj.n in
+    let Just = λt.λn.λj.j t in
+
+maybe(default, selector, m) = case m of Nothing -> default  Just(x) -> selector(x)
+
+    let maybe = λd.λs.λm.m d s in
+

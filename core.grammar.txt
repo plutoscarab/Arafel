@@ -1,0 +1,10 @@
+type ::= (('∀' | 'forall') ID+ ',')? monoType
+monoType::= productType (('→' | '->') productType )*
+productType ::= typeAtom (('×' | '*') typeAtom)*
+typeAtom  ::= ID monoType* | '(' monoType')'
+expr ::= atom ('(' expr (',' expr)* ')')?
+atom ::= ID | LITERAL | '`' OPERATOR '`' | '(' expr ')' | lambda | 'let' typedVar '=' expr 'in' expr | case_
+typedVar ::= ID ':' type
+lambda ::= '(' typedVar (',' typedVar)* ')' '=' expr
+case_ ::= 'case' expr 'of' (pattern ('→' | '->') expr)+
+pattern ::= LITERAL | ID ('(' ID (',' ID)* ')')?
