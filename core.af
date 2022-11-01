@@ -12,3 +12,4 @@ maybe(default, selector, m) = case m of Nothing -> default  Just(x) -> selector(
 
     let maybe = λd.λs.λm.m d s in
 
+x
