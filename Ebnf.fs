@@ -1,6 +1,6 @@
 module Ebnf
 
-let scan line = 
+let scan line =
     seq {
         let mutable depth = 0
         let mutable lit = false
@@ -11,7 +11,7 @@ let scan line =
             | '\'' -> lit <- not lit
             | '(' -> depth <- depth + if lit then 0 else 1
             | ')' -> depth <- depth - if lit then 0 else 1
-            | _ -> lit <- lit
+            | _ -> ()
             yield (index, ch, depth)
             index <- index + 1
     }

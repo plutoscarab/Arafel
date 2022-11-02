@@ -1,15 +1,56 @@
-    let true = λt.λf.t in
-    let false = λt.λf.f in
-    let and = λx.λy.x y x in
-    let or = λx.λy.x x y in
+type Bool = False | True
+
+    let False = (f, t) = f
+    let True = (f, t) = t
+
+case b of False -> 33  True -> 42 becomes
+
+    b(33, 42)
+
+which prints 33 if b=False or 42 if b=True.
+
+    let and = 
+        (left, right) = left(left, right)
+
+    let or = 
+        (left, right) = right(left, right)
+
+    let not =
+        (b) = b(True, False)
+
+    let xor =
+        (left, right) = left(right, not right)
 
 type Maybe(t) = Nothing | Just(t)
 
-    let Nothing = λn.λj.n in
-    let Just = λt.λn.λj.j t in
+    let Nothing = 
+        (n, j) = n
 
-maybe(default, selector, m) = case m of Nothing -> default  Just(x) -> selector(x)
+    let Just(t) =
+        (n, j) = j(t)
 
-    let maybe = λd.λs.λm.m d s in
+type Either(t) = Left(t) | Right(t)
 
-x
+    let Left(t) =
+        (l, r) = l(t)
+
+    let Right(t) =
+        (l, r) = r(t)
+
+type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+
+    let Leaf(t) =
+        (l, n) = l(t)
+
+    let Node(left, right) =
+        (l, n) = n(left, right)
+
+type List(t) = Nil | Cons(t, List(t))
+
+    let Nil =
+        (n, c) = n
+
+    let Cons(head, tail) =
+        (n, c) = c(head, tail)
+
+    let list = Cons(5, Cons(3, Cons(2, Nil)))

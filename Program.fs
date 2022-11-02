@@ -32,13 +32,17 @@ let makeCursor (source:string) =
 
 type Span = Cursor * Cursor
 
-let spanStr (s:Span) =
-    let source = (fst s).source
-    [(fst s).index .. ((snd s).index - 1)] |> Seq.map (fun index -> source[index]) |> Seq.map (fun rune -> rune.ToString()) |> String.concat ""
+let spanStr (first:Cursor, next:Cursor) =
+    let source = first.source
+    [first.index .. (next.index - 1)] |> 
+    Seq.map (fun index -> source[index]) |> 
+    Seq.map (fun rune -> rune.ToString()) |> 
+    String.concat ""
 
 type Token = 
     | Identifier of Span
     | Operator of Span
+    | Punctuation of Cursor
     | Nat of Span
     | String of Span
     | Error of Cursor
@@ -47,13 +51,13 @@ let tokenStr (token:Token) =
     match token with
     | Identifier span -> "Identifier " + (spanStr span)
     | Operator span -> "Operator " + (spanStr span)
+    | Punctuation c -> "Punctuation " + (c.Str)
     | Nat span -> "Nat " + (spanStr span)
     | String span -> "String " + (spanStr span)
     | Error c -> "Error " + (c.Str)
 
 let isWhitespace r =
-    let uc = Rune.GetUnicodeCategory r
-    uc = UnicodeCategory.SpaceSeparator || uc = UnicodeCategory.LineSeparator
+    " \t\r\n".Contains(r.ToString()[0])
 
 let tokenise (cursor:Cursor) =
     seq {
@@ -61,7 +65,8 @@ let tokenise (cursor:Cursor) =
         let mutable line = 0
 
         while c.More do
-            if line <> c.line && not (isWhitespace (c.Current)) then
+            if line <> c.line && c.pos = 1 && not (isWhitespace (c.Current)) then
+                line <- c.line
                 while line = c.line do
                     c <- c.Next
                 line <- c.line
@@ -81,11 +86,14 @@ let tokenise (cursor:Cursor) =
                     while Rune.IsDigit (c.Current) do
                         c <- c.Next
                     yield Nat (start, c)
-                | r when uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol ->
+                | r when uc = UnicodeCategory.OtherPunctuation || uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol ->
                     let mutable start = c
-                    while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol do
+                    while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherPunctuation || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol do
                         c <- c.Next
                     yield Operator (start, c)
+                | r when uc = UnicodeCategory.OpenPunctuation || uc = UnicodeCategory.ClosePunctuation ->
+                    yield Punctuation c
+                    c <- c.Next
                 | _ ->
                     yield Error c
                     c <- c.Next
