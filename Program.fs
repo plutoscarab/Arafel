@@ -23,6 +23,81 @@ let rec exprStr expr =
         else
             n
 
+let rec build (writer:IndentedTextWriter) expr depth param =
+    let indent =
+        match expr with
+        | Ebnf.Parens _ -> 0
+        | _ -> 1
+    writer.Indent <- writer.Indent + indent
+    let prefix = char (depth + int 'a')
+    let deeper = depth + 1
+    let w:(string->unit) = writer.WriteLine
+    match expr with
+    | Ebnf.Choice list ->
+        w $"let mutable {prefix}r = NoMatch"
+        for item in list do
+            w $"{prefix}r <-"
+            build writer item deeper param
+            w $"if {prefix}r <> NoMatch then {prefix}r else"
+        writer.WriteLine "NoMatch"
+    | Ebnf.Sequence list ->
+        w "let mutable list = []"
+        w $"let mutable {prefix}r = NoMatch"
+        w $"let mutable {prefix}q = {param}"
+        for item in list do
+            w $"{prefix}r <-"
+            build writer item deeper $"{prefix}q"
+            w $"if {prefix}r = NoMatch then NoMatch else"
+            w $"match {prefix}r with"
+            w $"| NoMatch -> ()"
+            w $"| Ok (result, next) ->"
+            w $"    list <- result :: list"
+            w $"    {prefix}q <- next"
+        w $"Ok (Node (List.rev list), {prefix}q)"
+    | Ebnf.Primary (mult, subexpr) ->
+        match mult with
+        | Ebnf.ZeroOrOne ->
+            w $"let {prefix}r ="
+            build writer subexpr deeper param
+            w $"match {prefix}r with"
+            w $"| NoMatch -> Ok (Empty, {param})"
+            w $"| Ok (result, next) -> Ok (result, next)"
+        | Ebnf.ZeroOrMore ->
+            w $"let z list ({prefix}q:TokenCursor) ="
+            writer.Indent <- writer.Indent + 1
+            w $"let {prefix}r ="
+            build writer subexpr deeper $"{prefix}q"
+            w $"match {prefix}r with"
+            w $"| NoMatch -> Ok (Node (List.rev list), {prefix}q)"
+            w $"| Ok (result, next) -> z (result :: list) next"
+            writer.Indent <- writer.Indent - 1
+            w $"z [] {param}"
+        | Ebnf.OneOrMore ->
+            w $"let z list ({prefix}q:TokenCursor) ="
+            writer.Indent <- writer.Indent + 1
+            w $"let {prefix}r ="
+            build writer subexpr deeper $"{prefix}q"
+            w $"match {prefix}r with"
+            w $"| NoMatch -> Ok (Node (List.rev list), {prefix}q)"
+            w $"| Ok (result, next) -> z (result :: list) next"
+            writer.Indent <- writer.Indent - 1
+            w $"match z [] {param} with"
+            w "| NoMatch -> ignore"
+            w $"| Ok (Node [], _) -> NoMatch"
+            w $"| Ok (result, next) -> Ok (result, next)"
+    | Ebnf.Parens subexpr ->
+        build writer subexpr depth param
+    | Ebnf.StringLiteral s ->
+        w $"if {param}.Current = Id \"{s}\" then Ok (Token {param}.Current, {param}.Next) else NoMatch"
+    | Ebnf.NcName n -> 
+        if n = n.ToUpperInvariant() then
+            w $"match {param}.Current with"
+            w $"| {n.Substring(0, 1) + n.Substring(1).ToLowerInvariant()} x -> Ok (Token {param}.Current, {param}.Next)"
+            w $"| _ -> NoMatch"
+        else
+            w $"{n} {param}"
+    writer.Indent <- writer.Indent - indent
+
 let main =
     let grammar =
         File.ReadAllLines "core.grammar.txt"
@@ -33,85 +108,23 @@ let main =
     writer.WriteLine "module Core"
     writer.WriteLine ()
     writer.WriteLine "open Lexer"
-    writer.WriteLine ()
-    writer.WriteLine "type ParseTree = Token of Token | Node of ParseTree list | Empty"
-    writer.WriteLine ""
-    writer.WriteLine "type Result = NoMatch | Ok of ParseTree * TokenCursor"
-    writer.WriteLine ""
-    writer.WriteLine "let rec c choices (t:TokenCursor) ="
-    writer.WriteLine "    match choices with"
-    writer.WriteLine "    | [] -> NoMatch"
-    writer.WriteLine "    | p::rest ->"
-    writer.WriteLine "        match p t with"
-    writer.WriteLine "        | NoMatch -> c rest t"
-    writer.WriteLine "        | Ok (result, next) -> Ok (result, next)"
-    writer.WriteLine ()
-    writer.WriteLine "let s items (t:TokenCursor) ="
-    writer.WriteLine "    let rec s' items list (t:TokenCursor) ="
-    writer.WriteLine "        match items with"
-    writer.WriteLine "        | [] -> Ok (Node (List.rev list), t)"
-    writer.WriteLine "        | p::rest ->"
-    writer.WriteLine "            match p t with"
-    writer.WriteLine "            | NoMatch -> NoMatch"
-    writer.WriteLine "            | Ok (result, next) -> s' rest (result::list) next"
-    writer.WriteLine "    s' items [] t"
-    writer.WriteLine ()
-    writer.WriteLine "let t a (t:TokenCursor) = NoMatch"
-    writer.WriteLine ()
-    writer.WriteLine "let l str (t:TokenCursor) ="
-    writer.WriteLine "    if str = t.Str then"
-    writer.WriteLine "        Ok (Token t.Current, t.Next)"
-    writer.WriteLine "    else"
-    writer.WriteLine "        NoMatch"
-    writer.WriteLine ()
-    writer.WriteLine "let z parser (t:TokenCursor) ="
-    writer.WriteLine ""
-    writer.WriteLine "    let rec z' list (t:TokenCursor) ="
-    writer.WriteLine "        match parser t with"
-    writer.WriteLine "        | NoMatch -> Ok (Node (List.rev list), t)"
-    writer.WriteLine "        | Ok (result, next) -> z' (result::list) next"
-    writer.WriteLine ()
-    writer.WriteLine "    z' [] t"
-    writer.WriteLine ()
-    writer.WriteLine "let m parser (t:TokenCursor) ="
-    writer.WriteLine "    match z parser t with"
-    writer.WriteLine "    | NoMatch -> NoMatch"
-    writer.WriteLine "    | Ok (Node [], _) -> NoMatch"
-    writer.WriteLine "    | Ok (result, next) -> Ok (result, next)"
-    writer.WriteLine ()
-    writer.WriteLine "let o parser (t:TokenCursor) ="
-    writer.WriteLine "    match parser t with"
-    writer.WriteLine "    | NoMatch -> Ok (Empty, t)"
-    writer.WriteLine "    | Ok (result, next) -> Ok (result, next)"
+    writer.WriteLine "open Parse"
     writer.WriteLine ()
     let mutable prefix = "let rec"
 
     for production in grammar do
-        writer.WriteLine $"{prefix} {production.Key} q ="
-        writer.WriteLine $"    {exprStr production.Value} q"
+        writer.WriteLine $"{prefix} {production.Key} (q:TokenCursor) ="
+        build writer production.Value 0 "q"
         writer.WriteLine ()
         prefix <- "and"
 
     writer.Flush ()
 
+    Console.OutputEncoding <- Encoding.Unicode
     let src = File.ReadAllText("core.af")
     let cursor = Lexer.makeCursor src
-    Console.OutputEncoding <- Encoding.Unicode
-    let mutable c = cursor
-
-    while c.More do
-        if c.pos = 1 then
-            printf "Line %d: " (c.line)
-        printf "%s" (c.Str)
-        c <- c.Next
-
-    printfn ""
-
-    for token in Lexer.tokenise cursor do
-        printf "%s, " (Lexer.tokenStr token)
-    
     let tokens = Lexer.tokenise cursor |> Seq.toArray
     let tc = { Lexer.TokenCursor.source = tokens; Lexer.TokenCursor.index = 0 }
-    let result = Core.expr tc
+    //let result = Core.expr tc
     0
 

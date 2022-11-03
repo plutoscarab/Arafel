@@ -24,35 +24,29 @@ type Cursor =
                 { c with index = c.index + 1; pos = c.pos + 1 }
         else c
 
+let spanned (start:Cursor) (next:Cursor) =
+    [start.index .. next.index - 1] |> List.map (fun i -> start.source[i].ToString()) |> String.concat ""
+
 let makeCursor (source:string) =
     let runes = source.EnumerateRunes() |> Array.ofSeq
     { source = runes; index = 0; line = 1; pos = 1 }
 
-type Span = Cursor * Cursor
-
-let spanStr (first:Cursor, next:Cursor) =
-    let source = first.source
-    [first.index .. (next.index - 1)] |> 
-    Seq.map (fun index -> source[index]) |> 
-    Seq.map (fun rune -> rune.ToString()) |> 
-    String.concat ""
-
 type Token = 
-    | Id of Span
-    | Operator of Span
-    | Punctuation of Cursor
-    | Nat of Span
-    | String of Span
+    | Id of string
+    | Operator of string
+    | Punctuation of string
+    | Nat of bigint
+    | String of string
     | Error of Cursor
     | EndOfText
 
 let tokenStr (token:Token) =
     match token with
-    | Id span -> "Id " + (spanStr span)
-    | Operator span -> "Operator " + (spanStr span)
-    | Punctuation c -> "Punctuation " + (c.Str)
-    | Nat span -> "Nat " + (spanStr span)
-    | String span -> "String " + (spanStr span)
+    | Id s -> "Id " + s
+    | Operator s -> "Operator " + s
+    | Punctuation s -> "Punctuation " + s
+    | Nat n -> "Nat " + (n.ToString())
+    | String s -> "String " + s
     | Error c -> "Error " + (c.Str)
     | EndOfText -> ""
 
@@ -96,19 +90,19 @@ let tokenise (cursor:Cursor) =
                     let mutable start = c
                     while Rune.IsLetter (c.Current) || Rune.IsDigit (c.Current) || c.Str = "_" do
                         c <- c.Next
-                    yield Id (start, c)
+                    yield Id (spanned start c)
                 | r when Rune.IsDigit r ->
                     let mutable start = c
                     while Rune.IsDigit (c.Current) do
                         c <- c.Next
-                    yield Nat (start, c)
+                    yield Nat (bigint.Parse (spanned start c))
                 | r when uc = UnicodeCategory.OtherPunctuation || uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol ->
                     let mutable start = c
                     while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherPunctuation || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol do
                         c <- c.Next
-                    yield Operator (start, c)
+                    yield Operator (spanned start c)
                 | r when uc = UnicodeCategory.OpenPunctuation || uc = UnicodeCategory.ClosePunctuation ->
-                    yield Punctuation c
+                    yield Punctuation c.Str
                     c <- c.Next
                 | _ ->
                     yield Error c

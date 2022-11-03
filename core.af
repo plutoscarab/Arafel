@@ -1,7 +1,7 @@
 type Bool = False | True
 
-    let False = (f, t) = f
-    let True = (f, t) = t
+    let False:Bool = (f, t) = f
+    let True:Bool = (f, t) = t
 
 case b of False -> 33  True -> 42 becomes
 
