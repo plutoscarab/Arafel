@@ -71,3 +71,9 @@ and parseExpr (s:string) =
     match choices with
     | [] -> parseSequence (s.Substring(i).Trim())
     | _ -> Choice (s.Substring(i).Trim() :: choices |> List.rev |> List.map parseSequence)
+
+let parseProduction (s:string) =
+    let pair = s.Split("::=")
+    let expr = parseExpr (pair[1].Trim())
+    (pair[0].Trim(), expr)
+    

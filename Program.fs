@@ -1,113 +1,101 @@
 open System
+open System.CodeDom.Compiler
 open System.Globalization
 open System.IO
 open System.Linq
 open System.Numerics
 open System.Text
 
-type Cursor =
-    { source: Rune array;
-      index: int;
-      line: int;
-      pos: int }
-
-    member c.More = c.index < c.source.Length
-
-    member c.Current = if c.More then c.source[c.index] else new Rune(0)
-
-    member c.Str = c.Current.ToString()
-
-    member c.Next = 
-        if c.More then 
-            match c.Str with
-            | "\n" | "\r" when c.index > c.source.Length - 2 || c.source[c.index + 1].ToString() <> "\n" -> 
-                { c with index = c.index + 1; line = c.line + 1; pos = 1 }
-            | _ ->
-                { c with index = c.index + 1; pos = c.pos + 1 }
-        else c
-
-let makeCursor (source:string) =
-    let runes = source.EnumerateRunes() |> Array.ofSeq
-    { source = runes; index = 0; line = 1; pos = 1 }
-
-type Span = Cursor * Cursor
-
-let spanStr (first:Cursor, next:Cursor) =
-    let source = first.source
-    [first.index .. (next.index - 1)] |> 
-    Seq.map (fun index -> source[index]) |> 
-    Seq.map (fun rune -> rune.ToString()) |> 
-    String.concat ""
-
-type Token = 
-    | Identifier of Span
-    | Operator of Span
-    | Punctuation of Cursor
-    | Nat of Span
-    | String of Span
-    | Error of Cursor
-
-let tokenStr (token:Token) =
-    match token with
-    | Identifier span -> "Identifier " + (spanStr span)
-    | Operator span -> "Operator " + (spanStr span)
-    | Punctuation c -> "Punctuation " + (c.Str)
-    | Nat span -> "Nat " + (spanStr span)
-    | String span -> "String " + (spanStr span)
-    | Error c -> "Error " + (c.Str)
-
-let isWhitespace r =
-    " \t\r\n".Contains(r.ToString()[0])
-
-let tokenise (cursor:Cursor) =
-    seq {
-        let mutable c = cursor
-        let mutable line = 0
-
-        while c.More do
-            if line <> c.line && c.pos = 1 && not (isWhitespace (c.Current)) then
-                line <- c.line
-                while line = c.line do
-                    c <- c.Next
-                line <- c.line
-            else
-                let uc = Rune.GetUnicodeCategory (c.Current)
-                match c.Current with
-                | r when isWhitespace r -> 
-                    while isWhitespace (c.Current) do
-                        c <- c.Next
-                | r when Rune.IsLetter r || c.Str = "_" ->
-                    let mutable start = c
-                    while Rune.IsLetter (c.Current) || Rune.IsDigit (c.Current) || c.Str = "_" do
-                        c <- c.Next
-                    yield Identifier (start, c)
-                | r when Rune.IsDigit r ->
-                    let mutable start = c
-                    while Rune.IsDigit (c.Current) do
-                        c <- c.Next
-                    yield Nat (start, c)
-                | r when uc = UnicodeCategory.OtherPunctuation || uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol ->
-                    let mutable start = c
-                    while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherPunctuation || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol do
-                        c <- c.Next
-                    yield Operator (start, c)
-                | r when uc = UnicodeCategory.OpenPunctuation || uc = UnicodeCategory.ClosePunctuation ->
-                    yield Punctuation c
-                    c <- c.Next
-                | _ ->
-                    yield Error c
-                    c <- c.Next
-    } |> Array.ofSeq
+let rec exprStr expr =
+    match expr with
+    | Ebnf.Choice list -> "c [" + (String.concat "; " (List.map exprStr list)) + "]"
+    | Ebnf.Sequence list -> "s [" + (String.concat "; " (List.map exprStr list)) + "]"
+    | Ebnf.Primary (mult, expr) ->
+        match mult with
+        | Ebnf.ZeroOrOne -> "o (" + (exprStr expr) + ")"
+        | Ebnf.ZeroOrMore -> "z (" + (exprStr expr) + ")"
+        | Ebnf.OneOrMore -> "m (" + (exprStr expr) + ")"
+    | Ebnf.Parens expr -> exprStr expr
+    | Ebnf.StringLiteral s -> "l \"" + s + "\""
+    | Ebnf.NcName n -> 
+        if n = n.ToUpperInvariant() then
+            "t " + n.Substring(0, 1) + n.Substring(1).ToLowerInvariant()
+        else
+            n
 
 let main =
-    for line in File.ReadAllLines "core.grammar.txt" do
-        let pair = line.Split("::=")
-        printf "%s ::= " (pair[0].Trim())
-        let expr = Ebnf.parseExpr (pair[1].Trim())
-        printfn "%s" (Ebnf.show expr)
+    let grammar =
+        File.ReadAllLines "core.grammar.txt"
+        |> Seq.map Ebnf.parseProduction
+        |> Map.ofSeq
+
+    let writer = new IndentedTextWriter (File.CreateText "Core.fs")
+    writer.WriteLine "module Core"
+    writer.WriteLine ()
+    writer.WriteLine "open Lexer"
+    writer.WriteLine ()
+    writer.WriteLine "type ParseTree = Token of Token | Node of ParseTree list | Empty"
+    writer.WriteLine ""
+    writer.WriteLine "type Result = NoMatch | Ok of ParseTree * TokenCursor"
+    writer.WriteLine ""
+    writer.WriteLine "let rec c choices (t:TokenCursor) ="
+    writer.WriteLine "    match choices with"
+    writer.WriteLine "    | [] -> NoMatch"
+    writer.WriteLine "    | p::rest ->"
+    writer.WriteLine "        match p t with"
+    writer.WriteLine "        | NoMatch -> c rest t"
+    writer.WriteLine "        | Ok (result, next) -> Ok (result, next)"
+    writer.WriteLine ()
+    writer.WriteLine "let s items (t:TokenCursor) ="
+    writer.WriteLine "    let rec s' items list (t:TokenCursor) ="
+    writer.WriteLine "        match items with"
+    writer.WriteLine "        | [] -> Ok (Node (List.rev list), t)"
+    writer.WriteLine "        | p::rest ->"
+    writer.WriteLine "            match p t with"
+    writer.WriteLine "            | NoMatch -> NoMatch"
+    writer.WriteLine "            | Ok (result, next) -> s' rest (result::list) next"
+    writer.WriteLine "    s' items [] t"
+    writer.WriteLine ()
+    writer.WriteLine "let t a (t:TokenCursor) = NoMatch"
+    writer.WriteLine ()
+    writer.WriteLine "let l str (t:TokenCursor) ="
+    writer.WriteLine "    if str = t.Str then"
+    writer.WriteLine "        Ok (Token t.Current, t.Next)"
+    writer.WriteLine "    else"
+    writer.WriteLine "        NoMatch"
+    writer.WriteLine ()
+    writer.WriteLine "let z parser (t:TokenCursor) ="
+    writer.WriteLine ""
+    writer.WriteLine "    let rec z' list (t:TokenCursor) ="
+    writer.WriteLine "        match parser t with"
+    writer.WriteLine "        | NoMatch -> Ok (Node (List.rev list), t)"
+    writer.WriteLine "        | Ok (result, next) -> z' (result::list) next"
+    writer.WriteLine ()
+    writer.WriteLine "    z' [] t"
+    writer.WriteLine ()
+    writer.WriteLine "let m parser (t:TokenCursor) ="
+    writer.WriteLine "    match z parser t with"
+    writer.WriteLine "    | NoMatch -> NoMatch"
+    writer.WriteLine "    | Ok (Node [], _) -> NoMatch"
+    writer.WriteLine "    | Ok (result, next) -> Ok (result, next)"
+    writer.WriteLine ()
+    writer.WriteLine "let o parser (t:TokenCursor) ="
+    writer.WriteLine "    match parser t with"
+    writer.WriteLine "    | NoMatch -> Ok (Empty, t)"
+    writer.WriteLine "    | Ok (result, next) -> Ok (result, next)"
+    writer.WriteLine ()
+    let mutable prefix = "let rec"
+
+    for production in grammar do
+        writer.WriteLine $"{prefix} {production.Key} q ="
+        writer.WriteLine $"    {exprStr production.Value} q"
+        writer.WriteLine ()
+        prefix <- "and"
+
+    writer.Flush ()
 
     let src = File.ReadAllText("core.af")
-    let cursor = makeCursor src
+    let cursor = Lexer.makeCursor src
     Console.OutputEncoding <- Encoding.Unicode
     let mutable c = cursor
 
@@ -119,8 +107,11 @@ let main =
 
     printfn ""
 
-    for token in tokenise cursor do
-        printf "%s, " (tokenStr token)
+    for token in Lexer.tokenise cursor do
+        printf "%s, " (Lexer.tokenStr token)
     
+    let tokens = Lexer.tokenise cursor |> Seq.toArray
+    let tc = { Lexer.TokenCursor.source = tokens; Lexer.TokenCursor.index = 0 }
+    let result = Core.expr tc
     0
 
