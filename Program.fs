@@ -6,23 +6,6 @@ open System.Linq
 open System.Numerics
 open System.Text
 
-let rec exprStr expr =
-    match expr with
-    | Ebnf.Choice list -> "c [" + (String.concat "; " (List.map exprStr list)) + "]"
-    | Ebnf.Sequence list -> "s [" + (String.concat "; " (List.map exprStr list)) + "]"
-    | Ebnf.Primary (mult, expr) ->
-        match mult with
-        | Ebnf.ZeroOrOne -> "o (" + (exprStr expr) + ")"
-        | Ebnf.ZeroOrMore -> "z (" + (exprStr expr) + ")"
-        | Ebnf.OneOrMore -> "m (" + (exprStr expr) + ")"
-    | Ebnf.Parens expr -> exprStr expr
-    | Ebnf.StringLiteral s -> "l \"" + s + "\""
-    | Ebnf.NcName n -> 
-        if n = n.ToUpperInvariant() then
-            "t " + n.Substring(0, 1) + n.Substring(1).ToLowerInvariant()
-        else
-            n
-
 let rec build (writer:IndentedTextWriter) expr depth param =
     let indent =
         match expr with
@@ -50,10 +33,10 @@ let rec build (writer:IndentedTextWriter) expr depth param =
             w $"if {prefix}r = NoMatch then NoMatch else"
             w $"match {prefix}r with"
             w $"| NoMatch -> ()"
-            w $"| Ok (result, next) ->"
-            w $"    list <- result :: list"
+            w $"| Ok (tree, next) ->"
+            w $"    list <- tree :: list"
             w $"    {prefix}q <- next"
-        w $"Ok (Node (List.rev list), {prefix}q)"
+        w $"Ok (parseTreeFromList (List.rev list), {prefix}q)"
     | Ebnf.Primary (mult, subexpr) ->
         match mult with
         | Ebnf.ZeroOrOne ->
@@ -61,34 +44,35 @@ let rec build (writer:IndentedTextWriter) expr depth param =
             build writer subexpr deeper param
             w $"match {prefix}r with"
             w $"| NoMatch -> Ok (Empty, {param})"
-            w $"| Ok (result, next) -> Ok (result, next)"
+            w $"| Ok (tree, next) -> Ok (tree, next)"
         | Ebnf.ZeroOrMore ->
-            w $"let z list ({prefix}q:TokenCursor) ="
+            w $"let rec z list ({prefix}q:TokenCursor) ="
             writer.Indent <- writer.Indent + 1
             w $"let {prefix}r ="
             build writer subexpr deeper $"{prefix}q"
             w $"match {prefix}r with"
-            w $"| NoMatch -> Ok (Node (List.rev list), {prefix}q)"
-            w $"| Ok (result, next) -> z (result :: list) next"
+            w $"| NoMatch -> Ok (parseTreeFromList (List.rev list), {prefix}q)"
+            w $"| Ok (tree, next) -> z (tree :: list) next"
             writer.Indent <- writer.Indent - 1
             w $"z [] {param}"
         | Ebnf.OneOrMore ->
-            w $"let z list ({prefix}q:TokenCursor) ="
+            w $"let rec z list ({prefix}q:TokenCursor) ="
             writer.Indent <- writer.Indent + 1
             w $"let {prefix}r ="
             build writer subexpr deeper $"{prefix}q"
             w $"match {prefix}r with"
-            w $"| NoMatch -> Ok (Node (List.rev list), {prefix}q)"
-            w $"| Ok (result, next) -> z (result :: list) next"
+            w $"| NoMatch -> Ok (parseTreeFromList (List.rev list), {prefix}q)"
+            w $"| Ok (tree, next) -> z (tree :: list) next"
             writer.Indent <- writer.Indent - 1
             w $"match z [] {param} with"
-            w "| NoMatch -> ignore"
+            w "| NoMatch -> NoMatch"
+            w $"| Ok (Empty, _) -> NoMatch"
             w $"| Ok (Node [], _) -> NoMatch"
-            w $"| Ok (result, next) -> Ok (result, next)"
+            w $"| Ok (tree, next) -> Ok (tree, next)"
     | Ebnf.Parens subexpr ->
         build writer subexpr depth param
     | Ebnf.StringLiteral s ->
-        w $"if {param}.Current = Id \"{s}\" then Ok (Token {param}.Current, {param}.Next) else NoMatch"
+        w $"if tokenText ({param}.Current) = \"{s}\" then Ok (Token {param}.Current, {param}.Next) else NoMatch"
     | Ebnf.NcName n -> 
         if n = n.ToUpperInvariant() then
             w $"match {param}.Current with"
@@ -106,6 +90,8 @@ let main =
 
     let writer = new IndentedTextWriter (File.CreateText "Core.fs")
     writer.WriteLine "module Core"
+    writer.WriteLine "// Generated code. Do not edit."
+    writer.WriteLine "// Doing this instead of parser combinators for more straightforward debugging."
     writer.WriteLine ()
     writer.WriteLine "open Lexer"
     writer.WriteLine "open Parse"
@@ -114,7 +100,13 @@ let main =
 
     for production in grammar do
         writer.WriteLine $"{prefix} {production.Key} (q:TokenCursor) ="
+        writer.Indent <- writer.Indent + 1
+        writer.WriteLine "let result ="
         build writer production.Value 0 "q"
+        writer.WriteLine "match result with"
+        writer.WriteLine "| NoMatch -> NoMatch"
+        writer.WriteLine $"| Ok (tree, next) -> Ok (Production (\"{production.Key}\", tree), next)"
+        writer.Indent <- writer.Indent - 1
         writer.WriteLine ()
         prefix <- "and"
 
@@ -124,7 +116,12 @@ let main =
     let src = File.ReadAllText("core.af")
     let cursor = Lexer.makeCursor src
     let tokens = Lexer.tokenise cursor |> Seq.toArray
-    let tc = { Lexer.TokenCursor.source = tokens; Lexer.TokenCursor.index = 0 }
-    //let result = Core.expr tc
+    let mutable tc = { Lexer.TokenCursor.source = tokens; Lexer.TokenCursor.index = 0 }
+
+    while tc.More do
+        let result = Core.expr tc
+        match result with
+        | Parse.NoMatch -> raise (Exception $"failed at token {tc.index}")
+        | Parse.Ok (tree, next) -> tc <- next
     0
 
