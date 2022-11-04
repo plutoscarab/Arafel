@@ -1,25 +1,31 @@
 type Bool = False | True
 
-    let False:Bool = (f, t) = f
-    let True:Bool = (f, t) = t
+    type Bool = forall a, a -> a -> a.
+    let False = (f:a, t:a) = f
+    let True = (f:a, t:a) = t
 
-case b of False -> 33  True -> 42 becomes
+Note that this swaps the f and t values compared to traditional Church encoding.
+
+case b of  False -> 33  True -> 42  becomes
 
     b(33, 42)
 
 which prints 33 if b=False or 42 if b=True.
 
+    let not =
+        (b:Bool) = b(True, False)
+
     let and = 
-        (left, right) = left(left, right)
+        (left:Bool, right:Bool) = left(left, right)
 
     let or = 
-        (left, right) = right(left, right)
-
-    let not =
-        (b) = b(True, False)
+        (left:Bool, right:Bool) = right(left, right)
 
     let xor =
-        (left, right) = left(right, not right)
+        (left:Bool, right:Bool) = left(right, not right)
+
+    let eq =
+        (left::Bool, right::Bool) = left(not right, right)
 
 type Maybe(t) = Nothing | Just(t)
 
@@ -54,3 +60,5 @@ type List(t) = Nil | Cons(t, List(t))
         (n, c) = c(head, tail)
 
     let list = Cons(5, Cons(3, Cons(2, Nil)))
+
+    0
