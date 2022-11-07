@@ -1,4 +1,4 @@
-module Core
+module Arafel
 // Generated code. Do not edit.
 // Doing this instead of parser combinators for more straightforward debugging.
 
@@ -6,16 +6,42 @@ open Lexer
 open Parse
 
 let rec assign (q:TokenCursor) =
-    let result = // 'let' ID '=' expr
+    let result = // 'let' ID ('(' ID (',' ID)* ')')? '=' expr
         let (at1, ac1) = Parse.isText "let" q
         if at1 = Error then (Error, q) else
         let (at2, ac2) = Parse.isId ac1
         if at2 = Error then (Error, q) else
-        let (at3, ac3) = Parse.isText "=" ac2
+        let (at3, ac3) = // ('(' ID (',' ID)* ')')?
+            let (bt, bc) = // '(' ID (',' ID)* ')'
+                let (ct1, cc1) = Parse.isText "(" ac2
+                if ct1 = Error then (Error, ac2) else
+                let (ct2, cc2) = Parse.isId cc1
+                if ct2 = Error then (Error, ac2) else
+                let (ct3, cc3) = // (',' ID)*
+                    let rec z list (dq:TokenCursor) =
+                        let (dt, dc) = // ',' ID
+                            let (et1, ec1) = Parse.isText "," dq
+                            if et1 = Error then (Error, dq) else
+                            let (et2, ec2) = Parse.isId ec1
+                            if et2 = Error then (Error, dq) else
+                            (parseTreeFromList [et1; et2], ec2)
+                        match dt with
+                        | Error -> (parseTreeFromList (List.rev list), dq)
+                        | _ -> z (dt :: list) dc
+                    z [] cc2
+                if ct3 = Error then (Error, ac2) else
+                let (ct4, cc4) = Parse.isText ")" cc3
+                if ct4 = Error then (Error, ac2) else
+                (parseTreeFromList [ct1; ct2; ct3; ct4], cc4)
+            match bt with
+            | Error -> (Empty, ac2)
+            | _ -> (bt, bc)
         if at3 = Error then (Error, q) else
-        let (at4, ac4) = expr ac3
+        let (at4, ac4) = Parse.isText "=" ac3
         if at4 = Error then (Error, q) else
-        (parseTreeFromList [at1; at2; at3; at4], ac4)
+        let (at5, ac5) = expr ac4
+        if at5 = Error then (Error, q) else
+        (parseTreeFromList [at1; at2; at3; at4; at5], ac5)
     match result with
     | (Error, _) -> (Error, q)
     | (tree, next) -> (Production ("assign", tree), next)
@@ -102,17 +128,17 @@ and expr (q:TokenCursor) =
     | (tree, next) -> (Production ("expr", tree), next)
 
 and lambda (q:TokenCursor) =
-    let result = // '(' typedVar (',' typedVar)* ')' '=' expr
+    let result = // '(' ID (',' ID)* ')' '=' expr
         let (at1, ac1) = Parse.isText "(" q
         if at1 = Error then (Error, q) else
-        let (at2, ac2) = typedVar ac1
+        let (at2, ac2) = Parse.isId ac1
         if at2 = Error then (Error, q) else
-        let (at3, ac3) = // (',' typedVar)*
+        let (at3, ac3) = // (',' ID)*
             let rec z list (bq:TokenCursor) =
-                let (bt, bc) = // ',' typedVar
+                let (bt, bc) = // ',' ID
                     let (ct1, cc1) = Parse.isText "," bq
                     if ct1 = Error then (Error, bq) else
-                    let (ct2, cc2) = typedVar cc1
+                    let (ct2, cc2) = Parse.isId cc1
                     if ct2 = Error then (Error, bq) else
                     (parseTreeFromList [ct1; ct2], cc2)
                 match bt with
@@ -185,7 +211,53 @@ and productType (q:TokenCursor) =
     | (Error, _) -> (Error, q)
     | (tree, next) -> (Production ("productType", tree), next)
 
-and typ (q:TokenCursor) =
+and typeAtom (q:TokenCursor) =
+    let result = // ID monoType* | '(' monoType ')'
+        let (at1, ac1) = // ID monoType*
+            let (bt1, bc1) = Parse.isId q
+            if bt1 = Error then (Error, q) else
+            let (bt2, bc2) = // monoType*
+                let rec z list (cq:TokenCursor) =
+                    let (ct, cc) = monoType cq
+                    match ct with
+                    | Error -> (parseTreeFromList (List.rev list), cq)
+                    | _ -> z (ct :: list) cc
+                z [] bc1
+            if bt2 = Error then (Error, q) else
+            (parseTreeFromList [bt1; bt2], bc2)
+        if at1 <> Error then (at1, ac1) else
+        let (at2, ac2) = // '(' monoType ')'
+            let (bt1, bc1) = Parse.isText "(" q
+            if bt1 = Error then (Error, q) else
+            let (bt2, bc2) = monoType bc1
+            if bt2 = Error then (Error, q) else
+            let (bt3, bc3) = Parse.isText ")" bc2
+            if bt3 = Error then (Error, q) else
+            (parseTreeFromList [bt1; bt2; bt3], bc3)
+        if at2 <> Error then (at2, ac2) else
+        (Error, q)
+    match result with
+    | (Error, _) -> (Error, q)
+    | (tree, next) -> (Production ("typeAtom", tree), next)
+
+and typeDecl (q:TokenCursor) =
+    let result = // 'type' ID '=' tyƿe '.'
+        let (at1, ac1) = Parse.isText "type" q
+        if at1 = Error then (Error, q) else
+        let (at2, ac2) = Parse.isId ac1
+        if at2 = Error then (Error, q) else
+        let (at3, ac3) = Parse.isText "=" ac2
+        if at3 = Error then (Error, q) else
+        let (at4, ac4) = tyƿe ac3
+        if at4 = Error then (Error, q) else
+        let (at5, ac5) = Parse.isText "." ac4
+        if at5 = Error then (Error, q) else
+        (parseTreeFromList [at1; at2; at3; at4; at5], ac5)
+    match result with
+    | (Error, _) -> (Error, q)
+    | (tree, next) -> (Production ("typeDecl", tree), next)
+
+and tyƿe (q:TokenCursor) =
     let result = // (('∀' | 'forall') ID+ ',')? monoType
         let (at1, ac1) = // (('∀' | 'forall') ID+ ',')?
             let (bt, bc) = // ('∀' | 'forall') ID+ ','
@@ -220,64 +292,5 @@ and typ (q:TokenCursor) =
         (parseTreeFromList [at1; at2], ac2)
     match result with
     | (Error, _) -> (Error, q)
-    | (tree, next) -> (Production ("typ", tree), next)
-
-and typeAtom (q:TokenCursor) =
-    let result = // ID monoType* | '(' monoType ')'
-        let (at1, ac1) = // ID monoType*
-            let (bt1, bc1) = Parse.isId q
-            if bt1 = Error then (Error, q) else
-            let (bt2, bc2) = // monoType*
-                let rec z list (cq:TokenCursor) =
-                    let (ct, cc) = monoType cq
-                    match ct with
-                    | Error -> (parseTreeFromList (List.rev list), cq)
-                    | _ -> z (ct :: list) cc
-                z [] bc1
-            if bt2 = Error then (Error, q) else
-            (parseTreeFromList [bt1; bt2], bc2)
-        if at1 <> Error then (at1, ac1) else
-        let (at2, ac2) = // '(' monoType ')'
-            let (bt1, bc1) = Parse.isText "(" q
-            if bt1 = Error then (Error, q) else
-            let (bt2, bc2) = monoType bc1
-            if bt2 = Error then (Error, q) else
-            let (bt3, bc3) = Parse.isText ")" bc2
-            if bt3 = Error then (Error, q) else
-            (parseTreeFromList [bt1; bt2; bt3], bc3)
-        if at2 <> Error then (at2, ac2) else
-        (Error, q)
-    match result with
-    | (Error, _) -> (Error, q)
-    | (tree, next) -> (Production ("typeAtom", tree), next)
-
-and typeDecl (q:TokenCursor) =
-    let result = // 'type' ID '=' typ '.'
-        let (at1, ac1) = Parse.isText "type" q
-        if at1 = Error then (Error, q) else
-        let (at2, ac2) = Parse.isId ac1
-        if at2 = Error then (Error, q) else
-        let (at3, ac3) = Parse.isText "=" ac2
-        if at3 = Error then (Error, q) else
-        let (at4, ac4) = typ ac3
-        if at4 = Error then (Error, q) else
-        let (at5, ac5) = Parse.isText "." ac4
-        if at5 = Error then (Error, q) else
-        (parseTreeFromList [at1; at2; at3; at4; at5], ac5)
-    match result with
-    | (Error, _) -> (Error, q)
-    | (tree, next) -> (Production ("typeDecl", tree), next)
-
-and typedVar (q:TokenCursor) =
-    let result = // ID ':' typ
-        let (at1, ac1) = Parse.isId q
-        if at1 = Error then (Error, q) else
-        let (at2, ac2) = Parse.isText ":" ac1
-        if at2 = Error then (Error, q) else
-        let (at3, ac3) = typ ac2
-        if at3 = Error then (Error, q) else
-        (parseTreeFromList [at1; at2; at3], ac3)
-    match result with
-    | (Error, _) -> (Error, q)
-    | (tree, next) -> (Production ("typedVar", tree), next)
+    | (tree, next) -> (Production ("tyƿe", tree), next)
 

@@ -26,8 +26,14 @@ type Cursor =
 
 type Span = Cursor * Cursor
 
-let spanned (start:Cursor, next:Cursor) =
-    [start.index .. next.index - 1] |> List.map (fun i -> start.source[i].ToString()) |> String.concat ""
+let spanned (span:Span) =
+    let (start, next) = span
+    let temp = [start.index .. next.index - 1]
+    let indexed = temp |> List.map (fun i -> start.source[i])
+    let strd = indexed |> List.map (fun i -> i.ToString())
+    let result = strd |> String.concat ""
+    result
+    //[start.index .. next.index - 1] |> List.map (fun i -> start.source[i].ToString()) |> String.concat ""
 
 let makeCursor (source:string) =
     let runes = source.EnumerateRunes() |> Array.ofSeq
