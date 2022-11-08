@@ -1,64 +1,193 @@
-type Bool = False | True
 
-    type Bool = forall a, a -> a -> a.
-    let False = (f, t) = f
-    let True = (f, t) = t
+ARAFEL
 
-Note that this swaps the f and t values compared to traditional Church encoding.
+Arafel is a strict, lazy, statically-typed functional programming language. 
+Source files contain comments on non-indented lines and code on indented 
+lines. You're reading a valid Arafel source file. Files must be encoded in 
+either ASCII or UTF-8.
 
-case b of  False -> 33  True -> 42  becomes
 
-    b(33, 42)
+VALUES
 
-which prints 33 if b=False or 42 if b=True.
+An Arafel program produces values. An Arafel "host" decides what to do with
+those values. The default console host just writes them to the console.
 
-    let not =
-        (b) = b(True, False)
-
-    let and = 
-        (left, right) = left(left, right)
-
-    let or = 
-        (left, right) = right(left, right)
-
-    let xor =
-        (left, right) = left(right, not(right))
-
-    let eq =
-        (left, right) = left(not(right), right)
-
-type Maybe(t) = Nothing | Just(t)
-
-    let Nothing = 
-        (n, j) = n
-
-    let Just(t) =
-        (n, j) = j(t)
-
-type Either(t) = Left(t) | Right(t)
-
-    let Left(t) =
-        (l, r) = l(t)
-
-    let Right(t) =
-        (l, r) = r(t)
-
-type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
-
-    let Leaf(t) =
-        (l, n) = l(t)
-
-    let Node(left, right) =
-        (l, n) = n(left, right)
-
-type List(t) = Nil | Cons(t, List(t))
-
-    let Nil =
-        (n, c) = n
-
-    let Cons(head, tail) =
-        (n, c) = c(head, tail)
-
-    let list = Cons(5, Cons(3, Cons(2, Nil)))
+Nat values represent natural (non-negative) numbers. They are either 0 or a 
+sequence of digits that doesn't start with zero. Digit group separators can 
+be used to make it easier to read large numbers. Here are some Nat values:
 
     0
+    500
+    1_000_000
+    43252003274489856000
+    ੨੦੨੨
+    𝟞𝟜
+    
+Those last two values show that you can use decimal digits from scripts other
+than arabic numerals.
+
+
+BUILD-IN OPERATORS
+
+In the core (stripped-down) language, operators are treated them same as other
+call-by-name function calls. The operator is the function name. This example
+uses "*" to multiply 365 by 24, and 60 by 60, and then multiplies those two
+results together.
+
+    *(*(365, 24), *(60, 60))
+
+This prints "31536000" which is the number of seconds in a normal year.
+
+The "power" operator for exponentiation is "**". It is right-associative, so 
+these two expressions are equivalent:
+
+    **(5, **(4, **(3, 2)))
+
+Superscript digits can also be used for exponentiation.
+
+    +(3², 4²)
+    105¹²
+
+
+FUNCTIONS
+
+Functions in Arafel are written like this which returns the square
+of a number:
+
+    let square(x) = *(x, x)
+
+Functions that you define this way can be used in expressions later in
+the program.
+
+    *(*(365, 24), square(60))
+    hypot(3, 4)
+
+There are many built-in functions, such as "sqrt":
+
+    let hypot(a, b) = sqrt(+(square(a), square(b)))
+
+
+LISTS
+
+There is no build-in support for lists yet. Define lists using
+
+    type List(a) = Nil | Cons(a, List(a))
+
+Empty list.
+
+    Nil
+
+Finite lists.
+
+    Cons(1, Nil)
+    Copns(1, Cons(2, Cons(3, Nil)))
+
+Infinite list of natural numbers.
+
+    let natsFromWithSkip(n, skip) = Cons(n, natsFromWithSkip(+(n, skip), s))
+    let allNatsFrom(n) = netsFromWithSkip(n, 1)
+    let allNats = allNatsFrom(0)
+
+List item extraction:
+
+    type Maybe(a) = Nothing | Just(a)
+
+    let head(list) =
+        case list
+            Cons(head, tail) -> Just(head)
+            else Nothing
+
+Odd numbers 5 through 99:
+
+    let takeWhile(pred, list) =
+        case list
+            Nil -> Nil
+            Cons(head, tail) ->
+                if pred(head) then
+                    Cons(head, takeWhile(pred, tail))
+                else
+                    Nil
+
+    takeWhile((n) = <(n, 100), natsFromWithSkip(5, 2))
+
+
+TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
+
+Binary tree with data in the leaf nodes:
+
+    type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+
+This defines two different functions for creating trees, one called Leaf
+that takes a value and returns a tree with a single leaf node, and one
+called Node that returns a tree with two sub-trees.
+
+It also defines a function called Tree that takes a type argument and
+returns a type. For example Tree(Int) is a tree of Int values and Tree(Str)
+is a tree of Str values. Tree is not a type, but is a function that returns
+a type.
+
+Here we create a Tree(Str):
+
+    let x = Node(Leaf("a"), Node(Leaf("b"), Leaf("c")))
+
+This produces the following tree where "*" indicate Nodes:
+
+:     b   c
+:      \ /
+:   a   *
+:    \ /
+:     *
+
+To use a union type, we use the "case" keyword to match with each of the
+functions that were used to create the tree. Here's a function to count the
+leaf nodes in our tree.
+
+    let count(t) = case t
+        Leaf(_) -> 1 
+        Node(left, right) -> +(count(left), count(right))
+
+    count(x)
+
+This prints "3" for the tree we created above.
+
+
+FUNCTIONS AS VALUES, ALSO LAMBDAS 𝑎.𝑘.𝑎. ANONYMOUS FUNCTIONS
+
+Functions are values in and of themselves, and can be passed as arguments to
+other functions. Here's a function that accepts a function as input and applies
+it to each value in a list to produce a new list.
+
+    let map(func, list) = case list 
+        Nil -> Nil
+        Cons(head, tail) -> Cons(func(head), map(func, tail))
+
+We can use this to apply our "square" function to each item in the list.
+
+    natsFromTo(from, to) = 
+        if >(from, to) then 
+            Nil 
+        else 
+            Cons(from, natsFromTo(+(from, 1), to))
+
+    map(square, natsFromTo(1, 5))
+
+This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also supply a function directly in the 
+call to map without defining a named function first.
+
+    map((x) = x², natsFromTo(1, 5))
+
+An unnamed function like this is called a lambda function, after Lambda
+calculus.
+
+
+CUSTOM OPERATORS
+
+Concatenate two lists.
+
+    let 😀(list1, list2) =
+        case list 1
+            Nil -> list2
+            Cons (head, tail) -> Cons(head, 😀(tail, list2))
+
+    😀(Cons(1, Cons(2, Nil)), Cons(3, Cons(4, Cons(5, Nil))))
+

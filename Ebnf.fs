@@ -1,5 +1,7 @@
 module Ebnf
 
+open System
+
 let scan line =
     seq {
         let mutable depth = 0
@@ -73,7 +75,7 @@ and parseExpr (s:string) =
     | _ -> Choice (s.Substring(i).Trim() :: choices |> List.rev |> List.map parseSequence)
 
 let parseProduction (s:string) =
-    let pair = s.Split("::=")
-    let expr = parseExpr (pair[1].Trim())
-    (pair[0].Trim(), expr)
+    let pair = s.Split("::=", StringSplitOptions.TrimEntries)
+    let expr = parseExpr (pair[1])
+    (pair[0], expr)
     

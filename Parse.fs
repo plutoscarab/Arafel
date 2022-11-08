@@ -27,22 +27,22 @@ let parseTreeFromList list =
 
 let isNat (q:TokenCursor) =
     match q.Current with
-    | Nat x -> (Token q.Current, q.Next)
+    | Nat _ -> (Token q.Current, q.Next)
     | _ -> (Error, q)
 
 let isString (q:TokenCursor) =
     match q.Current with
-    | String x -> (Token q.Current, q.Next)
+    | String _ -> (Token q.Current, q.Next)
     | _ -> (Error, q)
 
 let isId (q:TokenCursor) =
     match q.Current with
-    | Id x -> (Token q.Current, q.Next)
+    | Id _ -> (Token q.Current, q.Next)
     | _ -> (Error, q)
 
 let isOperator (q:TokenCursor) =
     match q.Current with
-    | Operator x -> (Token q.Current, q.Next)
+    | Operator _ -> (Token q.Current, q.Next)
     | _ -> (Error, q)
 
 let isText (s:string) (q:TokenCursor) =
@@ -50,3 +50,8 @@ let isText (s:string) (q:TokenCursor) =
         (Token q.Current, q.Next) 
     else
         (Error, q)
+
+let isSuperscript (q:TokenCursor) =
+    match q.Current with
+    | Superscript _ -> (Token q.Current, q.Next)
+    | _ -> (Error, q)

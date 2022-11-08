@@ -40,30 +40,36 @@ let makeCursor (source:string) =
     { source = runes; index = 0; line = 1; pos = 1 }
 
 type Token = 
+    | Keyword of Span
     | Id of Span
     | Operator of Span
     | Punctuation of Span
     | Nat of Span
+    | Superscript of Span
     | String of Span
     | Error of Cursor
     | EndOfText
 
 let tokenStr (token:Token) =
     match token with
+    | Keyword s -> "Keyword " + spanned s
     | Id s -> "Id " + spanned s
     | Operator s -> "Operator " + spanned s
     | Punctuation s -> "Punctuation " + spanned s
     | Nat s -> "Nat " + spanned s
+    | Superscript s -> "Superscript " + spanned s
     | String s -> "String " + spanned s
     | Error c -> "Error " + (c.Str)
     | EndOfText -> ""
 
 let tokenText (token:Token) =
     match token with
+    | Keyword s -> spanned s
     | Id s -> spanned s
     | Operator s -> spanned s
     | Punctuation s -> spanned s
     | Nat s -> spanned s
+    | Superscript s -> spanned s
     | String s -> spanned s
     | Error c -> c.Str
     | EndOfText -> ""
@@ -93,11 +99,10 @@ let tokenise (cursor:Cursor) =
         let mutable line = 0
 
         while c.More do
-            if line <> c.line && c.pos = 1 && not (isWhitespace (c.Current)) then
+            if line <> c.line && c.pos = 1 && (c.Str = "\r" || c.Str = "\n" || not (isWhitespace (c.Current))) then
                 line <- c.line
                 while line = c.line do
                     c <- c.Next
-                line <- c.line
             else
                 let uc = Rune.GetUnicodeCategory (c.Current)
                 match c.Current with
@@ -108,12 +113,26 @@ let tokenise (cursor:Cursor) =
                     let mutable start = c
                     while Rune.IsLetter (c.Current) || Rune.IsDigit (c.Current) || c.Str = "_" do
                         c <- c.Next
-                    yield Id (start, c)
+                    let s = spanned (start, c)
+                    if s = "let" || s = "case" || s = "type" || s = "forall" || s = "if" then
+                        yield Keyword (start, c)
+                    else
+                        yield Id (start, c)
                 | r when Rune.IsDigit r ->
                     let mutable start = c
-                    while Rune.IsDigit (c.Current) do
+                    let mutable previous = c
+                    let mutable wasComma = false
+                    while Rune.IsDigit (c.Current) || (c.Str = "_" && not wasComma) do
+                        wasComma <- c.Str = "_"
+                        previous <- c
                         c <- c.Next
+                    if wasComma then c <- previous
                     yield Nat (start, c)
+                | r when "⁰¹²³⁴⁵⁶⁷⁸⁹".Contains(r.ToString()[0]) ->
+                    let mutable start = c
+                    while "⁰¹²³⁴⁵⁶⁷⁸⁹".Contains(c.Str[0]) do
+                        c <- c.Next
+                    yield Superscript (start, c)
                 | r when uc = UnicodeCategory.OtherPunctuation || uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol || uc = UnicodeCategory.DashPunctuation ->
                     let mutable start = c
                     while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherPunctuation || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol || Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.DashPunctuation do

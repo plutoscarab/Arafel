@@ -1,9 +1,11 @@
-monoType::= productType (('→' | '->') productType)*
-productType ::= typeAtom (('×' | '*') typeAtom)*
-typeAtom ::= ID monoType* | '(' monoType ')'
+lexpr ::= ID ('(' lexpr (',' lexpr)* ')')?
+monoType::= lexpr (('→' | '->') lexpr)*
 tyƿe ::= (('∀' | 'forall') ID+ ',')? monoType
 typeDecl ::= 'type' ID '=' tyƿe '.'
-expr ::= (assign | typeDecl)* atom ('(' expr (',' expr)* ')')?
-assign ::= 'let' ID ('(' ID (',' ID)* ')')? '=' expr
-atom ::= NAT | STRING | '`' OPERATOR '`' | lambda | '(' expr ')' | ID
-lambda ::= '(' ID (',' ID)* ')' '=' expr
+expr ::= (assign | typeDecl)* atom ('(' expr (',' expr)* ')')? SUPERSCRIPT?
+assign ::= 'let' lexpr '=' expr
+atom ::= NAT | STRING | OPERATOR | lambda | '(' expr ')' | ID | cases | ifthen
+lambda ::= '(' lexpr (',' lexpr)* ')' '=' expr
+cases ::= 'case' expr (pattern '->' expr)+ ('otherwise' expr)?
+pattern ::= ID ('(' pattern (',' pattern)* ')')? | NAT | STRING
+ifthen ::= 'if' expr 'then' expr 'else' expr

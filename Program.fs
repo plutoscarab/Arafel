@@ -111,8 +111,89 @@ let buildGrammar (grammar:(Map<string, Ebnf.EbnfExpr>)) filename modulename =
 
 let readGrammar filename =
         File.ReadAllLines filename
+        |> Seq.filter (fun line -> not (String.IsNullOrWhiteSpace line))
         |> Seq.map Ebnf.parseProduction
         |> Map.ofSeq
+
+
+type Lexpr = {
+    name: String
+    ctorArgs: Lexpr list
+}
+
+type MonoType = Lexpr list
+
+type TypeDef = {
+    foralls: string list
+    def: MonoType
+}
+
+type TypeDecl = {
+    name: string
+    typeDef: TypeDef
+}
+
+type Pattern =
+    | NatP of bigint
+    | StrP of string
+    | CtorP of string * (Pattern list)
+
+type Expression = {
+    assignments: Assignment list
+    typeDecls: TypeDecl list
+    body: Atom
+    arguments: Expression list
+}
+
+and Assignment = {
+    lexpr: Lexpr
+    body: Expression
+}
+
+and Atom = 
+    | NatE of bigint
+    | StrE of string
+    | OperatorE of string
+    | LambdaE of Lambda
+    | IdE of string
+    | CasesE of Cases
+
+and Lambda = {
+    parameters: Lexpr list
+    body: Expression
+}
+
+and Cases = {
+    arg: Expression
+    cases: Case list
+}
+
+and Case = {
+    pattern: Pattern
+    body: Expression
+}
+
+
+let rec dump tree indent isLast =
+    let ind = indent + (if isLast then "  " else "│ ")
+
+    match tree with
+    | Parse.Token token -> 
+        Console.Write indent
+        Console.Write (if isLast then "└" else "├")
+        Console.Write "─"
+        Console.WriteLine (Lexer.tokenStr token)
+    | Parse.Node trees ->
+        let n = List.length trees
+        for (child, i) in List.zip trees [1..n] do
+            dump child ind (i = n)
+    | Parse.Production (name, tree) -> 
+        Console.Write indent
+        Console.Write (if isLast then "└" else "├")
+        Console.Write "─"
+        Console.WriteLine name
+        dump tree ind true
+    | _ -> Console.WriteLine "???"
 
 let main =
 
@@ -131,6 +212,9 @@ let main =
         let result = Arafel.expr tc
         match result with
         | (Parse.Error, _) -> raise (Exception $"failed at token {tc.index}")
-        | (_, next) -> tc <- next
+        | (tree, next) -> 
+            Console.WriteLine ()
+            dump tree "" true
+            tc <- next
         
     0
