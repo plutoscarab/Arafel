@@ -1,0 +1,15 @@
+LexprName ::= ID ‹IdN› | OPERATOR ‹OpN›
+Lexpr ::= LexprName ⊗ ('(' Lexpr (',' Lexpr)* ')')?
+MonoType::= Lexpr (('→' | '->') Lexpr)*
+Tyƿe ::= (('∀' | 'forall') ID+ ',')? ⊗ MonoType ('|' MonoType)*
+TypeDecl ::= 'type' ID ⊗ ('(' ID (',' ID)* ')')? ⊗ s'=' Tyƿe
+Prelude ::= Assign ‹AssignP› | TypeDecl ‹TypeDeclP›
+Postfix ::= SUPERSCRIPT
+Expr ::= Prelude* ⊗ Atom ⊗ ('(' Expr (',' Expr)* ')')? ⊗ Postfix*
+Assign ::= 'let' Lexpr ⊗ '=' Expr
+Atom ::= NAT ‹NatA› | STRING ‹StrA› | OPERATOR ‹OpA› | Lambda ‹LambdaA› | '(' Expr ')' ‹ParensA› | ID ‹IdA› | Cases ‹CasesA› | IfThen ‹IfThenA›
+Lambda ::= '(' Pattern ')' ⊗ '=' Expr
+Case ::= Pattern ⊗ '->' Expr
+Cases ::= 'case' Expr ⊗ Case+ ⊗ ('otherwise' Expr)?
+Pattern ::= ID ⊗ ('(' Pattern (',' Pattern)* ')')? ‹CtorPat› | NAT ‹NatPat› | STRING ‹StrPat›
+IfThen ::= 'if' Expr ⊗ 'then' Expr ⊗ 'else' Expr

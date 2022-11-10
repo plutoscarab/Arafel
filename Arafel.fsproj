@@ -12,6 +12,7 @@
     <Compile Include="Parse.fs" />
     <Compile Include="Core.fs" />
     <Compile Include="Arafel.fs" />
+    <Compile Include="Language.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

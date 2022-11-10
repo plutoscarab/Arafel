@@ -19,14 +19,14 @@ let rec build (writer:IndentedTextWriter) expr depth param =
     | Ebnf.Choice list ->
         writer.WriteLine $"// {Ebnf.show expr}"
         writer.Indent <- writer.Indent + indent
-        for (item, i) in List.zip list [1..List.length(list)] do
+        for ((item, seqName), i) in List.zip list [1..List.length(list)] do
             v $"let ({prefix}t{i}, {prefix}c{i}) = "
             build writer item deeper param
             w $"if {prefix}t{i} <> Error then ({prefix}t{i}, {prefix}c{i}) else"
         let items = [1..List.length(list)] |> List.map (fun i -> $"{prefix}t{i}") |> String.concat "; "
         w $"(Error, {param})"
         writer.Indent <- writer.Indent - indent
-    | Ebnf.Sequence list ->
+    | Ebnf.Sequence list | Ebnf.Fields list ->
         writer.WriteLine $"// {Ebnf.show expr}"
         writer.Indent <- writer.Indent + indent
         for (item, i) in List.zip list [1..List.length(list)] do
@@ -398,8 +398,42 @@ and syntaxTree tree =
         | _ -> syntaxError "Expected an expression"
     | _ -> syntaxError "Missing production name"
 
+let rec ctorStr (typeDef, name) =
+    match name with
+    | None -> raise (Exception "")
+    | Some name -> name + " of " + (typeStr typeDef)
+
+and typeStr typeDef =
+    match typeDef with
+    | Ebnf.Fields list -> list |> List.map typeStr |> String.concat " * "
+    | Ebnf.Choice list -> list |> List.map ctorStr |> String.concat " | "
+    | Ebnf.Parens t -> typeStr t
+    | Ebnf.StringLiteral s -> raise (Exception "")
+    | Ebnf.Sequence list -> Ebnf.getName typeDef
+    | Ebnf.Primary (m, t) -> Ebnf.getName typeDef
+    | Ebnf.NcName n -> Ebnf.getName typeDef
+
+let buildTypes (grammar:(Map<string, Ebnf.EbnfExpr>)) filename modulename = 
+    let writer = new IndentedTextWriter (File.CreateText filename)
+    writer.WriteLine $"module {modulename}"
+    writer.WriteLine "// Generated code. Do not edit."
+    writer.WriteLine ()
+    let mutable t = "type"
+
+    for production in grammar do
+        let ctorName =
+            match production.Value with
+            | Ebnf.Choice _ -> ""
+            | _ -> production.Key + " of "
+        writer.WriteLine $"{t} {production.Key} = {ctorName}{typeStr production.Value}"
+        t <- "and"
+
+    writer.Flush ()
+
 let main =
 
+    let languageGrammar = readGrammar "language.txt"
+    buildTypes languageGrammar "Language.fs" "Language"
     let coreGrammar = readGrammar "core.grammar.txt"
     buildGrammar coreGrammar "Core.fs" "Core"
     let grammar = readGrammar "grammar.txt"
