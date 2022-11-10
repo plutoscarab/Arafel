@@ -5,7 +5,33 @@ module Arafel
 open Lexer
 open Parse
 
-let rec assign (q:TokenCursor) =
+let rec args (q:TokenCursor) =
+    let result = // '(' expr (',' expr)* ')'
+        let (at1, ac1) = Parse.isText "(" q
+        if at1 = Error then (Error, q) else
+        let (at2, ac2) = expr ac1
+        if at2 = Error then (Error, q) else
+        let (at3, ac3) = // (',' expr)*
+            let rec z list (bq:TokenCursor) =
+                let (bt, bc) = // ',' expr
+                    let (ct1, cc1) = Parse.isText "," bq
+                    if ct1 = Error then (Error, bq) else
+                    let (ct2, cc2) = expr cc1
+                    if ct2 = Error then (Error, bq) else
+                    (parseTreeFromList [ct1; ct2], cc2)
+                match bt with
+                | Error -> (parseTreeFromList (List.rev list), bq)
+                | _ -> z (bt :: list) bc
+            z [] ac2
+        if at3 = Error then (Error, q) else
+        let (at4, ac4) = Parse.isText ")" ac3
+        if at4 = Error then (Error, q) else
+        (parseTreeFromList [at1; at2; at3; at4], ac4)
+    match result with
+    | (Error, _) -> (Error, q)
+    | (tree, next) -> (Production ("args", tree), next)
+
+and assign (q:TokenCursor) =
     let result = // 'let' lexpr '=' expr
         let (at1, ac1) = Parse.isText "let" q
         if at1 = Error then (Error, q) else
@@ -21,7 +47,7 @@ let rec assign (q:TokenCursor) =
     | (tree, next) -> (Production ("assign", tree), next)
 
 and atom (q:TokenCursor) =
-    let result = // NAT | STRING | OPERATOR | lambda | '(' expr ')' | ID | cases | ifthen
+    let result = // NAT | STRING | OPERATOR | lambda | parens | ID | cases | ifthen
         let (at1, ac1) = Parse.isNat q
         if at1 <> Error then (at1, ac1) else
         let (at2, ac2) = Parse.isString q
@@ -30,14 +56,7 @@ and atom (q:TokenCursor) =
         if at3 <> Error then (at3, ac3) else
         let (at4, ac4) = lambda q
         if at4 <> Error then (at4, ac4) else
-        let (at5, ac5) = // '(' expr ')'
-            let (bt1, bc1) = Parse.isText "(" q
-            if bt1 = Error then (Error, q) else
-            let (bt2, bc2) = expr bc1
-            if bt2 = Error then (Error, q) else
-            let (bt3, bc3) = Parse.isText ")" bc2
-            if bt3 = Error then (Error, q) else
-            (parseTreeFromList [bt1; bt2; bt3], bc3)
+        let (at5, ac5) = parens q
         if at5 <> Error then (at5, ac5) else
         let (at6, ac6) = Parse.isId q
         if at6 <> Error then (at6, ac6) else
@@ -92,7 +111,7 @@ and cases (q:TokenCursor) =
     | (tree, next) -> (Production ("cases", tree), next)
 
 and expr (q:TokenCursor) =
-    let result = // (assign | typeDecl)* atom ('(' expr (',' expr)* ')')? SUPERSCRIPT?
+    let result = // (assign | typeDecl)* atom args? SUPERSCRIPT?
         let (at1, ac1) = // (assign | typeDecl)*
             let rec z list (bq:TokenCursor) =
                 let (bt, bc) = // assign | typeDecl
@@ -108,28 +127,8 @@ and expr (q:TokenCursor) =
         if at1 = Error then (Error, q) else
         let (at2, ac2) = atom ac1
         if at2 = Error then (Error, q) else
-        let (at3, ac3) = // ('(' expr (',' expr)* ')')?
-            let (bt, bc) = // '(' expr (',' expr)* ')'
-                let (ct1, cc1) = Parse.isText "(" ac2
-                if ct1 = Error then (Error, ac2) else
-                let (ct2, cc2) = expr cc1
-                if ct2 = Error then (Error, ac2) else
-                let (ct3, cc3) = // (',' expr)*
-                    let rec z list (dq:TokenCursor) =
-                        let (dt, dc) = // ',' expr
-                            let (et1, ec1) = Parse.isText "," dq
-                            if et1 = Error then (Error, dq) else
-                            let (et2, ec2) = expr ec1
-                            if et2 = Error then (Error, dq) else
-                            (parseTreeFromList [et1; et2], ec2)
-                        match dt with
-                        | Error -> (parseTreeFromList (List.rev list), dq)
-                        | _ -> z (dt :: list) dc
-                    z [] cc2
-                if ct3 = Error then (Error, ac2) else
-                let (ct4, cc4) = Parse.isText ")" cc3
-                if ct4 = Error then (Error, ac2) else
-                (parseTreeFromList [ct1; ct2; ct3; ct4], cc4)
+        let (at3, ac3) = // args?
+            let (bt, bc) = args ac2
             match bt with
             | Error -> (Empty, ac2)
             | _ -> (bt, bc)
@@ -255,6 +254,19 @@ and monoType (q:TokenCursor) =
     match result with
     | (Error, _) -> (Error, q)
     | (tree, next) -> (Production ("monoType", tree), next)
+
+and parens (q:TokenCursor) =
+    let result = // '(' expr ')'
+        let (at1, ac1) = Parse.isText "(" q
+        if at1 = Error then (Error, q) else
+        let (at2, ac2) = expr ac1
+        if at2 = Error then (Error, q) else
+        let (at3, ac3) = Parse.isText ")" ac2
+        if at3 = Error then (Error, q) else
+        (parseTreeFromList [at1; at2; at3], ac3)
+    match result with
+    | (Error, _) -> (Error, q)
+    | (tree, next) -> (Production ("parens", tree), next)
 
 and pattern (q:TokenCursor) =
     let result = // ID ('(' pattern (',' pattern)* ')')? | NAT | STRING
