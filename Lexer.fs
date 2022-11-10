@@ -33,7 +33,6 @@ let spanned (span:Span) =
     let strd = indexed |> List.map (fun i -> i.ToString())
     let result = strd |> String.concat ""
     result
-    //[start.index .. next.index - 1] |> List.map (fun i -> start.source[i].ToString()) |> String.concat ""
 
 let makeCursor (source:string) =
     let runes = source.EnumerateRunes() |> Array.ofSeq
@@ -133,6 +132,16 @@ let tokenise (cursor:Cursor) =
                     while "⁰¹²³⁴⁵⁶⁷⁸⁹".Contains(c.Str[0]) do
                         c <- c.Next
                     yield Superscript (start, c)
+                | r when r.ToString() = "\"" ->
+                    c <- c.Next
+                    let mutable start = c
+                    while c.More && c.Str <> "\"" do
+                        c <- c.Next
+                    if c.More then
+                        yield String (start, c)
+                        c <- c.Next
+                    else
+                        yield Error c
                 | r when uc = UnicodeCategory.OtherPunctuation || uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol || uc = UnicodeCategory.DashPunctuation ->
                     let mutable start = c
                     while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherPunctuation || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol || Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.DashPunctuation do

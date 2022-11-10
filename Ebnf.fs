@@ -14,7 +14,7 @@ let scan line =
             | '(' -> depth <- depth + if lit then 0 else 1
             | ')' -> depth <- depth - if lit then 0 else 1
             | _ -> ()
-            yield (index, ch, depth)
+            yield (index, ch, depth, lit)
             index <- index + 1
     }
 
@@ -53,10 +53,10 @@ let rec parseItem (s:string) =
     | _ -> NcName s
 
 and parseSequence (s:string) =
-    let list = scan s |> Seq.filter (fun (index, ch, depth) -> ch = ' ' && depth = 0)
+    let list = scan s |> Seq.filter (fun (index, ch, depth, lit) -> ch = ' ' && depth = 0 && not lit)
     let mutable i = 0
     let mutable items = []
-    for (index, _, pipe) in list do
+    for (index, _, pipe, _) in list do
         items <- if index > i then s.Substring(i, index - i) :: items else items
         i <- index + 1
     match items with
@@ -64,10 +64,10 @@ and parseSequence (s:string) =
     | _ -> Sequence (s.Substring(i) :: items |> List.rev |> List.map parseItem)
 
 and parseExpr (s:string) =
-    let list = scan s |> Seq.filter (fun (index, ch, depth) -> ch = '|' && depth = 0)
+    let list = scan s |> Seq.filter (fun (index, ch, depth, lit) -> ch = '|' && depth = 0 && not lit)
     let mutable i = 0
     let mutable choices = []
-    for (index, _, pipe) in list do
+    for (index, _, pipe, _) in list do
         choices <- if index > i + 1 then s.Substring(i, index - i - 1).Trim() :: choices else choices
         i <- index + 1
     match choices with

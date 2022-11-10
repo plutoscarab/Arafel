@@ -80,7 +80,7 @@ Empty list.
 Finite lists.
 
     Cons(1, Nil)
-    Copns(1, Cons(2, Cons(3, Nil)))
+    Cons(1, Cons(2, Cons(3, Nil)))
 
 Infinite list of natural numbers.
 
@@ -95,7 +95,7 @@ List item extraction:
     let head(list) =
         case list
             Cons(head, tail) -> Just(head)
-            else Nothing
+            otherwise Nothing
 
 Odd numbers 5 through 99:
 
@@ -185,9 +185,9 @@ CUSTOM OPERATORS
 Concatenate two lists.
 
     let 😀(list1, list2) =
-        case list 1
+        case list1
             Nil -> list2
-            Cons (head, tail) -> Cons(head, 😀(tail, list2))
+            Cons(head, tail) -> Cons(head, 😀(tail, list2))
 
     😀(Cons(1, Cons(2, Nil)), Cons(3, Cons(4, Cons(5, Nil))))
 

@@ -1,7 +1,7 @@
-lexpr ::= ID ('(' lexpr (',' lexpr)* ')')?
+lexpr ::= (ID | OPERATOR) ('(' lexpr (',' lexpr)* ')')?
 monoType::= lexpr (('→' | '->') lexpr)*
-tyƿe ::= (('∀' | 'forall') ID+ ',')? monoType
-typeDecl ::= 'type' ID '=' tyƿe '.'
+tyƿe ::= (('∀' | 'forall') ID+ ',')? monoType ('|' monoType)*
+typeDecl ::= 'type' ID ('(' ID (',' ID)* ')')? '=' tyƿe
 expr ::= (assign | typeDecl)* atom args? SUPERSCRIPT?
 args ::= '(' expr (',' expr)* ')'
 assign ::= 'let' lexpr '=' expr

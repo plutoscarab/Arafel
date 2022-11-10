@@ -138,13 +138,17 @@ type Pattern =
     | StrP of string
     | CtorP of string * (Pattern list)
 
-type Expression = {
-    assignments: Assignment list
-    typeDecls: TypeDecl list
-    body: Atom
-    arguments: Expression list
-    superscript: int
-}
+type Postfix = Superscript of bigint
+
+type Expression = 
+    { assignments: Assignment list
+      typeDecls: TypeDecl list
+      body: Atom
+      arguments: Expression list
+      postfixes: Postfix list }
+
+      member this.withPostfix(postfix:Postfix) =
+          { this with postfixes = postfix::this.postfixes }
 
 and Assignment = {
     lexpr: Lexpr
@@ -158,6 +162,7 @@ and Atom =
     | LambdaE of Lambda
     | IdE of string
     | CasesE of Cases
+    | IfThenE of Expression * Expression * Expression
     | SyntaxError of string
 
 and Lambda = {
@@ -168,6 +173,7 @@ and Lambda = {
 and Cases = {
     arg: Expression
     cases: Case list
+    otherwise: Expression option
 }
 
 and Case = {
@@ -197,37 +203,161 @@ let rec dump tree indent isLast =
         dump tree ind true
     | _ -> Console.WriteLine "???"
 
-let parseSuperscript = Seq.fold (fun acc (ch:char) -> acc * 10 + ("⁰¹²³⁴⁵⁶⁷⁸⁹".IndexOf(ch))) 0
+let ten =
+    bigint 10
 
-let syntaxError s = { assignments = []; typeDecls = []; body = SyntaxError s; arguments = []; superscript = 1 }
+let parseSuperscript s = 
+    Superscript (
+        Seq.fold 
+            (fun acc (ch:char) -> acc * ten + (bigint ("⁰¹²³⁴⁵⁶⁷⁸⁹".IndexOf(ch)))) 
+            (bigint 0)
+            s
+        )
 
-let assignTree tree =
-    { lexpr = { name = "SyntaxError"; ctorArgs = [] }; body = syntaxError "Not implemented assignTree" }
-
-let typeDeclTree tree =
-    { name = "SyntaxError"; typeDef = { foralls = []; def = [] } }
-
-let atomTree tree =
-    SyntaxError "Not implemented atomTree"
-
-let ten = bigint 10
-
-let rec parseNat s n =
+let rec parseNat' s n =
     match s with
     | [] -> n
     | ch::rest -> 
         if (ch.ToString() = "_") then
-            parseNat rest n
+            parseNat' rest n
         else
-            parseNat rest (n * ten + bigint (Rune.GetNumericValue ch))
+            parseNat' rest (n * ten + bigint (Rune.GetNumericValue ch))
 
-let rec argsTree args list =
+let parseNat span = 
+    parseNat' ((Lexer.spanned span).EnumerateRunes() |> Seq.toList) (bigint 0)
+
+let fromAtom atom = {
+    assignments = []
+    typeDecls = []
+    body = atom
+    arguments = []
+    postfixes = []
+}
+
+let syntaxError s = 
+    fromAtom (SyntaxError s)
+
+let rec parseParensList parser list =
+    match list with
+    | [_] -> []
+    | _::arg::rest -> (parseParensList parser rest) @ [parser arg]
+    | _ -> raise (Exception "Implementation error for parseParensList")
+
+let rec lexprTree' lexpr =
+    match lexpr with
+    | Parse.Token token ->
+        { name = Lexer.tokenText token; ctorArgs = [] }
+    | Parse.Node ((Parse.Token name)::args) ->
+        { name = Lexer.tokenText name; ctorArgs = parseParensList lexprTree' args }
+    | Parse.Production (name, lexpr') ->
+        lexprTree' lexpr'
+    | _ -> 
+        { name = "SyntaxError"; ctorArgs = [] }
+
+let lexprTree tree =
+    match tree with
+    | Parse.Production ("lexpr", lexpr) ->
+        lexprTree' lexpr
+    | _ -> { name = "SyntaxError"; ctorArgs = [] }
+
+let typeDeclTree tree = { 
+    name = "SyntaxError"
+    typeDef = { foralls = []; def = [] } 
+    }
+
+let rec atomTree' atom =
+    match atom with
+    | Parse.Token token ->
+        match token with
+        | Lexer.Operator span -> OperatorE (Lexer.spanned span)
+        | Lexer.Nat span -> NatE (parseNat span)
+        | Lexer.Id span -> IdE (Lexer.spanned span)
+        | _ -> SyntaxError "Not implemented atomTree' token"
+    | Parse.Production ("cases", Parse.Node trees) ->
+        caseTrees trees
+    | Parse.Production ("ifthen", Parse.Node [_; arg; _; trueExpr; _; falseExpr]) ->
+        IfThenE (syntaxTree arg, syntaxTree trueExpr, syntaxTree falseExpr)
+    | _ -> SyntaxError "Not implemented atomTree'"
+
+and atomTree tree =
+    match tree with
+    | Parse.Production ("atom", atom) -> atomTree' atom
+    | _ -> SyntaxError "Not implemented atomTree"
+
+and assignTree' assign =
+    match assign with
+    | Parse.Node [_; lexpr; _; body] -> { lexpr = lexprTree lexpr; body = syntaxTree body }
+    | _ -> {
+        lexpr = { 
+            name = "SyntaxError"
+            ctorArgs = [] 
+            }
+        body = syntaxError "Not implemented assignTree'" 
+        }
+
+and assignTree tree =
+    match tree with
+    | Parse.Production ("assign", assign) ->
+        assignTree' assign
+    | _ -> {
+        lexpr = { 
+            name = "SyntaxError"
+            ctorArgs = [] 
+            }
+        body = syntaxError "Not implemented assignTree" 
+        }
+
+and argsTree args list =
     match args with
-    | [_] -> List.rev list
-    | [_; arg]::rest -> argsTree rest ((exprTree arg)::list)
+    | [_] -> 
+        List.rev list
+    | _::arg::rest -> 
+        argsTree rest ((syntaxTree arg)::list)
     | _ -> [syntaxError "Not implemented argsTree"]
 
-and exprTrees trees (assigns:Assignment list) (typeDecls:TypeDecl list) =
+and patternTree' tree =
+    match tree with
+    | Parse.Token (Lexer.Nat s) -> 
+        NatP (parseNat s)
+    | Parse.Token (Lexer.String s) ->
+        StrP (Lexer.spanned s)
+    | Parse.Token (Lexer.Id s) ->
+        CtorP (Lexer.spanned s, [])
+    | Parse.Node ((Parse.Token (Lexer.Id s))::rest) ->
+        CtorP (Lexer.spanned s, parseParensList patternTree rest)
+    | _ ->
+        raise (Exception "Not implemented patternTree'")
+
+and patternTree tree =
+    match tree with
+    | Parse.Production ("pattern", pattern) ->
+        patternTree' pattern
+    | _ -> raise (Exception "Not implemented patternTree")
+
+and caseTrees' body trees =
+    match trees with
+    | Parse.Production ("pattern", pattern) ::
+      Parse.Token (Lexer.Operator _) ::
+      Parse.Production ("expr", tree) :: [] ->
+        { arg = body; cases = [{ pattern = patternTree' pattern; body = exprTree tree }]; otherwise = None }
+    | Parse.Production ("pattern", pattern) ::
+      Parse.Token (Lexer.Operator _) ::
+      Parse.Production ("expr", tree) ::rest ->
+        let c = caseTrees' body rest
+        { c with cases = { pattern = patternTree' pattern; body = exprTree tree }::c.cases }
+    | (Parse.Token (Lexer.Id span)) :: tree :: [] when (Lexer.spanned span) = "otherwise" ->
+        { arg = body; cases = []; otherwise = Some (syntaxTree tree) }
+    | _ -> raise (Exception "Not implemented caseTrees'")
+
+and caseTrees trees =
+    match trees with
+    | Parse.Token (Lexer.Keyword s) :: Parse.Production ("expr", expr) :: rest 
+        when (Lexer.spanned s) = "case" ->
+        CasesE (caseTrees' (exprTree expr) rest)
+    | _ -> 
+        raise (Exception "Not implemented caseTrees")
+
+and exprTrees trees assigns typeDecls =
     match trees with
     | [] -> syntaxError "Expected body in exprTrees"
     | t::ts ->
@@ -237,25 +367,30 @@ and exprTrees trees (assigns:Assignment list) (typeDecls:TypeDecl list) =
         | Parse.Production (name, tree') when name = "typeDecl" ->
             exprTrees ts assigns ((typeDeclTree t)::typeDecls)
         | Parse.Production (name, tree') when name = "atom" ->
-            let expr = { assignments = assigns; typeDecls = typeDecls; body = atomTree t; arguments = []; superscript = 1 }
+            let expr = {
+                assignments = assigns
+                typeDecls = typeDecls
+                body = atomTree t
+                arguments = []
+                postfixes = []
+            }
             match ts with
-            | [] -> expr
-            | [Parse.Token (Lexer.Superscript ss)] -> { expr with superscript = parseSuperscript (Lexer.spanned ss) }
-            | [Parse.Production ("args", Parse.Node args)] -> { expr with arguments = argsTree args [] }
+            | [] -> 
+                expr
+            | [Parse.Token (Lexer.Superscript ss)] ->
+                expr.withPostfix (parseSuperscript (Lexer.spanned ss))
+            | [Parse.Production ("args", Parse.Node args)] -> 
+                { expr with arguments = argsTree args [] }
             | _ -> syntaxError "Not implemented exprTrees post-atom"
         | _ -> syntaxError "Not implemented exprTrees"
 
 and exprTree tree =
     match tree with
     | Parse.Node trees -> exprTrees trees [] []
-    | Parse.Token token -> 
-        match token with
-        | Lexer.Nat span -> { assignments = []; typeDecls = []; body = NatE (parseNat ((Lexer.spanned span).EnumerateRunes() |> Seq.toList) (bigint 0)); arguments = []; superscript = 1 }
-        | _ -> syntaxError "Not implemented exprTree match"
-    | Parse.Production (name, tree') -> exprTree tree'
+    | Parse.Production ("atom", tree') -> fromAtom (atomTree' tree')
     | _ -> syntaxError "Not implemented exprTree _"
 
-let syntaxTree tree =
+and syntaxTree tree =
     match tree with
     | Parse.Production (name, tree') ->
         match name with
