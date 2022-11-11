@@ -78,7 +78,7 @@ let rec build (writer:IndentedTextWriter) expr depth param =
         build writer subexpr depth param
     | Ebnf.StringLiteral s ->
         w $"Parse.isText \"{s}\" {param}"
-    | Ebnf.NcName n -> 
+    | Ebnf.NcName n ->
         if n = n.ToUpperInvariant() then
             w $"Parse.is{n.Substring(0, 1) + n.Substring(1).ToLowerInvariant()} {param}"
         else
@@ -186,7 +186,7 @@ let rec dump tree indent isLast =
     let ind = indent + (if isLast then "  " else "│ ")
 
     match tree with
-    | Parse.Token token -> 
+    | Parse.Token token ->
         Console.Write indent
         Console.Write (if isLast then "└" else "├")
         Console.Write "─"
@@ -195,7 +195,7 @@ let rec dump tree indent isLast =
         let n = List.length trees
         for (child, i) in List.zip trees [1..n] do
             dump child ind (i = n)
-    | Parse.Production (name, tree) -> 
+    | Parse.Production (name, tree) ->
         Console.Write indent
         Console.Write (if isLast then "└" else "├")
         Console.Write "─"
@@ -206,9 +206,9 @@ let rec dump tree indent isLast =
 let ten =
     bigint 10
 
-let parseSuperscript s = 
+let parseSuperscript s =
     Superscript (
-        Seq.fold 
+        Seq.fold
             (fun acc (ch:char) -> acc * ten + (bigint ("⁰¹²³⁴⁵⁶⁷⁸⁹".IndexOf(ch)))) 
             (bigint 0)
             s
@@ -217,13 +217,13 @@ let parseSuperscript s =
 let rec parseNat' s n =
     match s with
     | [] -> n
-    | ch::rest -> 
+    | ch::rest ->
         if (ch.ToString() = "_") then
             parseNat' rest n
         else
             parseNat' rest (n * ten + bigint (Rune.GetNumericValue ch))
 
-let parseNat span = 
+let parseNat span =
     parseNat' ((Lexer.spanned span).EnumerateRunes() |> Seq.toList) (bigint 0)
 
 let fromAtom atom = {
@@ -234,7 +234,7 @@ let fromAtom atom = {
     postfixes = []
 }
 
-let syntaxError s = 
+let syntaxError s =
     fromAtom (SyntaxError s)
 
 let rec parseParensList parser list =
@@ -251,7 +251,7 @@ let rec lexprTree' lexpr =
         { name = Lexer.tokenText name; ctorArgs = parseParensList lexprTree' args }
     | Parse.Production (name, lexpr') ->
         lexprTree' lexpr'
-    | _ -> 
+    | _ ->
         { name = "SyntaxError"; ctorArgs = [] }
 
 let lexprTree tree =
@@ -260,7 +260,7 @@ let lexprTree tree =
         lexprTree' lexpr
     | _ -> { name = "SyntaxError"; ctorArgs = [] }
 
-let typeDeclTree tree = { 
+let typeDeclTree tree = {
     name = "SyntaxError"
     typeDef = { foralls = []; def = [] } 
     }
@@ -288,9 +288,9 @@ and assignTree' assign =
     match assign with
     | Parse.Node [_; lexpr; _; body] -> { lexpr = lexprTree lexpr; body = syntaxTree body }
     | _ -> {
-        lexpr = { 
+        lexpr = {
             name = "SyntaxError"
-            ctorArgs = [] 
+            ctorArgs = []
             }
         body = syntaxError "Not implemented assignTree'" 
         }
@@ -300,24 +300,24 @@ and assignTree tree =
     | Parse.Production ("assign", assign) ->
         assignTree' assign
     | _ -> {
-        lexpr = { 
+        lexpr = {
             name = "SyntaxError"
-            ctorArgs = [] 
+            ctorArgs = []
             }
         body = syntaxError "Not implemented assignTree" 
         }
 
 and argsTree args list =
     match args with
-    | [_] -> 
+    | [_] ->
         List.rev list
-    | _::arg::rest -> 
+    | _::arg::rest ->
         argsTree rest ((syntaxTree arg)::list)
     | _ -> [syntaxError "Not implemented argsTree"]
 
 and patternTree' tree =
     match tree with
-    | Parse.Token (Lexer.Nat s) -> 
+    | Parse.Token (Lexer.Nat s) ->
         NatP (parseNat s)
     | Parse.Token (Lexer.String s) ->
         StrP (Lexer.spanned s)
@@ -354,7 +354,7 @@ and caseTrees trees =
     | Parse.Token (Lexer.Keyword s) :: Parse.Production ("expr", expr) :: rest 
         when (Lexer.spanned s) = "case" ->
         CasesE (caseTrees' (exprTree expr) rest)
-    | _ -> 
+    | _ ->
         raise (Exception "Not implemented caseTrees")
 
 and exprTrees trees assigns typeDecls =
@@ -375,11 +375,11 @@ and exprTrees trees assigns typeDecls =
                 postfixes = []
             }
             match ts with
-            | [] -> 
+            | [] ->
                 expr
             | [Parse.Token (Lexer.Superscript ss)] ->
                 expr.withPostfix (parseSuperscript (Lexer.spanned ss))
-            | [Parse.Production ("args", Parse.Node args)] -> 
+            | [Parse.Production ("args", Parse.Node args)] ->
                 { expr with arguments = argsTree args [] }
             | _ -> syntaxError "Not implemented exprTrees post-atom"
         | _ -> syntaxError "Not implemented exprTrees"
@@ -399,41 +399,100 @@ and syntaxTree tree =
     | _ -> syntaxError "Missing production name"
 
 let rec ctorStr (typeDef, name) =
-    match name with
-    | None -> raise (Exception "")
-    | Some name -> name + " of " + (typeStr typeDef)
+    "\r\n    | " + 
+        match name with
+        | None -> typeStr typeDef
+        | Some name -> name + " of " + (typeStr typeDef)
 
 and typeStr typeDef =
     match typeDef with
     | Ebnf.Fields list -> list |> List.map typeStr |> String.concat " * "
-    | Ebnf.Choice list -> list |> List.map ctorStr |> String.concat " | "
+    | Ebnf.Choice [(t, None)] -> typeStr t
+    | Ebnf.Choice list -> list |> List.map ctorStr |> String.concat ""
     | Ebnf.Parens t -> typeStr t
     | Ebnf.StringLiteral s -> raise (Exception "")
     | Ebnf.Sequence list -> Ebnf.getName typeDef
     | Ebnf.Primary (m, t) -> Ebnf.getName typeDef
     | Ebnf.NcName n -> Ebnf.getName typeDef
 
-let buildTypes (grammar:(Map<string, Ebnf.EbnfExpr>)) filename modulename = 
+let rec buildParser (writer:IndentedTextWriter) expr =
+    match expr with
+    | Ebnf.Choice [(e, None)] ->
+        buildParser writer e
+    | Ebnf.Fields fields ->
+        writer.Indent <- writer.Indent + 1
+        writer.WriteLine "parser {"
+        writer.Indent <- writer.Indent + 1
+        let ids = [0..List.length(fields)-1]
+
+        for (i, field) in List.zip ids fields do
+            writer.WriteLine $"let! f{i} ="
+            buildParser writer field
+
+        writer.WriteLine ("return " + (String.concat ", " (ids |> List.map (fun i -> $"f{i}"))))
+        writer.Indent <- writer.Indent - 1
+        writer.WriteLine "}"
+        writer.Indent <- writer.Indent - 1
+    | Ebnf.Choice choices ->
+        writer.Indent <- writer.Indent + 1
+        let ids = [0..List.length(choices)-1]
+
+        for (i, choice) in List.zip ids choices do
+            writer.WriteLine $"let f{i} () ="
+            buildParser writer (fst choice)
+
+        let mutable op = ""
+
+        for (i, choice) in List.zip ids choices do
+            let name = 
+                match snd choice with
+                | None -> ""
+                | Some n -> n
+            writer.WriteLine $"{op}parser {{"
+            writer.WriteLine $"    let! r = f{i}()"
+            writer.WriteLine $"    return ({name} r)"
+            writer.WriteLine "}"
+            op <- "<|> "
+
+        writer.Indent <- writer.Indent - 1
+    | _ ->
+        writer.WriteLine "    P (fun c -> (None, c))"
+
+let buildTypes grammarFile filename modulename = 
+    let grammar = readGrammar grammarFile
     let writer = new IndentedTextWriter (File.CreateText filename)
     writer.WriteLine $"module {modulename}"
-    writer.WriteLine "// Generated code. Do not edit."
+    writer.WriteLine $"// Generated code. Do not edit. Make changes in {grammarFile}."
+    writer.WriteLine ()
+    writer.WriteLine "open Lexer"
+    writer.WriteLine "open Parse"
     writer.WriteLine ()
     let mutable t = "type"
 
     for production in grammar do
         let ctorName =
             match production.Value with
-            | Ebnf.Choice _ -> ""
-            | _ -> production.Key + " of "
+            | Ebnf.Choice ((_, Some _)::_) -> ""
+            | _ -> "\r\n    " + production.Key + " of "
         writer.WriteLine $"{t} {production.Key} = {ctorName}{typeStr production.Value}"
+        t <- "and"
+        writer.WriteLine ()
+
+    t <- "let rec"
+
+    for production in grammar do
+        let pname = production.Key.Substring(0, 1).ToLowerInvariant() + production.Key.Substring(1)
+        writer.WriteLine $"{t} {pname} () ="
+        buildParser writer production.Value
+        writer.WriteLine ()
         t <- "and"
 
     writer.Flush ()
+    grammar
 
 let main =
 
-    let languageGrammar = readGrammar "language.txt"
-    buildTypes languageGrammar "Language.fs" "Language"
+    let languageGrammar = buildTypes "language.txt" "Language.fs" "Language"
     let coreGrammar = readGrammar "core.grammar.txt"
     buildGrammar coreGrammar "Core.fs" "Core"
     let grammar = readGrammar "grammar.txt"
@@ -449,7 +508,7 @@ let main =
         let result = Arafel.expr tc
         match result with
         | (Parse.Error, _) -> raise (Exception $"failed at token {tc.index}")
-        | (tree, next) -> 
+        | (tree, next) ->
             Console.WriteLine ()
             dump tree "" true
             let syntax = syntaxTree tree

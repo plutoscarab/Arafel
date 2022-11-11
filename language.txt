@@ -4,12 +4,12 @@ MonoType::= Lexpr (('→' | '->') Lexpr)*
 Tyƿe ::= (('∀' | 'forall') ID+ ',')? ⊗ MonoType ('|' MonoType)*
 TypeDecl ::= 'type' ID ⊗ ('(' ID (',' ID)* ')')? ⊗ s'=' Tyƿe
 Prelude ::= Assign ‹AssignP› | TypeDecl ‹TypeDeclP›
-Postfix ::= SUPERSCRIPT
+Postfix ::= | SUPERSCRIPT ‹Super›
 Expr ::= Prelude* ⊗ Atom ⊗ ('(' Expr (',' Expr)* ')')? ⊗ Postfix*
 Assign ::= 'let' Lexpr ⊗ '=' Expr
-Atom ::= NAT ‹NatA› | STRING ‹StrA› | OPERATOR ‹OpA› | Lambda ‹LambdaA› | '(' Expr ')' ‹ParensA› | ID ‹IdA› | Cases ‹CasesA› | IfThen ‹IfThenA›
+Atom ::= NAT ‹NatA› | STRING ‹StrA› | OPERATOR ‹OpA› | Lambda ‹LambdaA› | '(' Expr ')' ‹ParensA› | ID ‹IdA› | Matches ‹MatchA› | IfThen ‹IfThenA›
 Lambda ::= '(' Pattern ')' ⊗ '=' Expr
 Case ::= Pattern ⊗ '->' Expr
-Cases ::= 'case' Expr ⊗ Case+ ⊗ ('otherwise' Expr)?
+Matches ::= 'case' Expr ⊗ Case+ ⊗ ('otherwise' Expr)?
 Pattern ::= ID ⊗ ('(' Pattern (',' Pattern)* ')')? ‹CtorPat› | NAT ‹NatPat› | STRING ‹StrPat›
 IfThen ::= 'if' Expr ⊗ 'then' Expr ⊗ 'else' Expr
