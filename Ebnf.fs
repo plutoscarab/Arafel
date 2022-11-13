@@ -69,7 +69,6 @@ let rec getName expr =
     | StringLiteral s -> ""
     | NcName n -> 
         match n with
-        | "NAT" | "SUPERSCRIPT" -> "bigint"
         | name when name = name.ToUpperInvariant() -> "string"
         | _ -> n
 
@@ -118,7 +117,10 @@ and parseExpr (s:string) =
     for (index, _, pipe, _) in list do
         choices <- if index > i + 1 then s.Substring(i, index - i - 1).Trim() :: choices else choices
         i <- index + 1
-    Choice (s.Substring(i).Trim() :: choices |> List.rev |> List.map parseChoice)
+    let result = Choice (s.Substring(i).Trim() :: choices |> List.rev |> List.map parseChoice)
+    match result with
+    | Choice [(e, None)] -> e
+    | c -> c
 
 let parseProduction (s:string) =
     let pair = s.Split("::=", StringSplitOptions.TrimEntries)

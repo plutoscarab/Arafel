@@ -1,268 +1,84 @@
 module Language
-// Generated code. Do not edit. Make changes in language.txt.
 
-open Lexer
 open Parse
 
-type Assign = 
-    Assign of Lexpr * Expr
+type LexprName =
+    | [<Parse("ID")>] IdentifierN of string
+    | [<Parse("OPERATOR")>] OperatorN of string
 
-and Atom = 
-    | NatA of bigint
-    | StrA of string
-    | OpA of string
-    | LambdaA of Lambda
-    | ParensA of Expr
-    | IdA of string
-    | MatchA of Matches
-    | IfThenA of IfThen
+type Lexpr =
+    | [<Parse("_"); 
+        Parse("opt surr '(' ')' delim ',' _")>]
+      Lexpr of LexprName * Lexpr list
 
-and Case = 
-    Case of Pattern * Expr
+type MonoType =
+    | [<Parse("delim or '->' '→' _")>] MonoType of Lexpr list
 
-and Expr = 
-    Expr of Prelude list * Atom * Expr list * Postfix list
+type PolyType =
+    | [<Parse("opt surr or 'forall' '∀' ',' 1+ ID");
+        Parse("delim '|' _")>] 
+      PolyType of string list * MonoType list
 
-and IfThen = 
-    IfThen of Expr * Expr * Expr
+type TypeDecl =
+    | [<Parse("and 'type' ID");
+        Parse("opt surr '(' ')' delim ',' ID");
+        Parse("and '=' _")>]
+      TypeDecl of string * string list * PolyType
 
-and Lambda = 
-    Lambda of Pattern * Expr
+type Postfix =
+    | [<Parse("bigint SUPERSCRIPT")>] Superstring of bigint
 
-and Lexpr = 
-    Lexpr of LexprName * Lexpr list
+type Pattern =
+    | [<Parse("ID");
+        Parse("opt surr '(' ')' delim ',' _")>] 
+      CtorPat of string * Pattern list
+    | [<Parse("bigint NAT")>] NatPat of bigint
+    | [<Parse("STRING")>] StringPat of string
 
-and LexprName = 
-    | IdN of string
-    | OpN of string
+type LetDecl =
+    | [<Parse("and 'let' _");
+        Parse("and '=' _")>]
+      LetDecl of Lexpr * Expr
 
-and Matches = 
-    Matches of Expr * Case list * Expr option
+and Atom =
+    | [<Parse("bigint NAT")>] NatA of bigint
+    | [<Parse("STRING")>] StringA of string
+    | [<Parse("OPERATOR")>] OperatorA of string
+    | [<Parse("_")>] LambdaA of Lambda
+    | [<Parse("surr '(' ')' _")>] ParensA of Expr
+    | [<Parse("ID")>] IdentifierA of string
+    | [<Parse("_")>] MatchA of Matches
+    | [<Parse("_")>] IfThenA of IfThen
 
-and MonoType = 
-    MonoType of Lexpr list
+and Case =
+    | [<Parse("_");
+        Parse("and '->' _")>]
+      Case of Pattern * Expr
 
-and Pattern = 
-    | CtorPat of string * Pattern list
-    | NatPat of bigint
-    | StrPat of string
+and Matches =
+    | [<Parse("and 'case' _");
+        Parse("1+ _");
+        Parse("opt and 'otherwise' _")>]
+      Matches of Expr * Case list * Expr option
 
-and Postfix = 
-    | Super of bigint
+and Expr =
+    | [<Parse("0+ _");
+        Parse("_");
+        Parse("opt surr '(' ')' delim ',' _");
+        Parse("0+ _")>]
+      Expr of Prelude list * Atom * Expr list * Postfix list
 
-and Prelude = 
-    | AssignP of Assign
-    | TypeDeclP of TypeDecl
+and IfThen =
+    | [<Parse("and 'if' _");
+        Parse("and 'then' _");
+        Parse("and 'else' _")>]
+      IfThen of Expr * Expr * Expr
 
-and TypeDecl = 
-    TypeDecl of string * string list * Tyƿe
+and Lambda =
+    | [<Parse("surr '(' ')' _");
+        Parse("and '=' _")>]
+      Lambda of Pattern * Expr
 
-and Tyƿe = 
-    Tyƿe of string list * MonoType list
-
-let rec assign () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        return f0, f1
-    }
-
-and atom () =
-    let f0 () =
-        P (fun c -> (None, c))
-    let f1 () =
-        P (fun c -> (None, c))
-    let f2 () =
-        P (fun c -> (None, c))
-    let f3 () =
-        P (fun c -> (None, c))
-    let f4 () =
-        P (fun c -> (None, c))
-    let f5 () =
-        P (fun c -> (None, c))
-    let f6 () =
-        P (fun c -> (None, c))
-    let f7 () =
-        P (fun c -> (None, c))
-    parser {
-        let! r = f0()
-        return (NatA r)
-    }
-    <|> parser {
-        let! r = f1()
-        return (StrA r)
-    }
-    <|> parser {
-        let! r = f2()
-        return (OpA r)
-    }
-    <|> parser {
-        let! r = f3()
-        return (LambdaA r)
-    }
-    <|> parser {
-        let! r = f4()
-        return (ParensA r)
-    }
-    <|> parser {
-        let! r = f5()
-        return (IdA r)
-    }
-    <|> parser {
-        let! r = f6()
-        return (MatchA r)
-    }
-    <|> parser {
-        let! r = f7()
-        return (IfThenA r)
-    }
-
-and case () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        return f0, f1
-    }
-
-and expr () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        let! f2 =
-            P (fun c -> (None, c))
-        let! f3 =
-            P (fun c -> (None, c))
-        return f0, f1, f2, f3
-    }
-
-and ifThen () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        let! f2 =
-            P (fun c -> (None, c))
-        return f0, f1, f2
-    }
-
-and lambda () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        return f0, f1
-    }
-
-and lexpr () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        return f0, f1
-    }
-
-and lexprName () =
-    let f0 () =
-        P (fun c -> (None, c))
-    let f1 () =
-        P (fun c -> (None, c))
-    parser {
-        let! r = f0()
-        return (IdN r)
-    }
-    <|> parser {
-        let! r = f1()
-        return (OpN r)
-    }
-
-and matches () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        let! f2 =
-            P (fun c -> (None, c))
-        return f0, f1, f2
-    }
-
-and monoType () =
-    P (fun c -> (None, c))
-
-and pattern () =
-    let f0 () =
-        parser {
-            let! f0 =
-                P (fun c -> (None, c))
-            let! f1 =
-                P (fun c -> (None, c))
-            return f0, f1
-        }
-    let f1 () =
-        P (fun c -> (None, c))
-    let f2 () =
-        P (fun c -> (None, c))
-    parser {
-        let! r = f0()
-        return (CtorPat r)
-    }
-    <|> parser {
-        let! r = f1()
-        return (NatPat r)
-    }
-    <|> parser {
-        let! r = f2()
-        return (StrPat r)
-    }
-
-and postfix () =
-    let f0 () =
-        P (fun c -> (None, c))
-    parser {
-        let! r = f0()
-        return (Super r)
-    }
-
-and prelude () =
-    let f0 () =
-        P (fun c -> (None, c))
-    let f1 () =
-        P (fun c -> (None, c))
-    parser {
-        let! r = f0()
-        return (AssignP r)
-    }
-    <|> parser {
-        let! r = f1()
-        return (TypeDeclP r)
-    }
-
-and typeDecl () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        let! f2 =
-            P (fun c -> (None, c))
-        return f0, f1, f2
-    }
-
-and tyƿe () =
-    parser {
-        let! f0 =
-            P (fun c -> (None, c))
-        let! f1 =
-            P (fun c -> (None, c))
-        return f0, f1
-    }
-
+and Prelude =
+    | [<Parse("_")>] LetP of LetDecl
+    | [<Parse("_")>] TypeP of TypeDecl
