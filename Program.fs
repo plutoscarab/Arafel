@@ -206,29 +206,6 @@ let rec dump tree indent isLast =
     | _ -> Console.WriteLine "???"
 *)
 
-let ten =
-    bigint 10
-
-let parseSuperscript s =
-    Superscript (
-        Seq.fold
-            (fun acc (ch:char) -> acc * ten + (bigint ("⁰¹²³⁴⁵⁶⁷⁸⁹".IndexOf(ch)))) 
-            (bigint 0)
-            s
-        )
-
-let rec parseNat' s n =
-    match s with
-    | [] -> n
-    | ch::rest ->
-        if (ch.ToString() = "_") then
-            parseNat' rest n
-        else
-            parseNat' rest (n * ten + bigint (Rune.GetNumericValue ch))
-
-let parseNat span =
-    parseNat' ((Lexer.spanned span).EnumerateRunes() |> Seq.toList) (bigint 0)
-
 let rec ctorStr (typeDef, name) =
     "\r\n    | " + 
         match name with
@@ -381,9 +358,9 @@ type Parser =
     | TokenP of string
     | LiteralP of string
     | OptionP of Parser
+    | OptionListP of Parser
     | ListP of Parser
     | NonEmptyListP of Parser
-    | BigintP of Parser
     | AndP of Parser * Parser
     | OrP of Parser * Parser
     | DelimitedP of Parser * Parser
@@ -464,15 +441,15 @@ let rec decodeParser ps =
     | "opt"::rest ->
         let (p, rest') = decodeParser rest
         (OptionP p), rest'
+    | "opt[]"::rest ->
+        let (p, rest') = decodeParser rest
+        (OptionListP p), rest'
     | "0+"::rest ->
         let (p, rest') = decodeParser rest
         (ListP p, rest')
     | "1+"::rest ->
         let (p, rest') = decodeParser rest
         (NonEmptyListP p, rest')
-    | "bigint"::rest ->
-        let (p, rest') = decodeParser rest
-        (BigintP p, rest')
     | "and"::rest ->
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
@@ -560,9 +537,9 @@ let rec getParserEbnf parser =
     | TokenP(s) -> s
     | LiteralP(s) -> "'" + s + "'"
     | OptionP(p) -> "(" + (getParserEbnf p) + ")?"
+    | OptionListP(p) -> "(" + (getParserEbnf p) + ")?"
     | ListP(p) -> "(" + (getParserEbnf p) + ")*"
     | NonEmptyListP(p) -> "(" + (getParserEbnf p) + ")+"
-    | BigintP(p) -> getParserEbnf p
     | AndP(p, q) -> getParserEbnf(p) + " " + getParserEbnf(q)
     | OrP(p, q) -> "(" + getParserEbnf(p) + " | " + getParserEbnf(q) + ")"
     | DelimitedP(d, p) -> getParserEbnf(p) + " (" + getParserEbnf(d) + " " + getParserEbnf(p) + ")*"
@@ -580,10 +557,123 @@ let getEbnf ucs =
     String.concat " | " (List.map getUcEbnf ucs)
 
 let writeEbnf filename productions =
-    use writer = File.CreateText("language.txt")
+    use writer = File.CreateText(filename)
 
     for Production(name, ucs) in productions do
         writer.WriteLine $"{name} ::= {getEbnf ucs}"
+
+let rec writeParser (writer:IndentedTextWriter) parser primaryType =
+    match parser with
+    | ProductionP ->
+        match primaryType with
+        | ProductionType name -> writer.Write (name.ToLowerInvariant())
+        | _ -> raise (NotImplementedException())
+    | TokenP(s) ->
+        let tokenType =
+            match primaryType with
+            | StringType -> "stringToken"
+            | BigintType -> "bigintToken"
+            | _ -> raise (NotImplementedException())
+        let tokenCtor = s.Substring(0, 1) + s.Substring(1).ToLowerInvariant()
+        writer.Write $"{tokenType} {tokenCtor}"
+    | LiteralP(s) ->
+        writer.Write $"literal \"{s}\""
+    | OptionP(p) ->
+        writer.Write "option ("
+        writeParser writer p primaryType
+        writer.Write ")"
+    | OptionListP(p) ->
+        writer.Write "optionlist ("
+        writeParser writer p primaryType
+        writer.Write ")"
+    | ListP(p) ->
+        writer.Write "zeroOrMore ("
+        writeParser writer p primaryType
+        writer.Write ")"
+    | NonEmptyListP(p) ->
+        writer.Write "oneOrMore ("
+        writeParser writer p primaryType
+        writer.Write ")"
+    | AndP(p, q) ->
+        writer.Write "andThen ("
+        writeParser writer p primaryType
+        writer.Write ") ("
+        writeParser writer q primaryType
+        writer.Write ")"
+    | OrP(p, q) ->
+        writer.Write "orElse ("
+        writeParser writer p primaryType
+        writer.Write ") ("
+        writeParser writer q primaryType
+        writer.Write ")"
+    | DelimitedP(d, p) ->
+        writer.Write "delimited ("
+        writeParser writer d primaryType
+        writer.Write ") ("
+        writeParser writer p primaryType
+        writer.Write ")"
+    | SurroundP(a, b, p) ->
+        writer.Write "surround ("
+        writeParser writer a primaryType
+        writer.Write ") ("
+        writeParser writer b primaryType
+        writer.Write ") ("
+        writeParser writer p primaryType
+        writer.Write ")"
+
+let writeField (writer:IndentedTextWriter) (TupleField(primaryType, _, parser)) =
+    writeParser writer parser primaryType
+    writer.WriteLine ()
+
+let writeCase (writer:IndentedTextWriter) (UnionCase(name, fields)) =
+    writer.WriteLine "parser {"
+    writer.Indent <- writer.Indent + 1
+    let mutable i = 0
+
+    for field in fields do
+        writer.Write $"let! f{i} = "
+        writeField writer field
+        i <- i + 1
+
+    let fs = String.concat ", " (List.map (fun f -> $"f{f}") [0..i-1])
+    writer.WriteLine $"return {name}({fs})"
+    writer.Indent <- writer.Indent - 1
+    writer.WriteLine "}"
+
+let writeParserFile filename modulename (productions:Production list) =
+    use file = File.CreateText(filename)
+    use writer = new IndentedTextWriter(file)
+    writer.WriteLine $"module {modulename}"
+    writer.WriteLine ()
+    writer.WriteLine "open Language"
+    writer.WriteLine "open Lexer"
+    writer.WriteLine "open Parse"
+    let mutable keyword = "let rec"
+
+    for Production(name, cases) in productions do
+        writer.WriteLine ()
+        let pname = name.ToLowerInvariant()
+        writer.WriteLine $"{keyword} {pname} (tokens:Token list) : Result<{name}> ="
+        keyword <- "and"
+        writer.Indent <- writer.Indent + 1
+
+        if List.length(cases) = 1 then
+            writer.Write "let p = "
+            writeCase writer cases.[0]
+            writer.WriteLine "p tokens"
+        else
+            writer.WriteLine "let p = parser {"
+            writer.Indent <- writer.Indent + 1
+
+            for unionCase in cases do
+                writer.Write "return! "
+                writeCase writer unionCase
+
+            writer.Indent <- writer.Indent - 1
+            writer.WriteLine "}"
+            writer.WriteLine "p tokens"
+
+        writer.Indent <- writer.Indent - 1
 
 let main =
 
@@ -612,7 +702,18 @@ let main =
     *)
 
     let productions = getProductions typeof<Expr>
-
     writeEbnf "language.txt" productions
+    writeParserFile "Arafel.fs" "Arafel" productions
+
+    let src = File.ReadAllText("sample.af")
+    let cursor = Lexer.makeCursor src
+    let tokens = Lexer.tokenise cursor |> Seq.toList
+
+    let mutable t = tokens
+
+    while t <> [] do
+        let (r, t2) = Arafel.expr t
+        if r = None then raise (Exception "")
+        t <- t2
 
     0

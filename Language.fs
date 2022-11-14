@@ -8,31 +8,31 @@ type LexprName =
 
 type Lexpr =
     | [<Parse("_"); 
-        Parse("opt surr '(' ')' delim ',' _")>]
+        Parse("opt[] surr '(' ')' delim ',' _")>]
       Lexpr of LexprName * Lexpr list
 
 type MonoType =
     | [<Parse("delim or '->' '→' _")>] MonoType of Lexpr list
 
 type PolyType =
-    | [<Parse("opt surr or 'forall' '∀' ',' 1+ ID");
+    | [<Parse("opt[] surr or 'forall' '∀' ',' 1+ ID");
         Parse("delim '|' _")>] 
       PolyType of string list * MonoType list
 
 type TypeDecl =
     | [<Parse("and 'type' ID");
-        Parse("opt surr '(' ')' delim ',' ID");
+        Parse("opt[] surr '(' ')' delim ',' ID");
         Parse("and '=' _")>]
       TypeDecl of string * string list * PolyType
 
 type Postfix =
-    | [<Parse("bigint SUPERSCRIPT")>] Superstring of bigint
+    | [<Parse("SUPERSCRIPT")>] SuperscriptPF of bigint
 
 type Pattern =
     | [<Parse("ID");
-        Parse("opt surr '(' ')' delim ',' _")>] 
+        Parse("opt[] surr '(' ')' delim ',' _")>] 
       CtorPat of string * Pattern list
-    | [<Parse("bigint NAT")>] NatPat of bigint
+    | [<Parse("NAT")>] NatPat of bigint
     | [<Parse("STRING")>] StringPat of string
 
 type LetDecl =
@@ -41,7 +41,7 @@ type LetDecl =
       LetDecl of Lexpr * Expr
 
 and Atom =
-    | [<Parse("bigint NAT")>] NatA of bigint
+    | [<Parse("NAT")>] NatA of bigint
     | [<Parse("STRING")>] StringA of string
     | [<Parse("OPERATOR")>] OperatorA of string
     | [<Parse("_")>] LambdaA of Lambda
@@ -64,7 +64,7 @@ and Matches =
 and Expr =
     | [<Parse("0+ _");
         Parse("_");
-        Parse("opt surr '(' ')' delim ',' _");
+        Parse("opt[] surr '(' ')' delim ',' _");
         Parse("0+ _")>]
       Expr of Prelude list * Atom * Expr list * Postfix list
 

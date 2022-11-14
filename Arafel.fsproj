@@ -11,6 +11,7 @@
     <Compile Include="Lexer.fs" />
     <Compile Include="Parse.fs" />
     <Compile Include="Language.fs" />
+    <Compile Include="Arafel.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

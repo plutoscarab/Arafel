@@ -18,7 +18,9 @@ type Cursor =
     member c.Next = 
         if c.More then 
             match c.Str with
-            | "\n" | "\r" when c.index > c.source.Length - 2 || c.source[c.index + 1].ToString() <> "\n" -> 
+            | "\n" ->
+                { c with index = c.index + 1; line = c.line + 1; pos = 1 }
+            | "\r" when c.index > c.source.Length - 2 || c.source[c.index + 1].ToString() <> "\n" -> 
                 { c with index = c.index + 1; line = c.line + 1; pos = 1 }
             | _ ->
                 { c with index = c.index + 1; pos = c.pos + 1 }
