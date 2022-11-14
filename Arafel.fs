@@ -1,6 +1,7 @@
 module Arafel
 
 open Language
+open Tokens
 open Lexer
 open Parse
 
@@ -32,7 +33,7 @@ and matches tokens =
     let p = parser {
         let! f0 = andThen (literal "case") (expr)
         let! f1 = oneOrMore (case)
-        let! f2 = option (andThen (literal "otherwise") (expr))
+        let! f2 = option (andThen (literal "else") (expr))
         return Matches(f0, f1, f2)
     }
     p tokens

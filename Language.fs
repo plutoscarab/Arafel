@@ -60,7 +60,7 @@ and Case =
 and Matches =
     | [<Parse("and 'case' _");
         Parse("1+ _");
-        Parse("opt and 'otherwise' _")>]
+        Parse("opt and 'else' _")>]
       Matches of Expr * Case list * Expr option
 
 and Expr =

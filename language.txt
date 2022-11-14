@@ -1,7 +1,7 @@
 Postfix ::= SUPERSCRIPT
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Case ::= Pattern '->' Expr
-Matches ::= 'case' Expr (Case)+ ('otherwise' Expr)?
+Matches ::= 'case' Expr (Case)+ ('else' Expr)?
 Pattern ::= ID ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
 Lambda ::= '(' Pattern ')' '=' Expr
 Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | ID | Matches | IfThen

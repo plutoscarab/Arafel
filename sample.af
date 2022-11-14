@@ -95,7 +95,7 @@ List item extraction:
     let head(list) =
         case list
             Cons(head, tail) -> Just(head)
-            otherwise Nothing
+            else Nothing
 
 Odd numbers 5 through 99:
 
