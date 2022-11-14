@@ -4,14 +4,14 @@ open Language
 open Lexer
 open Parse
 
-let rec postfix (tokens:Token list) : Result<Postfix> =
+let rec postfix tokens =
     let p = parser {
         let! f0 = bigintToken Superscript
         return SuperscriptPF(f0)
     }
     p tokens
 
-and ifthen (tokens:Token list) : Result<IfThen> =
+and ifthen tokens =
     let p = parser {
         let! f0 = andThen (literal "if") (expr)
         let! f1 = andThen (literal "then") (expr)
@@ -20,7 +20,7 @@ and ifthen (tokens:Token list) : Result<IfThen> =
     }
     p tokens
 
-and case (tokens:Token list) : Result<Case> =
+and case tokens =
     let p = parser {
         let! f0 = pattern
         let! f1 = andThen (literal "->") (expr)
@@ -28,7 +28,7 @@ and case (tokens:Token list) : Result<Case> =
     }
     p tokens
 
-and matches (tokens:Token list) : Result<Matches> =
+and matches tokens =
     let p = parser {
         let! f0 = andThen (literal "case") (expr)
         let! f1 = oneOrMore (case)
@@ -37,7 +37,7 @@ and matches (tokens:Token list) : Result<Matches> =
     }
     p tokens
 
-and pattern (tokens:Token list) : Result<Pattern> =
+and pattern tokens =
     let p = parser {
         return! parser {
             let! f0 = stringToken Id
@@ -55,7 +55,7 @@ and pattern (tokens:Token list) : Result<Pattern> =
     }
     p tokens
 
-and lambda (tokens:Token list) : Result<Lambda> =
+and lambda tokens =
     let p = parser {
         let! f0 = surround (literal "(") (literal ")") (pattern)
         let! f1 = andThen (literal "=") (expr)
@@ -63,7 +63,7 @@ and lambda (tokens:Token list) : Result<Lambda> =
     }
     p tokens
 
-and atom (tokens:Token list) : Result<Atom> =
+and atom tokens =
     let p = parser {
         return! parser {
             let! f0 = bigintToken Nat
@@ -100,14 +100,14 @@ and atom (tokens:Token list) : Result<Atom> =
     }
     p tokens
 
-and monotype (tokens:Token list) : Result<MonoType> =
+and monotype tokens =
     let p = parser {
         let! f0 = delimited (orElse (literal "->") (literal "→")) (lexpr)
         return MonoType(f0)
     }
     p tokens
 
-and polytype (tokens:Token list) : Result<PolyType> =
+and polytype tokens =
     let p = parser {
         let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (literal ",") (oneOrMore (stringToken Id)))
         let! f1 = delimited (literal "|") (monotype)
@@ -115,7 +115,7 @@ and polytype (tokens:Token list) : Result<PolyType> =
     }
     p tokens
 
-and typedecl (tokens:Token list) : Result<TypeDecl> =
+and typedecl tokens =
     let p = parser {
         let! f0 = andThen (literal "type") (stringToken Id)
         let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (stringToken Id)))
@@ -124,7 +124,7 @@ and typedecl (tokens:Token list) : Result<TypeDecl> =
     }
     p tokens
 
-and lexprname (tokens:Token list) : Result<LexprName> =
+and lexprname tokens =
     let p = parser {
         return! parser {
             let! f0 = stringToken Id
@@ -137,7 +137,7 @@ and lexprname (tokens:Token list) : Result<LexprName> =
     }
     p tokens
 
-and lexpr (tokens:Token list) : Result<Lexpr> =
+and lexpr tokens =
     let p = parser {
         let! f0 = lexprname
         let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (lexpr)))
@@ -145,7 +145,7 @@ and lexpr (tokens:Token list) : Result<Lexpr> =
     }
     p tokens
 
-and letdecl (tokens:Token list) : Result<LetDecl> =
+and letdecl tokens =
     let p = parser {
         let! f0 = andThen (literal "let") (lexpr)
         let! f1 = andThen (literal "=") (expr)
@@ -153,7 +153,7 @@ and letdecl (tokens:Token list) : Result<LetDecl> =
     }
     p tokens
 
-and prelude (tokens:Token list) : Result<Prelude> =
+and prelude tokens =
     let p = parser {
         return! parser {
             let! f0 = letdecl
@@ -166,7 +166,7 @@ and prelude (tokens:Token list) : Result<Prelude> =
     }
     p tokens
 
-and expr (tokens:Token list) : Result<Expr> =
+and expr tokens =
     let p = parser {
         let! f0 = zeroOrMore (prelude)
         let! f1 = atom

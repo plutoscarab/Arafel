@@ -3,6 +3,8 @@ module Parse
 open System
 open System.Collections.Generic
 open System.Text
+
+open Cursor
 open Lexer
 
 [<AttributeUsage(AttributeTargets.Property, AllowMultiple = true)>]
@@ -38,7 +40,7 @@ type ParserBuilder() =
 
 let parser = new ParserBuilder()
 
-let stringToken (ctor:Span -> Token) =
+let stringToken (ctor:Cspan -> Token) =
     fun t ->
         match t with
         | [] -> None, t
@@ -70,7 +72,7 @@ let rec parseNat' s n =
 let parseNat (s:string) =
     parseNat' (s.EnumerateRunes() |> Seq.toList) (bigint 0)
 
-let bigintToken (ctor:Span -> Token) : Parser<bigint> =
+let bigintToken (ctor:Cspan -> Token) : Parser<bigint> =
     fun t ->
         let (m, t2) = (stringToken ctor) t
         match m with

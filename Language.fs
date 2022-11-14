@@ -32,8 +32,10 @@ type Pattern =
     | [<Parse("ID");
         Parse("opt[] surr '(' ')' delim ',' _")>] 
       CtorPat of string * Pattern list
-    | [<Parse("NAT")>] NatPat of bigint
-    | [<Parse("STRING")>] StringPat of string
+    | [<Parse("NAT")>]
+      NatPat of bigint
+    | [<Parse("STRING")>]
+      StringPat of string
 
 type LetDecl =
     | [<Parse("and 'let' _");

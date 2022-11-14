@@ -3,51 +3,16 @@ module Lexer
 open System.Globalization
 open System.Text
 
-type Cursor =
-    { source: Rune array;
-      index: int;
-      line: int;
-      pos: int }
-
-    member c.More = c.index < c.source.Length
-
-    member c.Current = if c.More then c.source[c.index] else new Rune(0)
-
-    member c.Str = c.Current.ToString()
-
-    member c.Next = 
-        if c.More then 
-            match c.Str with
-            | "\n" ->
-                { c with index = c.index + 1; line = c.line + 1; pos = 1 }
-            | "\r" when c.index > c.source.Length - 2 || c.source[c.index + 1].ToString() <> "\n" -> 
-                { c with index = c.index + 1; line = c.line + 1; pos = 1 }
-            | _ ->
-                { c with index = c.index + 1; pos = c.pos + 1 }
-        else c
-
-type Span = Cursor * Cursor
-
-let spanned (span:Span) =
-    let (start, next) = span
-    let temp = [start.index .. next.index - 1]
-    let indexed = temp |> List.map (fun i -> start.source[i])
-    let strd = indexed |> List.map (fun i -> i.ToString())
-    let result = strd |> String.concat ""
-    result
-
-let makeCursor (source:string) =
-    let runes = source.EnumerateRunes() |> Array.ofSeq
-    { source = runes; index = 0; line = 1; pos = 1 }
+open Cursor
 
 type Token = 
-    | Keyword of Span
-    | Id of Span
-    | Operator of Span
-    | Punctuation of Span
-    | Nat of Span
-    | Superscript of Span
-    | String of Span
+    | Keyword of Cspan
+    | Id of Cspan
+    | Operator of Cspan
+    | Punctuation of Cspan
+    | Nat of Cspan
+    | Superscript of Cspan
+    | String of Cspan
     | Error of Cursor
     | EndOfText
 
@@ -105,7 +70,7 @@ let tokenise (cursor:Cursor) =
                 while line = c.line do
                     c <- c.Next
             else
-                let uc = Rune.GetUnicodeCategory (c.Current)
+                let uc = Rune.GetUnicodeCategory(c.Current)
                 match c.Current with
                 | r when isWhitespace r -> 
                     while isWhitespace (c.Current) do
