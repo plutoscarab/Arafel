@@ -14,9 +14,9 @@ let rec postfix tokens =
 
 and ifthen tokens =
     let p = parser {
-        let! f0 = andThen (literal "if") (expr)
-        let! f1 = andThen (literal "then") (expr)
-        let! f2 = andThen (literal "else") (expr)
+        let! f0 = andThen (literal "if□") (expr)
+        let! f1 = andThen (literal "□then□") (expr)
+        let! f2 = andThen (literal "□else□") (expr)
         return IfThen(f0, f1, f2)
     }
     p tokens
@@ -24,16 +24,16 @@ and ifthen tokens =
 and case tokens =
     let p = parser {
         let! f0 = pattern
-        let! f1 = andThen (literal "->") (expr)
+        let! f1 = andThen (literal "□->□") (statement)
         return Case(f0, f1)
     }
     p tokens
 
 and matches tokens =
     let p = parser {
-        let! f0 = andThen (literal "case") (expr)
+        let! f0 = andThen (literal "case□") (expr)
         let! f1 = oneOrMore (case)
-        let! f2 = option (andThen (literal "else") (expr))
+        let! f2 = option (andThen (literal "□else□") (expr))
         return Matches(f0, f1, f2)
     }
     p tokens
@@ -42,7 +42,7 @@ and pattern tokens =
     let p = parser {
         return! parser {
             let! f0 = stringToken Id
-            let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (pattern)))
+            let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",□") (pattern)))
             return CtorPat(f0, f1)
         }
         return! parser {
@@ -59,7 +59,7 @@ and pattern tokens =
 and lambda tokens =
     let p = parser {
         let! f0 = surround (literal "(") (literal ")") (pattern)
-        let! f1 = andThen (literal "=") (expr)
+        let! f1 = andThen (literal "□=□") (expr)
         return Lambda(f0, f1)
     }
     p tokens
@@ -101,26 +101,35 @@ and atom tokens =
     }
     p tokens
 
+and expr tokens =
+    let p = parser {
+        let! f0 = atom
+        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",□") (expr)))
+        let! f2 = zeroOrMore (postfix)
+        return Expr(f0, f1, f2)
+    }
+    p tokens
+
 and monotype tokens =
     let p = parser {
-        let! f0 = delimited (orElse (literal "->") (literal "→")) (lexpr)
+        let! f0 = delimited (orElse (literal "□->□") (literal "□→□")) (lexpr)
         return MonoType(f0)
     }
     p tokens
 
 and polytype tokens =
     let p = parser {
-        let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (literal ",") (oneOrMore (stringToken Id)))
-        let! f1 = delimited (literal "|") (monotype)
+        let! f0 = optionlist (surround (orElse (literal "forall□") (literal "∀□")) (literal ",□") (oneOrMore (stringToken Id)))
+        let! f1 = delimited (literal "□|□") (monotype)
         return PolyType(f0, f1)
     }
     p tokens
 
 and typedecl tokens =
     let p = parser {
-        let! f0 = andThen (literal "type") (stringToken Id)
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (stringToken Id)))
-        let! f2 = andThen (literal "=") (polytype)
+        let! f0 = andThen (literal "◁type□") (stringToken Id)
+        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",□") (stringToken Id)))
+        let! f2 = andThen (literal "□=□") (polytype)
         return TypeDecl(f0, f1, f2)
     }
     p tokens
@@ -141,15 +150,15 @@ and lexprname tokens =
 and lexpr tokens =
     let p = parser {
         let! f0 = lexprname
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (lexpr)))
+        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",□") (lexpr)))
         return Lexpr(f0, f1)
     }
     p tokens
 
 and letdecl tokens =
     let p = parser {
-        let! f0 = andThen (literal "let") (lexpr)
-        let! f1 = andThen (literal "=") (expr)
+        let! f0 = andThen (literal "◁let□") (lexpr)
+        let! f1 = andThen (literal "□=□") (statement)
         return LetDecl(f0, f1)
     }
     p tokens
@@ -164,15 +173,17 @@ and prelude tokens =
             let! f0 = typedecl
             return TypeP(f0)
         }
+        return! parser {
+            let! f0 = stringToken Comment
+            return CommentP(f0)
+        }
     }
     p tokens
 
-and expr tokens =
+and statement tokens =
     let p = parser {
         let! f0 = zeroOrMore (prelude)
-        let! f1 = atom
-        let! f2 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (expr)))
-        let! f3 = zeroOrMore (postfix)
-        return Expr(f0, f1, f2, f3)
+        let! f1 = expr
+        return Statement(f0, f1)
     }
     p tokens

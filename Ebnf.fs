@@ -98,6 +98,7 @@ let parseProduction (s:string) =
 let rec getParserEbnf parser =
     match parser with
     | ProductionP -> "_"
+    | ProductionLineP -> "_"
     | TokenP(s) -> s
     | LiteralP(s) -> "'" + s + "'"
     | OptionP(p) -> "(" + (getParserEbnf p) + ")?"

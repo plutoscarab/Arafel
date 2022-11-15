@@ -8,21 +8,21 @@ type LexprName =
 
 type Lexpr =
     | [<Parse("_"); 
-        Parse("opt[] surr '(' ')' delim ',' _")>]
+        Parse("opt[] surr '(' ')' delim ',□' _")>]
       Lexpr of LexprName * Lexpr list
 
 type MonoType =
-    | [<Parse("delim or '->' '→' _")>] MonoType of Lexpr list
+    | [<Parse("delim or '□->□' '□→□' _")>] MonoType of Lexpr list
 
 type PolyType =
-    | [<Parse("opt[] surr or 'forall' '∀' ',' 1+ ID");
-        Parse("delim '|' _")>] 
+    | [<Parse("opt[] surr or 'forall□' '∀□' ',□' 1+ ID");
+        Parse("delim '□|□' _")>] 
       PolyType of string list * MonoType list
 
 type TypeDecl =
-    | [<Parse("and 'type' ID");
-        Parse("opt[] surr '(' ')' delim ',' ID");
-        Parse("and '=' _")>]
+    | [<Parse("and '◁type□' ID");
+        Parse("opt[] surr '(' ')' delim ',□' ID");
+        Parse("and '□=□' _")>]
       TypeDecl of string * string list * PolyType
 
 type Postfix =
@@ -30,7 +30,7 @@ type Postfix =
 
 type Pattern =
     | [<Parse("ID");
-        Parse("opt[] surr '(' ')' delim ',' _")>] 
+        Parse("opt[] surr '(' ')' delim ',□' _")>] 
       CtorPat of string * Pattern list
     | [<Parse("NAT")>]
       NatPat of bigint
@@ -38,9 +38,9 @@ type Pattern =
       StringPat of string
 
 type LetDecl =
-    | [<Parse("and 'let' _");
-        Parse("and '=' _")>]
-      LetDecl of Lexpr * Expr
+    | [<Parse("and '◁let□' _");
+        Parse("and '□=□' _")>]
+      LetDecl of Lexpr * Statement
 
 and Atom =
     | [<Parse("NAT")>] NatA of bigint
@@ -54,33 +54,38 @@ and Atom =
 
 and Case =
     | [<Parse("_");
-        Parse("and '->' _")>]
-      Case of Pattern * Expr
+        Parse("and '□->□' _")>]
+      Case of Pattern * Statement
 
 and Matches =
-    | [<Parse("and 'case' _");
+    | [<Parse("and 'case□' _");
         Parse("1+ _");
-        Parse("opt and 'else' _")>]
+        Parse("opt and '□else□' _")>]
       Matches of Expr * Case list * Expr option
 
 and Expr =
-    | [<Parse("0+ _");
-        Parse("_");
-        Parse("opt[] surr '(' ')' delim ',' _");
+    | [<Parse("_");
+        Parse("opt[] surr '(' ')' delim ',□' _");
         Parse("0+ _")>]
-      Expr of Prelude list * Atom * Expr list * Postfix list
+      Expr of Atom * Expr list * Postfix list
+
+and Statement =
+    | [<Parse("0+ _");
+        Parse("_◁")>]
+      Statement of Prelude list * Expr
 
 and IfThen =
-    | [<Parse("and 'if' _");
-        Parse("and 'then' _");
-        Parse("and 'else' _")>]
+    | [<Parse("and 'if□' _");
+        Parse("and '□then□' _");
+        Parse("and '□else□' _")>]
       IfThen of Expr * Expr * Expr
 
 and Lambda =
     | [<Parse("surr '(' ')' _");
-        Parse("and '=' _")>]
+        Parse("and '□=□' _")>]
       Lambda of Pattern * Expr
 
 and Prelude =
     | [<Parse("_")>] LetP of LetDecl
     | [<Parse("_")>] TypeP of TypeDecl
+    | [<Parse("COMMENT")>] CommentP of string

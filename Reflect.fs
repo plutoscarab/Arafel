@@ -33,6 +33,8 @@ let rec decodeParser ps =
     match ps with
     | "_"::rest ->
         ProductionP, rest
+    | "_◁"::rest ->
+        ProductionLineP, rest
     | "opt"::rest ->
         let (p, rest') = decodeParser rest
         (OptionP p), rest'

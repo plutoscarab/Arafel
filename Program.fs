@@ -9,6 +9,7 @@ open System.Text
 open Language
 open Reflect
 open Parse
+open Print
 open Ebnf
 
 let main =
@@ -37,21 +38,31 @@ let main =
             tc <- next
     *)
 
-    let productions = getProductions typeof<Expr>
+    let productions = getProductions typeof<Statement>
     writeEbnf "language.txt" productions
     writeParserFile "Arafel.fs" "Arafel" productions
+    writePrintFile "Pretty.fs" "Pretty" productions
 
     let src = File.ReadAllText("sample.af")
     let runes = src.EnumerateRunes() |> Seq.toList
     let cursors = Cursor.getCursors runes |> Seq.toArray
     let cursor = Cursor.makeCursor src
     let tokens = Lexer.tokenise cursor |> Seq.toList
+    use file = File.CreateText("sample.pretty.af")
+    use writer = new IndentedTextWriter(file)
 
     let mutable t = tokens
 
     while t <> [] do
-        let (r, t2) = Arafel.expr t
-        if r = None then raise (Exception "")
+        let (r, t2) = Arafel.statement t
+
+        match r with
+        | None ->
+            raise (Exception "")
+        | Some e ->
+            Pretty.printStatement writer e
+            writer.Write "\r\n\r\n"
+
         t <- t2
 
     0

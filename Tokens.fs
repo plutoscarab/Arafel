@@ -10,6 +10,7 @@ type Token =
     | Nat of Cspan
     | Superscript of Cspan
     | String of Cspan
+    | Comment of Cspan
     | Error of Cursor
     | EndOfText
 
@@ -22,6 +23,7 @@ let tokenStr (token:Token) =
     | Nat s -> "Nat " + spanned s
     | Superscript s -> "Superscript " + spanned s
     | String s -> "String " + spanned s
+    | Comment s -> "Comment " + spanned s
     | Error c -> "Error " + (c.Str)
     | EndOfText -> ""
 
@@ -34,6 +36,7 @@ let tokenText (token:Token) =
     | Nat s -> spanned s
     | Superscript s -> spanned s
     | String s -> spanned s
+    | Comment s -> spanned s
     | Error c -> c.Str
     | EndOfText -> ""
 

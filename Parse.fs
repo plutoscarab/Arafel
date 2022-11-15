@@ -45,18 +45,21 @@ let stringToken (ctor:Cspan -> Token) =
         | [] -> None, t
         | first::rest ->
             match first with
-            | Id x when first = ctor x -> (Some (tokenText first)), rest
-            | String x when first = ctor x -> (Some (tokenText first)), rest
-            | Operator x when first = ctor x -> (Some (tokenText first)), rest
-            | Keyword x when first = ctor x -> (Some (tokenText first)), rest
-            | Nat x when first = ctor x -> (Some (tokenText first)), rest
-            | Superscript x when first = ctor x -> (Some (tokenText first)), rest
-            | _ -> None, t
+            | Id x          -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | String x      -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Operator x    -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Keyword x     -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Nat x         -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Superscript x -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Comment x     -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Punctuation x -> if first = ctor x then (Some (tokenText first)), rest else None, t
+            | Error c       -> None, t
+            | EndOfText     -> None, t
 
-let ten =
+let private ten =
     bigint 10
 
-let parseNat (s:string) =
+let private parseNat (s:string) =
 
     let rec parseNat' s n =
         match s with
@@ -79,12 +82,12 @@ let bigintToken (ctor:Cspan -> Token) =
         | None -> None, t
         | Some s -> (Some (parseNat s)), t2
 
-let literal s =
+let literal (s: string) =
     fun t ->
         match t with
         | [] -> None, t
         | first::rest ->
-            if tokenText first = s
+            if tokenText first = s.Replace("□", "").Replace("◁", "")
                 then (Some ()), rest
                 else None, t
 
@@ -138,7 +141,11 @@ and oneOrMore p =
     }
 
 let delimited d p =
-    andThen p (zeroOrMore (andThen d p))
+    parser {
+        let! first = p
+        let! rest = zeroOrMore (andThen d p)
+        return first::rest
+    }
 
 let surround a b p =
     parser {
@@ -151,6 +158,7 @@ let surround a b p =
 
 type Parser =
     | ProductionP
+    | ProductionLineP
     | TokenP of string
     | LiteralP of string
     | OptionP of Parser
@@ -181,9 +189,10 @@ type UnionCase =
 type Production =
     | Production of string * UnionCase list
 
-let rec writeParser (writer:IndentedTextWriter) parser primaryType =
+let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
-    | ProductionP ->
+    | ProductionP
+    | ProductionLineP ->
         match primaryType with
         | ProductionType name -> writer.Write (name.ToLowerInvariant())
         | _ -> raise (NotImplementedException())
@@ -240,11 +249,11 @@ let rec writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer p primaryType
         writer.Write ")"
 
-let writeField (writer:IndentedTextWriter) (TupleField(primaryType, _, parser)) =
+let private writeField (writer:IndentedTextWriter) (TupleField(primaryType, _, parser)) =
     writeParser writer parser primaryType
     writer.WriteLine ()
 
-let writeCase (writer:IndentedTextWriter) (UnionCase(name, fields)) =
+let private writeCase (writer:IndentedTextWriter) (UnionCase(name, fields)) =
     writer.WriteLine "parser {"
     writer.Indent <- writer.Indent + 1
     let mutable i = 0
