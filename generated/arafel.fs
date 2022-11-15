@@ -7,8 +7,14 @@ open Parse
 
 let rec postfix tokens =
     let p = parser {
-        let! f0 = bigintToken Superscript
-        return SuperscriptPF(f0)
+        return! parser {
+            let! f0 = bigintToken Superscript
+            return SuperscriptPF(f0)
+        }
+        return! parser {
+            let! f0 = stringToken Comment
+            return CommentPF(f0)
+        }
     }
     p tokens
 

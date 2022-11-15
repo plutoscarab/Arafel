@@ -23,11 +23,12 @@ type PolyType =
 type [<Indent>] TypeDecl =
     | [<Parse("and 'type␠' ID");
         Parse("opt[] surr '(' ')' delim ',␠' ID");
-        Parse("and '␠=␠' _␍")>]
+        Parse("and '␠=␠' _␤")>]
       TypeDecl of string * string list * PolyType
 
 type Postfix =
-    | [<Parse("SUPERSCRIPT")>] SuperscriptPF of bigint
+    | [<Parse("␑SUPERSCRIPT")>] SuperscriptPF of bigint
+    | [<Parse("␤COMMENT")>] CommentPF of string
 
 type Pattern =
     | [<Parse("ID");
@@ -40,7 +41,7 @@ type Pattern =
 
 type [<Indent>] LetDecl =
     | [<Parse("and 'let␠' _");
-        Parse("and '␠=␍' _")>]
+        Parse("and '␠=␤' _␤")>]
       LetDecl of Lexpr * Statement
 
 and Atom =
@@ -55,13 +56,13 @@ and Atom =
 
 and Case =
     | [<Parse("_");
-        Parse("and '␠:␠' _")>]
+        Parse("and ':␤' _")>]
       Case of Pattern * Statement
 
 and Matches =
     | [<Parse("and 'case␠' _");
-        Parse("and '␠of␍' 1+ _");
-        Parse("opt and 'else␠' _")>]
+        Parse("and '␠of␏' 1+ ␤_");
+        Parse("opt and '␤else␤' _")>]
       Matches of Expr * Case list * Statement option
 
 and Expr =
@@ -76,9 +77,9 @@ and Statement =
       Statement of Prelude list * Expr
 
 and IfThen =
-    | [<Parse("and 'if␠' _");
-        Parse("and '␠then␠' _");
-        Parse("and '␠else␠' _")>]
+    | [<Parse("and 'if␠' _␏");
+        Parse("and '␤then␠' _");
+        Parse("and '␤else␠' _")>]
       IfThen of Expr * Expr * Expr
 
 and Lambda =

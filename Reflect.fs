@@ -33,13 +33,15 @@ let getImmediateDependencies (t:Type) =
 let rec decodeParser ps =
     match ps with
     | "_"::rest ->
-        ProductionP, rest
-    | "_␍"::rest ->
-        ProductionLineP, rest
-    | "␍_"::rest ->
-        LineProductionP, rest
+        ProductionP(Raw, Raw), rest
+    | "_␤"::rest ->
+        ProductionP(Raw, Newline), rest
+    | "␤_"::rest ->
+        ProductionP(Newline, Raw), rest
     | "␏_"::rest ->
-        IndentProductionP, rest
+        ProductionP(Indent, Raw), rest
+    | "_␏"::rest ->
+        ProductionP(Raw, Indent), rest
     | "opt"::rest ->
         let (p, rest') = decodeParser rest
         (OptionP p), rest'

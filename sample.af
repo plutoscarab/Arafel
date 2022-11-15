@@ -84,8 +84,8 @@ Finite lists.
 
 Infinite list of natural numbers.
 
-    let natsFromWithSkip(n, skip) = Cons(n, natsFromWithSkip(+(n, skip), s))
-    let allNatsFrom(n) = netsFromWithSkip(n, 1)
+    let natsFromWithSkip(n, skip) = Cons(n, natsFromWithSkip(+(n, skip), skip))
+    let allNatsFrom(n) = natsFromWithSkip(n, 1)
     let allNats = allNatsFrom(0)
 
 List item extraction:
@@ -102,6 +102,9 @@ Odd numbers 5 through 99:
     let takeWhile(pred, list) =
         case list of
             Nil : Nil
+
+Block comment in the middle of an expression.
+            
             Cons(head, tail) :
                 if pred(head) then
                     Cons(head, takeWhile(pred, tail))

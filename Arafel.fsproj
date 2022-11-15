@@ -14,9 +14,9 @@
     <Compile Include="Print.fs" />
     <Compile Include="Reflect.fs" />
     <Compile Include="Language.fs" />
-    <Compile Include="Pretty.fs" />
-    <Compile Include="Arafel.fs" />
     <Compile Include="Ebnf.fs" />
+    <Compile Include="generated/pretty.fs" />
+    <Compile Include="generated/arafel.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

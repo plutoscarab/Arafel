@@ -1,4 +1,6 @@
-Postfix ::= SUPERSCRIPT
+/* Use, for example, at https://www.bottlecaps.de/rr/ui */
+
+Postfix ::= SUPERSCRIPT | COMMENT
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Case ::= Pattern ':' Statement
 Matches ::= 'case' Expr 'of' (Case)+ ('else' Statement)?

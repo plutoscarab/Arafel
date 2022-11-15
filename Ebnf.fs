@@ -97,11 +97,8 @@ let parseProduction (s:string) =
 
 let rec getParserEbnf parser =
     match parser with
-    | ProductionP
-    | ProductionLineP
-    | LineProductionP
-    | IndentProductionP -> "_"
-    | TokenP(s) -> s
+    | ProductionP(_, _) -> "_"
+    | TokenP(s) -> unboxed s
     | LiteralP(s) -> "'" + (unboxed s) + "'"
     | OptionP(p) -> "(" + (getParserEbnf p) + ")?"
     | OptionListP(p) -> "(" + (getParserEbnf p) + ")?"
@@ -125,6 +122,8 @@ let getEbnf ucs =
 
 let writeEbnf filename productions =
     use writer = File.CreateText(filename)
+    writer.WriteLine "/* Use, for example, at https://www.bottlecaps.de/rr/ui */"
+    writer.WriteLine ()
 
     for Production(name, ucs, indent) in productions do
         writer.WriteLine $"{name} ::= {getEbnf ucs}"

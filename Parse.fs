@@ -63,7 +63,7 @@ let private parseNat (s:string) =
 
     let rec parseNat' s n =
         match s with
-        | [] -> n
+        | [] -> true, n
         | r::rest ->
             let rs = r.ToString()
             if (rs = "_") then
@@ -71,7 +71,10 @@ let private parseNat (s:string) =
             else
                 let v = Convert.ToInt32(Rune.GetNumericValue r)
                 let u = if v = -1 then ("⁰¹²³⁴⁵⁶⁷⁸⁹".IndexOf(rs)) else v
-                parseNat' rest (n * ten + bigint u)
+                if u = -1 then
+                    false, bigint 0
+                else 
+                    parseNat' rest (n * ten + bigint u)
 
     parseNat' (s.EnumerateRunes() |> Seq.toList) (bigint 0)
 
@@ -80,7 +83,10 @@ let bigintToken (ctor:Cspan -> Token) =
         let (m, t2) = (stringToken ctor) t
         match m with
         | None -> None, t
-        | Some s -> (Some (parseNat s)), t2
+        | Some s ->
+            match parseNat s with
+            | (false, _) -> None, t
+            | (true, n) -> (Some n), t2
 
 let literal (s: string) =
     fun t ->
@@ -155,12 +161,13 @@ let surround a b p =
         return r
     }
 
+type Formatter =
+    | Raw
+    | Newline
+    | Indent
 
 type Parser =
-    | ProductionP
-    | ProductionLineP
-    | LineProductionP
-    | IndentProductionP
+    | ProductionP of Formatter * Formatter
     | TokenP of string
     | LiteralP of string
     | OptionP of Parser
@@ -193,16 +200,14 @@ type Production =
 
 let unboxed (s: string) =
     s.Replace("␠", "")
-     .Replace("␍", "")
+     .Replace("␤", "")
      .Replace("␏", "")
      .Replace("␎", "")
+     .Replace("␑", "")
 
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
-    | ProductionP
-    | ProductionLineP
-    | LineProductionP
-    | IndentProductionP ->
+    | ProductionP(_, _) ->
         match primaryType with
         | ProductionType name -> writer.Write (name.ToLowerInvariant())
         | _ -> raise (NotImplementedException())
@@ -212,7 +217,8 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
             | StringType -> "stringToken"
             | BigintType -> "bigintToken"
             | _ -> raise (NotImplementedException())
-        let tokenCtor = s.Substring(0, 1) + s.Substring(1).ToLowerInvariant()
+        let u = unboxed s
+        let tokenCtor = u.Substring(0, 1) + u.Substring(1).ToLowerInvariant()
         writer.Write $"{tokenType} {tokenCtor}"
     | LiteralP(s) ->
         writer.Write $"literal \"{unboxed s}\""
