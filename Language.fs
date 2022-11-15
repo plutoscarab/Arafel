@@ -1,6 +1,7 @@
 module Language
 
 open Parse
+open Print
 
 type LexprName =
     | [<Parse("ID")>] IdentifierN of string
@@ -19,10 +20,10 @@ type PolyType =
         Parse("delim '□|□' _")>] 
       PolyType of string list * MonoType list
 
-type TypeDecl =
-    | [<Parse("and '◁type□' ID");
+type [<Indent>] TypeDecl =
+    | [<Parse("and 'type□' ID");
         Parse("opt[] surr '(' ')' delim ',□' ID");
-        Parse("and '□=□' _")>]
+        Parse("and '□=□' _◁")>]
       TypeDecl of string * string list * PolyType
 
 type Postfix =
@@ -37,9 +38,9 @@ type Pattern =
     | [<Parse("STRING")>]
       StringPat of string
 
-type LetDecl =
-    | [<Parse("and '◁let□' _");
-        Parse("and '□=□' _")>]
+type [<Indent>] LetDecl =
+    | [<Parse("and 'let□' _");
+        Parse("and '□=□' _◁")>]
       LetDecl of Lexpr * Statement
 
 and Atom =
@@ -71,7 +72,7 @@ and Expr =
 
 and Statement =
     | [<Parse("0+ _");
-        Parse("_◁")>]
+        Parse("▷_")>]
       Statement of Prelude list * Expr
 
 and IfThen =

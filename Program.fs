@@ -61,7 +61,6 @@ let main =
             raise (Exception "")
         | Some e ->
             Pretty.printStatement writer e
-            writer.Write "\r\n\r\n"
 
         t <- t2
 

@@ -159,6 +159,7 @@ let surround a b p =
 type Parser =
     | ProductionP
     | ProductionLineP
+    | ProductionIndentP
     | TokenP of string
     | LiteralP of string
     | OptionP of Parser
@@ -187,12 +188,13 @@ type UnionCase =
     | UnionCase of string * TupleField list
 
 type Production =
-    | Production of string * UnionCase list
+    | Production of string * UnionCase list * bool
 
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
     | ProductionP
-    | ProductionLineP ->
+    | ProductionLineP
+    | ProductionIndentP ->
         match primaryType with
         | ProductionType name -> writer.Write (name.ToLowerInvariant())
         | _ -> raise (NotImplementedException())
@@ -279,7 +281,7 @@ let writeParserFile filename modulename (productions:Production list) =
     writer.WriteLine "open Parse"
     let mutable keyword = "let rec"
 
-    for Production(name, cases) in productions do
+    for Production(name, cases, indent) in productions do
         writer.WriteLine ()
         let pname = name.ToLowerInvariant()
         writer.WriteLine $"{keyword} {pname} tokens ="

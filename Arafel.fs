@@ -127,7 +127,7 @@ and polytype tokens =
 
 and typedecl tokens =
     let p = parser {
-        let! f0 = andThen (literal "◁type□") (stringToken Id)
+        let! f0 = andThen (literal "type□") (stringToken Id)
         let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",□") (stringToken Id)))
         let! f2 = andThen (literal "□=□") (polytype)
         return TypeDecl(f0, f1, f2)
@@ -157,7 +157,7 @@ and lexpr tokens =
 
 and letdecl tokens =
     let p = parser {
-        let! f0 = andThen (literal "◁let□") (lexpr)
+        let! f0 = andThen (literal "let□") (lexpr)
         let! f1 = andThen (literal "□=□") (statement)
         return LetDecl(f0, f1)
     }

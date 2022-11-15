@@ -7,13 +7,18 @@ open Tokens
 open Lexer
 open Parse
 
-let rec printPostfix (writer:IndentedTextWriter) =
-    function
+let rec printPostfix (writer:IndentedTextWriter) value =
+    match value with
     | SuperscriptPF(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
 
-and printIfThen (writer:IndentedTextWriter) =
-    function
+and printIfThen (writer:IndentedTextWriter) value =
+    match value with
     | IfThen(f0, f1, f2) ->
         writer.Write "if "
         printExpr writer f0
@@ -22,15 +27,15 @@ and printIfThen (writer:IndentedTextWriter) =
         writer.Write " else "
         printExpr writer f2
 
-and printCase (writer:IndentedTextWriter) =
-    function
+and printCase (writer:IndentedTextWriter) value =
+    match value with
     | Case(f0, f1) ->
         printPattern writer f0
         writer.Write " -> "
         printStatement writer f1
 
-and printMatches (writer:IndentedTextWriter) =
-    function
+and printMatches (writer:IndentedTextWriter) value =
+    match value with
     | Matches(f0, f1, f2) ->
         writer.Write "case "
         printExpr writer f0
@@ -42,10 +47,15 @@ and printMatches (writer:IndentedTextWriter) =
             writer.Write " else "
             printExpr writer f2'
 
-and printPattern (writer:IndentedTextWriter) =
-    function
+and printPattern (writer:IndentedTextWriter) value =
+    match value with
     | CtorPat(f0, f1) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
         match f1 with
         | [] -> ignore()
         | _ ->
@@ -61,12 +71,22 @@ and printPattern (writer:IndentedTextWriter) =
                     printPattern writer f1_
             writer.Write ")"
     | NatPat(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
     | StringPat(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
 
-and printLambda (writer:IndentedTextWriter) =
-    function
+and printLambda (writer:IndentedTextWriter) value =
+    match value with
     | Lambda(f0, f1) ->
         writer.Write "("
         printPattern writer f0
@@ -74,14 +94,29 @@ and printLambda (writer:IndentedTextWriter) =
         writer.Write " = "
         printExpr writer f1
 
-and printAtom (writer:IndentedTextWriter) =
-    function
+and printAtom (writer:IndentedTextWriter) value =
+    match value with
     | NatA(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
     | StringA(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
     | OperatorA(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
     | LambdaA(f0) ->
         printLambda writer f0
     | ParensA(f0) ->
@@ -89,14 +124,19 @@ and printAtom (writer:IndentedTextWriter) =
         printExpr writer f0
         writer.Write ")"
     | IdentifierA(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
     | MatchA(f0) ->
         printMatches writer f0
     | IfThenA(f0) ->
         printIfThen writer f0
 
-and printExpr (writer:IndentedTextWriter) =
-    function
+and printExpr (writer:IndentedTextWriter) value =
+    match value with
     | Expr(f0, f1, f2) ->
         printAtom writer f0
         match f1 with
@@ -116,8 +156,8 @@ and printExpr (writer:IndentedTextWriter) =
         for f2' in f2 do
             printPostfix writer f2'
 
-and printMonoType (writer:IndentedTextWriter) =
-    function
+and printMonoType (writer:IndentedTextWriter) value =
+    match value with
     | MonoType(f0) ->
         match f0 with
         | [] -> ignore()
@@ -129,15 +169,20 @@ and printMonoType (writer:IndentedTextWriter) =
                 writer.Write " -> "
                 printLexpr writer f0_
 
-and printPolyType (writer:IndentedTextWriter) =
-    function
+and printPolyType (writer:IndentedTextWriter) value =
+    match value with
     | PolyType(f0, f1) ->
         match f0 with
         | [] -> ignore()
         | _ ->
             writer.Write "forall "
             for f0' in f0 do
-                writer.Write f0'
+                let s = f0'.ToString()
+                if s.ToString().EndsWith("\n") then
+                    let s' = s.Substring(0, s.Length - 1)
+                    writer.WriteLine s'
+                else
+                    writer.Write f0'
             writer.Write ", "
         match f1 with
         | [] -> ignore()
@@ -149,11 +194,19 @@ and printPolyType (writer:IndentedTextWriter) =
                 writer.Write " | "
                 printMonoType writer f1_
 
-and printTypeDecl (writer:IndentedTextWriter) =
-    function
+and printTypeDecl (writer:IndentedTextWriter) value =
+    writer.WriteLine ()
+    writer.Indent <- writer.Indent + 1
+    
+    match value with
     | TypeDecl(f0, f1, f2) ->
-        writer.Write "\r\n    type "
-        writer.Write f0
+        writer.Write "type "
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
         match f1 with
         | [] -> ignore()
         | _ ->
@@ -161,25 +214,53 @@ and printTypeDecl (writer:IndentedTextWriter) =
             match f1 with
             | [] -> ignore()
             | [f1'] ->
-                writer.Write f1'
+                let s = f1'.ToString()
+                if s.ToString().EndsWith("\n") then
+                    let s' = s.Substring(0, s.Length - 1)
+                    writer.WriteLine s'
+                else
+                    writer.Write f1'
             | f1'::f1'' ->
-                writer.Write f1'
+                let s = f1'.ToString()
+                if s.ToString().EndsWith("\n") then
+                    let s' = s.Substring(0, s.Length - 1)
+                    writer.WriteLine s'
+                else
+                    writer.Write f1'
                 for f1_ in f1'' do
                     writer.Write ", "
-                    writer.Write f1_
+                    let s = f1_.ToString()
+                    if s.ToString().EndsWith("\n") then
+                        let s' = s.Substring(0, s.Length - 1)
+                        writer.WriteLine s'
+                    else
+                        writer.Write f1_
             writer.Write ")"
         writer.Write " = "
         printPolyType writer f2
+        writer.WriteLine ()
+    
+    writer.Indent <- writer.Indent - 1
 
-and printLexprName (writer:IndentedTextWriter) =
-    function
+and printLexprName (writer:IndentedTextWriter) value =
+    match value with
     | IdentifierN(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
     | OperatorN(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
 
-and printLexpr (writer:IndentedTextWriter) =
-    function
+and printLexpr (writer:IndentedTextWriter) value =
+    match value with
     | Lexpr(f0, f1) ->
         printLexprName writer f0
         match f1 with
@@ -197,27 +278,40 @@ and printLexpr (writer:IndentedTextWriter) =
                     printLexpr writer f1_
             writer.Write ")"
 
-and printLetDecl (writer:IndentedTextWriter) =
-    function
+and printLetDecl (writer:IndentedTextWriter) value =
+    writer.WriteLine ()
+    writer.Indent <- writer.Indent + 1
+    
+    match value with
     | LetDecl(f0, f1) ->
-        writer.Write "\r\n    let "
+        writer.Write "let "
         printLexpr writer f0
         writer.Write " = "
         printStatement writer f1
+        writer.WriteLine ()
+    
+    writer.Indent <- writer.Indent - 1
 
-and printPrelude (writer:IndentedTextWriter) =
-    function
+and printPrelude (writer:IndentedTextWriter) value =
+    match value with
     | LetP(f0) ->
         printLetDecl writer f0
     | TypeP(f0) ->
         printTypeDecl writer f0
     | CommentP(f0) ->
-        writer.Write f0
+        let s = f0.ToString()
+        if s.ToString().EndsWith("\n") then
+            let s' = s.Substring(0, s.Length - 1)
+            writer.WriteLine s'
+        else
+            writer.Write f0
 
-and printStatement (writer:IndentedTextWriter) =
-    function
+and printStatement (writer:IndentedTextWriter) value =
+    match value with
     | Statement(f0, f1) ->
         for f0' in f0 do
             printPrelude writer f0'
+        writer.Indent <- writer.Indent + 1
         printExpr writer f1
         writer.WriteLine ()
+        writer.Indent <- writer.Indent - 1

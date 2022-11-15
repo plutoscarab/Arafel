@@ -1,16 +1,16 @@
 Postfix ::= SUPERSCRIPT
-IfThen ::= 'if□' Expr '□then□' Expr '□else□' Expr
-Case ::= Pattern '□->□' Statement
-Matches ::= 'case□' Expr (Case)+ ('□else□' Expr)?
-Pattern ::= ID ('(' Pattern (',□' Pattern)* ')')? | NAT | STRING
-Lambda ::= '(' Pattern ')' '□=□' Expr
+IfThen ::= 'if' Expr 'then' Expr 'else' Expr
+Case ::= Pattern '->' Statement
+Matches ::= 'case' Expr (Case)+ ('else' Expr)?
+Pattern ::= ID ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
+Lambda ::= '(' Pattern ')' '=' Expr
 Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | ID | Matches | IfThen
-Expr ::= Atom ('(' Expr (',□' Expr)* ')')? (Postfix)*
-MonoType ::= Lexpr (('□->□' | '□→□') Lexpr)*
-PolyType ::= (('forall□' | '∀□') (ID)+ ',□')? MonoType ('□|□' MonoType)*
-TypeDecl ::= '◁type□' ID ('(' ID (',□' ID)* ')')? '□=□' PolyType
+Expr ::= Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
+MonoType ::= Lexpr (('->' | '→') Lexpr)*
+PolyType ::= (('forall' | '∀') (ID)+ ',')? MonoType ('|' MonoType)*
+TypeDecl ::= 'type' ID ('(' ID (',' ID)* ')')? '=' PolyType
 LexprName ::= ID | OPERATOR
-Lexpr ::= LexprName ('(' Lexpr (',□' Lexpr)* ')')?
-LetDecl ::= '◁let□' Lexpr '□=□' Statement
+Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
+LetDecl ::= 'let' Lexpr '=' Statement
 Prelude ::= LetDecl | TypeDecl | COMMENT
 Statement ::= (Prelude)* Expr

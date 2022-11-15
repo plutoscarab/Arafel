@@ -11,6 +11,8 @@ open Lexer
 open Tokens
 open Parse
 
+type IndentAttribute() = inherit System.Attribute()
+
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType name =
     match parser with
     | ProductionP ->
@@ -28,8 +30,23 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         | ProductionType p ->
             writer.WriteLine $"print{p} writer {name}"
             writer.WriteLine "writer.WriteLine ()"
+    | ProductionIndentP ->
+        writer.WriteLine "writer.Indent <- writer.Indent + 1"
+        match primaryType with
+        | StringType
+        | BigintType ->
+            writer.WriteLine $"writer.WriteLine {name}"
+        | ProductionType p ->
+            writer.WriteLine $"print{p} writer {name}"
+            writer.WriteLine "writer.WriteLine ()"
+        writer.WriteLine "writer.Indent <- writer.Indent - 1"
     | TokenP(s) ->
-        writer.WriteLine $"writer.Write {name}"
+        writer.WriteLine $"let s = {name}.ToString()"
+        writer.WriteLine "if s.ToString().EndsWith(\"\\n\") then"
+        writer.WriteLine $"    let s' = s.Substring(0, s.Length - 1)"
+        writer.WriteLine $"    writer.WriteLine s'"
+        writer.WriteLine "else"
+        writer.WriteLine $"    writer.Write {name}"
     | LiteralP(s) ->
         let unboxed = s.Replace("□", " ").Replace("◁", "\\r\\n    ")
         writer.WriteLine $"writer.Write \"{unboxed}\""
@@ -104,17 +121,27 @@ let writePrintFile filename modulename (productions:Production list) =
     writer.WriteLine "open Parse"
     let mutable keyword = "let rec"
 
-    for Production(name, cases) in productions do
+    for Production(name, cases, indent) in productions do
         writer.WriteLine ()
-        writer.WriteLine $"{keyword} print{name} (writer:IndentedTextWriter) ="
+        writer.WriteLine $"{keyword} print{name} (writer:IndentedTextWriter) value ="
         keyword <- "and"
         writer.Indent <- writer.Indent + 1
-        writer.WriteLine "function"
+
+        if indent then
+            writer.WriteLine "writer.WriteLine ()"
+            writer.WriteLine "writer.Indent <- writer.Indent + 1"
+            writer.WriteLine ()
+
+        writer.WriteLine "match value with"
 
         for UnionCase(name, fields) in cases do
             let n = List.length fields
             let fs = String.concat ", " (List.map (fun i -> $"f{i}") [0..n-1])
             writer.WriteLine $"| {name}({fs}) ->"
             writeCase writer fields
+
+        if indent then
+            writer.WriteLine ()
+            writer.WriteLine "writer.Indent <- writer.Indent - 1"
 
         writer.Indent <- writer.Indent - 1

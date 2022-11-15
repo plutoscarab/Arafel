@@ -97,10 +97,11 @@ let parseProduction (s:string) =
 
 let rec getParserEbnf parser =
     match parser with
-    | ProductionP -> "_"
-    | ProductionLineP -> "_"
+    | ProductionP
+    | ProductionLineP
+    | ProductionIndentP -> "_"
     | TokenP(s) -> s
-    | LiteralP(s) -> "'" + s + "'"
+    | LiteralP(s) -> "'" + s.Replace("□", "").Replace("◁", "") + "'"
     | OptionP(p) -> "(" + (getParserEbnf p) + ")?"
     | OptionListP(p) -> "(" + (getParserEbnf p) + ")?"
     | ListP(p) -> "(" + (getParserEbnf p) + ")*"
@@ -124,5 +125,5 @@ let getEbnf ucs =
 let writeEbnf filename productions =
     use writer = File.CreateText(filename)
 
-    for Production(name, ucs) in productions do
+    for Production(name, ucs, indent) in productions do
         writer.WriteLine $"{name} ::= {getEbnf ucs}"

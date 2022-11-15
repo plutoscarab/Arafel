@@ -26,6 +26,7 @@ let tokenise (cursor:Cursor) =
                 yield Comment (commentStart, c)
 
             let uc = Rune.GetUnicodeCategory(c.Current)
+
             match c.Current with
             | r when isWhitespace r -> 
                 while isWhitespace (c.Current) do
@@ -75,4 +76,5 @@ let tokenise (cursor:Cursor) =
             | _ ->
                 yield Error c
                 c <- c.Next
+                
     } |> Array.ofSeq

@@ -4,6 +4,7 @@ open System
 open Microsoft.FSharp.Reflection
 
 open Parse
+open Print
 
 let getImmediateDependencies (t:Type) =
     let deps =
@@ -35,6 +36,8 @@ let rec decodeParser ps =
         ProductionP, rest
     | "_◁"::rest ->
         ProductionLineP, rest
+    | "▷_"::rest ->
+        ProductionIndentP, rest
     | "opt"::rest ->
         let (p, rest') = decodeParser rest
         (OptionP p), rest'
@@ -66,7 +69,7 @@ let rec decodeParser ps =
         (SurroundP(p, q, r), rest''')
     | s::rest when s.Length > 2 && s.StartsWith("'") && s.EndsWith("'") ->
         LiteralP(s.Substring(1, s.Length - 2)), rest
-    | s::rest when s = s.ToUpperInvariant() ->
+    | s::rest when s = s.ToUpperInvariant() && s <> s.ToLowerInvariant() ->
         TokenP(s), rest
     | _ ->
         raise (NotImplementedException())
@@ -113,6 +116,11 @@ let unionCases (t:Type) =
     |> List.map (fun c ->
         UnionCase(c.Name, tupleFields c))
 
+let indentOf (t:Type) =
+    match t.GetCustomAttributes(typeof<IndentAttribute>, true) with
+    | [||] -> false
+    | _ -> true
+
 let rec getReferencedTypes pending result =
     match pending with
     | [] -> result
@@ -126,4 +134,4 @@ let getProductions (t:Type) =
     let moduleName = t.FullName.Substring(0, t.FullName.IndexOf('+') + 1)
     getReferencedTypes [t] []
     |> List.filter (fun f -> f.FullName.StartsWith(moduleName))
-    |> List.map (fun t -> Production(t.Name, unionCases t))
+    |> List.map (fun t -> Production(t.Name, unionCases t, indentOf t))
