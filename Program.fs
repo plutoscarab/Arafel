@@ -58,7 +58,10 @@ let main =
 
         match r with
         | None ->
-            raise (Exception "")
+            if (Tokens.tokenStr (List.head t)).StartsWith("Comment ") then
+                t <- List.tail t
+            else
+                raise (Exception "")
         | Some e ->
             Pretty.printStatement writer e
 

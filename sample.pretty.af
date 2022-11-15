@@ -11,7 +11,7 @@ VALUES
 
 An Arafel program produces values. An Arafel "host" decides what to do with
 those values. The default console host just writes them to the console.
-
+    
 Nat values represent natural (non-negative) numbers. They are either 0 or a 
 sequence of digits that doesn't start with zero. Digit group separators can 
 be used to make it easier to read large numbers. Here are some Nat values:
@@ -22,6 +22,7 @@ be used to make it easier to read large numbers. Here are some Nat values:
     43252003274489856000
     2022
     64
+    
 Those last two values show that you can use decimal digits from scripts other
 than arabic numerals.
 
@@ -34,80 +35,91 @@ uses "*" to multiply 365 by 24, and 60 by 60, and then multiplies those two
 results together.
 
     *(*(365, 24), *(60, 60))
+
 This prints "31536000" which is the number of seconds in a normal year.
 
 The "power" operator for exponentiation is "**". It is right-associative, so 
 these two expressions are equivalent:
 
     **(5, **(4, **(3, 2)))
+
 Superscript digits can also be used for exponentiation.
 
     +(32, 42)
     10512
+
+
 FUNCTIONS
 
 Functions in Arafel are written like this which returns the square
 of a number:
 
+    let square(x) =
+    *(x, x)
 
-    let square(x) = *(x, x)
-    
 Functions that you define this way can be used in expressions later in
 the program.
 
     *(*(365, 24), square(60))
     hypot(3, 4)
+
 There are many built-in functions, such as "sqrt":
 
+    let hypot(a, b) =
+    sqrt(+(square(a), square(b)))
 
-    let hypot(a, b) = sqrt(+(square(a), square(b)))
-    
+
 LISTS
 
 There is no build-in support for lists yet. Define lists using
 
-
     type List(a) = Nil | Cons(a, List(a))
+
 Empty list.
 
     Nil
+
 Finite lists.
 
     Cons(1, Nil)
     Cons(1, Cons(2, Cons(3, Nil)))
+
 Infinite list of natural numbers.
 
+    let natsFromWithSkip(n, skip) =
+    Cons(n, natsFromWithSkip(+(n, skip), s))
+    let allNatsFrom(n) =
+    netsFromWithSkip(n, 1)
+    let allNats =
+    allNatsFrom(0)
 
-    let natsFromWithSkip(n, skip) = Cons(n, natsFromWithSkip(+(n, skip), s))
-    
-
-    let allNatsFrom(n) = netsFromWithSkip(n, 1)
-    
-
-    let allNats = allNatsFrom(0)
-    
 List item extraction:
-
 
     type Maybe(a) = Nothing | Just(a)
 
-    let head(list) = case listCons(head, tail) -> Just(head)
-         else Nothing
-    
+    let head(list) =
+    case list of
+        Cons(head, tail) : Just(head)
+        else Nothing
+        
+
 Odd numbers 5 through 99:
 
-
-    let takeWhile(pred, list) = case listNil -> Nil
-        Cons(head, tail) -> if pred(head) then Cons(head, takeWhile(pred, tail)) else Nil
+    let takeWhile(pred, list) =
+    case list of
+        Nil : Nil
+        Cons(head, tail) : if pred(head) then Cons(head, takeWhile(pred, tail)) else Nil
         
-    
+
     takeWhile((n) = <(n, 100), natsFromWithSkip(5, 2))
+
+
 TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
 
 Binary tree with data in the leaf nodes:
 
-
     type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+
 This defines two different functions for creating trees, one called Leaf
 that takes a value and returns a tree with a single leaf node, and one
 called Node that returns a tree with two sub-trees.
@@ -119,9 +131,9 @@ a type.
 
 Here we create a Tree(Str):
 
+    let x =
+    Node(Leaf(a), Node(Leaf(b), Leaf(c)))
 
-    let x = Node(Leaf(a), Node(Leaf(b), Leaf(c)))
-    
 This produces the following tree where "*" indicate Nodes:
 
 :     b   c
@@ -134,12 +146,14 @@ To use a union type, we use the "case" keyword to match with each of the
 functions that were used to create the tree. Here's a function to count the
 leaf nodes in our tree.
 
-
-    let count(t) = case tLeaf(_) -> 1
-        Node(left, right) -> +(count(left), count(right))
+    let count(t) =
+    case t of
+        Leaf(_) : 1
+        Node(left, right) : +(count(left), count(right))
         
-    
+
     count(x)
+
 This prints "3" for the tree we created above.
 
 
@@ -149,21 +163,24 @@ Functions are values in and of themselves, and can be passed as arguments to
 other functions. Here's a function that accepts a function as input and applies
 it to each value in a list to produce a new list.
 
-
-    let map(func, list) = case listNil -> Nil
-        Cons(head, tail) -> Cons(func(head), map(func, tail))
+    let map(func, list) =
+    case list of
+        Nil : Nil
+        Cons(head, tail) : Cons(func(head), map(func, tail))
         
-    
+
 We can use this to apply our "square" function to each item in the list.
 
-    natsFromTo(from, to)
-    =
+    let natsFromTo(from, to) =
     if >(from, to) then Nil else Cons(from, natsFromTo(+(from, 1), to))
+
     map(square, natsFromTo(1, 5))
+
 This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also supply a function directly in the 
 call to map without defining a named function first.
 
     map((x) = x2, natsFromTo(1, 5))
+
 An unnamed function like this is called a lambda function, after Lambda
 calculus.
 
@@ -172,9 +189,10 @@ CUSTOM OPERATORS
 
 Concatenate two lists.
 
-
-    let 😀(list1, list2) = case list1Nil -> list2
-        Cons(head, tail) -> Cons(head, 😀(tail, list2))
+    let 😀(list1, list2) =
+    case list1 of
+        Nil : list2
+        Cons(head, tail) : Cons(head, 😀(tail, list2))
         
-    
+
     😀(Cons(1, Cons(2, Nil)), Cons(3, Cons(4, Cons(5, Nil))))

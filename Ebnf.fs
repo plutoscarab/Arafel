@@ -99,9 +99,10 @@ let rec getParserEbnf parser =
     match parser with
     | ProductionP
     | ProductionLineP
-    | ProductionIndentP -> "_"
+    | LineProductionP
+    | IndentProductionP -> "_"
     | TokenP(s) -> s
-    | LiteralP(s) -> "'" + s.Replace("□", "").Replace("◁", "") + "'"
+    | LiteralP(s) -> "'" + (unboxed s) + "'"
     | OptionP(p) -> "(" + (getParserEbnf p) + ")?"
     | OptionListP(p) -> "(" + (getParserEbnf p) + ")?"
     | ListP(p) -> "(" + (getParserEbnf p) + ")*"

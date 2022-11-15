@@ -9,6 +9,15 @@ open Tokens
 let isWhitespace r =
     " \t\r\n".Contains(r.ToString()[0])
 
+let rec emptyLine (cursor:Cursor) =
+    if cursor.More then
+        match cursor.Str with
+        | "\r" | "\n" -> true
+        | " " | "\t" -> emptyLine cursor.Next
+        | _ -> false
+    else
+        true
+
 let tokenise (cursor:Cursor) =
     seq {
         let mutable c = cursor
@@ -17,9 +26,9 @@ let tokenise (cursor:Cursor) =
         while c.More do
             let commentStart = c
 
-            while c.More && line <> c.line && c.pos = 1 && (c.Str = "\r" || c.Str = "\n" || not (isWhitespace (c.Current))) do
+            while c.More && line <> c.line && c.pos = 1 && (emptyLine c || not (isWhitespace (c.Current))) do
                 line <- c.line
-                while line = c.line do
+                while c.More && line = c.line do
                     c <- c.Next
 
             if c.index > commentStart.index then
@@ -28,8 +37,9 @@ let tokenise (cursor:Cursor) =
             let uc = Rune.GetUnicodeCategory(c.Current)
 
             match c.Current with
-            | r when isWhitespace r -> 
-                while isWhitespace (c.Current) do
+            | r when isWhitespace r ->
+                let cl = c.line
+                while isWhitespace(c.Current) && cl = c.line do
                     c <- c.Next
             | r when Rune.IsLetter r || c.Str = "_" ->
                 let mutable start = c
@@ -74,7 +84,8 @@ let tokenise (cursor:Cursor) =
                 yield Punctuation (c, c.Next)
                 c <- c.Next
             | _ ->
-                yield Error c
-                c <- c.Next
-                
+                if c.More then
+                    yield Error c
+                    c <- c.Next
+
     } |> Array.ofSeq

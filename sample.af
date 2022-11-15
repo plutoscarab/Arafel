@@ -11,7 +11,7 @@ VALUES
 
 An Arafel program produces values. An Arafel "host" decides what to do with
 those values. The default console host just writes them to the console.
-
+    
 Nat values represent natural (non-negative) numbers. They are either 0 or a 
 sequence of digits that doesn't start with zero. Digit group separators can 
 be used to make it easier to read large numbers. Here are some Nat values:
@@ -93,16 +93,16 @@ List item extraction:
     type Maybe(a) = Nothing | Just(a)
 
     let head(list) =
-        case list
-            Cons(head, tail) -> Just(head)
+        case list of
+            Cons(head, tail) : Just(head)
             else Nothing
 
 Odd numbers 5 through 99:
 
     let takeWhile(pred, list) =
-        case list
-            Nil -> Nil
-            Cons(head, tail) ->
+        case list of
+            Nil : Nil
+            Cons(head, tail) :
                 if pred(head) then
                     Cons(head, takeWhile(pred, tail))
                 else
@@ -142,9 +142,9 @@ To use a union type, we use the "case" keyword to match with each of the
 functions that were used to create the tree. Here's a function to count the
 leaf nodes in our tree.
 
-    let count(t) = case t
-        Leaf(_) -> 1 
-        Node(left, right) -> +(count(left), count(right))
+    let count(t) = case t of
+                  Leaf(_) : 1 
+        Node(left, right) : +(count(left), count(right))
 
     count(x)
 
@@ -157,13 +157,13 @@ Functions are values in and of themselves, and can be passed as arguments to
 other functions. Here's a function that accepts a function as input and applies
 it to each value in a list to produce a new list.
 
-    let map(func, list) = case list 
-        Nil -> Nil
-        Cons(head, tail) -> Cons(func(head), map(func, tail))
+    let map(func, list) = case list of
+                     Nil : Nil
+        Cons(head, tail) : Cons(func(head), map(func, tail))
 
 We can use this to apply our "square" function to each item in the list.
 
-    natsFromTo(from, to) = 
+    let natsFromTo(from, to) =
         if >(from, to) then 
             Nil 
         else 
@@ -185,9 +185,10 @@ CUSTOM OPERATORS
 Concatenate two lists.
 
     let 😀(list1, list2) =
-        case list1
-            Nil -> list2
-            Cons(head, tail) -> Cons(head, 😀(tail, list2))
+        case list1 of
+                         Nil : list2
+            Cons(head, tail) : Cons(head, 😀(tail, list2))
 
     😀(Cons(1, Cons(2, Nil)), Cons(3, Cons(4, Cons(5, Nil))))
 
+Final comment.

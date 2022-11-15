@@ -30,7 +30,15 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         | ProductionType p ->
             writer.WriteLine $"print{p} writer {name}"
             writer.WriteLine "writer.WriteLine ()"
-    | ProductionIndentP ->
+    | LineProductionP ->
+        writer.WriteLine "writer.WriteLine ()"
+        match primaryType with
+        | StringType
+        | BigintType ->
+            writer.WriteLine $"writer.Write {name}"
+        | ProductionType p ->
+            writer.WriteLine $"print{p} writer {name}"
+    | IndentProductionP ->
         writer.WriteLine "writer.Indent <- writer.Indent + 1"
         match primaryType with
         | StringType
@@ -48,8 +56,18 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         writer.WriteLine "else"
         writer.WriteLine $"    writer.Write {name}"
     | LiteralP(s) ->
-        let unboxed = s.Replace("□", " ").Replace("◁", "\\r\\n    ")
-        writer.WriteLine $"writer.Write \"{unboxed}\""
+        let u = s.Replace("␠", " ")
+                 .Replace("␏", "")
+                 .Replace("␎", "")
+                 .Split('␍')
+        for i in [0..u.Length-1] do
+            if i < u.Length - 1 then
+                writer.WriteLine $"writer.WriteLine \"{u.[i]}\""
+            else
+                writer.WriteLine $"writer.Write \"{u.[i]}\""
+        if s.EndsWith("␏") then
+            writer.WriteLine "writer.Indent <- writer.Indent + 1"
+            writer.WriteLine "writer.WriteLine ()"
     | OptionP(p) ->
         writer.WriteLine $"match {name} with"
         writer.WriteLine "| None -> ignore()"
@@ -128,8 +146,8 @@ let writePrintFile filename modulename (productions:Production list) =
         writer.Indent <- writer.Indent + 1
 
         if indent then
-            writer.WriteLine "writer.WriteLine ()"
-            writer.WriteLine "writer.Indent <- writer.Indent + 1"
+            writer.WriteLine "let n = writer.Indent"
+            writer.WriteLine "writer.Indent <- n + 1"
             writer.WriteLine ()
 
         writer.WriteLine "match value with"
@@ -142,6 +160,6 @@ let writePrintFile filename modulename (productions:Production list) =
 
         if indent then
             writer.WriteLine ()
-            writer.WriteLine "writer.Indent <- writer.Indent - 1"
+            writer.WriteLine "writer.Indent <- n"
 
         writer.Indent <- writer.Indent - 1

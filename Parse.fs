@@ -87,7 +87,7 @@ let literal (s: string) =
         match t with
         | [] -> None, t
         | first::rest ->
-            if tokenText first = s.Replace("□", "").Replace("◁", "")
+            if tokenText first = s
                 then (Some ()), rest
                 else None, t
 
@@ -159,7 +159,8 @@ let surround a b p =
 type Parser =
     | ProductionP
     | ProductionLineP
-    | ProductionIndentP
+    | LineProductionP
+    | IndentProductionP
     | TokenP of string
     | LiteralP of string
     | OptionP of Parser
@@ -190,11 +191,18 @@ type UnionCase =
 type Production =
     | Production of string * UnionCase list * bool
 
+let unboxed (s: string) =
+    s.Replace("␠", "")
+     .Replace("␍", "")
+     .Replace("␏", "")
+     .Replace("␎", "")
+
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
     | ProductionP
     | ProductionLineP
-    | ProductionIndentP ->
+    | LineProductionP
+    | IndentProductionP ->
         match primaryType with
         | ProductionType name -> writer.Write (name.ToLowerInvariant())
         | _ -> raise (NotImplementedException())
@@ -207,7 +215,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         let tokenCtor = s.Substring(0, 1) + s.Substring(1).ToLowerInvariant()
         writer.Write $"{tokenType} {tokenCtor}"
     | LiteralP(s) ->
-        writer.Write $"literal \"{s}\""
+        writer.Write $"literal \"{unboxed s}\""
     | OptionP(p) ->
         writer.Write "option ("
         writeParser writer p primaryType

@@ -31,7 +31,7 @@ and printCase (writer:IndentedTextWriter) value =
     match value with
     | Case(f0, f1) ->
         printPattern writer f0
-        writer.Write " -> "
+        writer.Write " : "
         printStatement writer f1
 
 and printMatches (writer:IndentedTextWriter) value =
@@ -39,13 +39,15 @@ and printMatches (writer:IndentedTextWriter) value =
     | Matches(f0, f1, f2) ->
         writer.Write "case "
         printExpr writer f0
+        writer.WriteLine " of"
+        writer.Write ""
         for f1' in f1 do
             printCase writer f1'
         match f2 with
         | None -> ignore()
         | Some f2' ->
-            writer.Write " else "
-            printExpr writer f2'
+            writer.Write "else "
+            printStatement writer f2'
 
 and printPattern (writer:IndentedTextWriter) value =
     match value with
@@ -195,8 +197,8 @@ and printPolyType (writer:IndentedTextWriter) value =
                 printMonoType writer f1_
 
 and printTypeDecl (writer:IndentedTextWriter) value =
-    writer.WriteLine ()
-    writer.Indent <- writer.Indent + 1
+    let n = writer.Indent
+    writer.Indent <- n + 1
     
     match value with
     | TypeDecl(f0, f1, f2) ->
@@ -240,7 +242,7 @@ and printTypeDecl (writer:IndentedTextWriter) value =
         printPolyType writer f2
         writer.WriteLine ()
     
-    writer.Indent <- writer.Indent - 1
+    writer.Indent <- n
 
 and printLexprName (writer:IndentedTextWriter) value =
     match value with
@@ -279,18 +281,18 @@ and printLexpr (writer:IndentedTextWriter) value =
             writer.Write ")"
 
 and printLetDecl (writer:IndentedTextWriter) value =
-    writer.WriteLine ()
-    writer.Indent <- writer.Indent + 1
+    let n = writer.Indent
+    writer.Indent <- n + 1
     
     match value with
     | LetDecl(f0, f1) ->
         writer.Write "let "
         printLexpr writer f0
-        writer.Write " = "
+        writer.WriteLine " ="
+        writer.Write ""
         printStatement writer f1
-        writer.WriteLine ()
     
-    writer.Indent <- writer.Indent - 1
+    writer.Indent <- n
 
 and printPrelude (writer:IndentedTextWriter) value =
     match value with
