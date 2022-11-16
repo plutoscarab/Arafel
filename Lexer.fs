@@ -6,10 +6,10 @@ open System.Text
 open Cursor
 open Tokens
 
-let isWhitespace r =
+let private isWhitespace r =
     " \t\r\n".Contains(r.ToString()[0])
 
-let rec emptyLine (cursor:Cursor) =
+let rec private emptyLine (cursor:Cursor) =
     if cursor.More then
         match cursor.Str with
         | "\r" | "\n" -> true
@@ -17,6 +17,8 @@ let rec emptyLine (cursor:Cursor) =
         | _ -> false
     else
         true
+
+let superchars = "⁰¹²³⁴⁵⁶⁷⁸⁹"
 
 let tokenise (cursor:Cursor) =
     seq {
@@ -43,7 +45,7 @@ let tokenise (cursor:Cursor) =
                     c <- c.Next
             | r when Rune.IsLetter r || c.Str = "_" ->
                 let mutable start = c
-                while Rune.IsLetter (c.Current) || Rune.IsDigit (c.Current) || c.Str = "_" do
+                while Rune.IsLetter(c.Current) || c.Str = "_" || Rune.IsDigit(c.Current) || (Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.OtherNumber && not (superchars.Contains(c.Str))) do
                     c <- c.Next
                 let s = spanned (start, c)
                 if s = "let" || s = "case" || s = "type" || s = "forall" || s = "if" then
@@ -58,11 +60,17 @@ let tokenise (cursor:Cursor) =
                     wasComma <- c.Str = "_"
                     previous <- c
                     c <- c.Next
-                if wasComma then c <- previous
-                yield Nat (start, c)
-            | r when "⁰¹²³⁴⁵⁶⁷⁸⁹".Contains(r.ToString()[0]) ->
+                if wasComma then 
+                    yield Error previous
+                elif c.index > start.index + 1 && start.Str = "0" then
+                    yield Error start
+                elif Rune.IsLetter (c.Current) then
+                    yield Error c
+                else
+                    yield Nat (start, c)
+            | r when superchars.Contains(r.ToString()) ->
                 let mutable start = c
-                while "⁰¹²³⁴⁵⁶⁷⁸⁹".Contains(c.Str[0]) do
+                while superchars.Contains(c.Str) do
                     c <- c.Next
                 yield Superscript (start, c)
             | r when r.ToString() = "\"" ->

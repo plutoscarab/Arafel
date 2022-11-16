@@ -15,6 +15,7 @@ open Ebnf
 let main =
 
     Console.OutputEncoding <- Encoding.Unicode
+    let uc = Char.GetUnicodeCategory '₁'
 
     let productions = getProductions typeof<Statement>
     writeEbnf "generated/grammar.txt" productions

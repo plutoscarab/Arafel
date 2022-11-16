@@ -48,6 +48,11 @@ Superscript digits can also be used for exponentiation.
     +(3², 4²)
     105¹²
 
+Subscript digits and Unicode "other number" characters other than superscripts
+can be used in identifiers, but not as the leading character.
+
+    let x₁ = 99
+    let y፳ = 79
 
 FUNCTIONS
 
@@ -60,12 +65,12 @@ Functions that you define this way can be used in expressions later in
 the program.
 
     *(*(365, 24), square(60))
-    hypot(3, 4)
 
 There are many built-in functions, such as "sqrt":
 
     let hypot(a, b) = sqrt(+(square(a), square(b)))
 
+    hypot(3, 4)
 
 LISTS
 
@@ -104,7 +109,7 @@ Odd numbers 5 through 99:
             Nil : Nil
 
 Block comment in the middle of an expression.
-            
+
             Cons(head, tail) :
                 if pred(head) then
                     Cons(head, takeWhile(pred, tail))
