@@ -1,20 +1,14 @@
 module Arafel
 
-open Language
 open Tokens
 open Lexer
 open Parse
+open Syntax
 
 let rec postfix tokens =
     let p = parser {
-        return! parser {
-            let! f0 = bigintToken Superscript "Superscript"
-            return SuperscriptPF(f0)
-        }
-        return! parser {
-            let! f0 = stringToken Comment "Comment"
-            return CommentPF(f0)
-        }
+        let! f0 = bigintToken Superscript "Superscript"
+        return SuperscriptPF(f0)
     }
     p tokens
 
@@ -171,10 +165,6 @@ and typedecl tokens =
 
 and prelude tokens =
     let p = parser {
-        return! parser {
-            let! f0 = stringToken Comment "Comment"
-            return CommentP(f0)
-        }
         return! parser {
             let! f0 = typedecl
             return TypeP(f0)

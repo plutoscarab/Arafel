@@ -346,10 +346,10 @@ let writeParserFile filename modulename (productions:Production list) =
     use writer = new IndentedTextWriter(file)
     writer.WriteLine $"module {modulename}"
     writer.WriteLine ()
-    writer.WriteLine "open Language"
     writer.WriteLine "open Tokens"
     writer.WriteLine "open Lexer"
     writer.WriteLine "open Parse"
+    writer.WriteLine "open Syntax"
     let mutable keyword = "let rec"
 
     for Production(name, cases, indent) in productions do

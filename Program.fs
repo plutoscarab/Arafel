@@ -6,7 +6,7 @@ open System.Linq
 open System.Numerics
 open System.Text
 
-open Language
+open Syntax
 open Reflect
 open Parse
 open Print

@@ -2,11 +2,11 @@ module Pretty
 
 open System.CodeDom.Compiler
 
-open Language
 open Tokens
 open Lexer
 open Parse
 open Print
+open Syntax
 
 let rec printPostfix (writer:IndentedTextWriter) value =
     let n = writer.Indent
@@ -15,9 +15,6 @@ let rec printPostfix (writer:IndentedTextWriter) value =
     | SuperscriptPF(f0) ->
         let s = toSuperscript f0
         writeSafe writer s
-    | CommentPF(f0) ->
-        writer.WriteLine ()
-        writeSafe writer f0
     
     writer.Indent <- n
 
@@ -44,7 +41,7 @@ and printCase (writer:IndentedTextWriter) value =
     match value with
     | Case(f0, f1) ->
         printPattern writer f0
-        writer.WriteLine ":"
+        writer.Write ":"
         printStatement writer f1
     
     writer.Indent <- n
@@ -65,7 +62,7 @@ and printCases (writer:IndentedTextWriter) value =
         | None -> ignore()
         | Some f2' ->
             writer.WriteLine ""
-            writer.WriteLine "else"
+            writer.Write "else"
             printStatement writer f2'
     
     writer.Indent <- n
@@ -162,13 +159,12 @@ and printExpr (writer:IndentedTextWriter) value =
 
 and printLetDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
-    writer.Indent <- n + 1
     
     match value with
     | LetDecl(f0, f1) ->
         writer.Write "let "
         printLexpr writer f0
-        writer.WriteLine " ="
+        writer.Write " ="
         printStatement writer f1
         writer.WriteLine ()
     
@@ -251,7 +247,6 @@ and printPolyType (writer:IndentedTextWriter) value =
 
 and printTypeDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
-    writer.Indent <- n + 1
     
     match value with
     | TypeDecl(f0, f1, f2) ->
@@ -281,8 +276,6 @@ and printPrelude (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | CommentP(f0) ->
-        writeSafe writer f0
     | TypeP(f0) ->
         printTypeDecl writer f0
     | LetP(f0) ->
@@ -292,13 +285,14 @@ and printPrelude (writer:IndentedTextWriter) value =
 
 and printStatement (writer:IndentedTextWriter) value =
     let n = writer.Indent
+    writer.Indent <- n + 1
     
     match value with
     | Statement(f0, f1) ->
         for f0' in f0 do
+            writer.WriteLine ()
             printPrelude writer f0'
-        writer.Indent <- writer.Indent + 1
+        writer.WriteLine ()
         printExpr writer f1
-        writer.Indent <- writer.Indent - 1
     
     writer.Indent <- n

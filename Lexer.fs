@@ -26,15 +26,11 @@ let tokenise (cursor:Cursor) =
         let mutable line = 0
 
         while c.More do
-            let commentStart = c
 
             while c.More && line <> c.line && c.pos = 1 && (emptyLine c || not (isWhitespace (c.Current))) do
                 line <- c.line
                 while c.More && line = c.line do
                     c <- c.Next
-
-            if c.index > commentStart.index then
-                yield Comment (commentStart, c)
 
             let uc = Rune.GetUnicodeCategory(c.Current)
 

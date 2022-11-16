@@ -176,11 +176,11 @@ let writePrintFile filename modulename (productions:Production list) =
     writer.WriteLine ()
     writer.WriteLine "open System.CodeDom.Compiler"
     writer.WriteLine ()
-    writer.WriteLine "open Language"
     writer.WriteLine "open Tokens"
     writer.WriteLine "open Lexer"
     writer.WriteLine "open Parse"
     writer.WriteLine "open Print"
+    writer.WriteLine "open Syntax"
 
     let mutable keyword = "let rec"
 

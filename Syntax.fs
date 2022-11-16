@@ -1,4 +1,4 @@
-module Language
+module Syntax
 
 open Parse
 open Print
@@ -20,7 +20,7 @@ type PolyType =
         Parse("delim '␠|␠' _")>] 
       PolyType of string list * MonoType list
 
-type [<Indent>] TypeDecl =
+type TypeDecl =
     | [<Parse("and 'type␠' ⚠ ID");
         Parse("opt[] surr '(' ')' delim ',␠' ID");
         Parse("and '␠=␠' _␤")>]
@@ -28,7 +28,6 @@ type [<Indent>] TypeDecl =
 
 type Postfix =
     | [<Parse("␑SUPERSCRIPT")>] SuperscriptPF of bigint
-    | [<Parse("␤COMMENT")>] CommentPF of string
 
 type Pattern =
     | [<Parse("ID");
@@ -39,9 +38,9 @@ type Pattern =
     | [<Parse("STRING")>]
       StringPat of string
 
-type [<Indent>] LetDecl =
+type LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
-        Parse("and '␠=␤' _␤")>]
+        Parse("and '␠=' _␤")>]
       LetDecl of Lexpr * Statement
 
 and Atom =
@@ -56,13 +55,13 @@ and Atom =
 
 and Case =
     | [<Parse("_");
-        Parse("and ':␤' _")>]
+        Parse("and ':' _")>]
       Case of Pattern * Statement
 
 and Cases =
     | [<Parse("and 'case␠' ⚠ _");
         Parse("and '␠of␏' 1+ ␤_");
-        Parse("opt and '␤else␤' _")>]
+        Parse("opt and '␤else' _")>]
       Cases of Expr * Case list * Statement option
 
 and Expr =
@@ -71,9 +70,9 @@ and Expr =
         Parse("0+ _")>]
       Expr of Atom * Expr list * Postfix list
 
-and Statement =
-    | [<Parse("0+ _");
-        Parse("␏_")>]
+and [<Indent>] Statement =
+    | [<Parse("0+ ␤_");
+        Parse("␤_")>]
       Statement of Prelude list * Expr
 
 and IfThen =
@@ -88,6 +87,5 @@ and Lambda =
       Lambda of Pattern * Expr
 
 and Prelude =
-    | [<Parse("COMMENT")>] CommentP of string
     | [<Parse("_")>] TypeP of TypeDecl
     | [<Parse("_")>] LetP of LetDecl

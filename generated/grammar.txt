@@ -1,6 +1,6 @@
 /* Use, for example, at https://www.bottlecaps.de/rr/ui */
 
-Postfix ::= SUPERSCRIPT | COMMENT
+Postfix ::= SUPERSCRIPT
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Case ::= Pattern ':' Statement
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Statement)?
@@ -14,5 +14,5 @@ Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
 PolyType ::= (('forall' | '∀') (ID)+ ',')? MonoType ('|' MonoType)*
 TypeDecl ::= 'type' ID ('(' ID (',' ID)* ')')? '=' PolyType
-Prelude ::= COMMENT | TypeDecl | LetDecl
+Prelude ::= TypeDecl | LetDecl
 Statement ::= (Prelude)* Expr
