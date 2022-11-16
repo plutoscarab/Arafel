@@ -42,6 +42,9 @@ let rec decodeParser ps =
         ProductionP(Indent, Raw), rest
     | "_␏"::rest ->
         ProductionP(Raw, Indent), rest
+    | "⚠"::rest ->
+        let (p, rest') = decodeParser rest
+        (CheckpointP p), rest'
     | "opt"::rest ->
         let (p, rest') = decodeParser rest
         (OptionP p), rest'

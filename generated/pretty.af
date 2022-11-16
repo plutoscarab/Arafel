@@ -1,20 +1,20 @@
 
 ARAFEL
 
-Arafel is a strict, lazy, statically-typed functional programming language. 
-Source files contain comments on non-indented lines and code on indented 
-lines. You're reading a valid Arafel source file. Files must be encoded in 
-either ASCII or UTF-8.
+Arafel is a pure, lazy, statically-typed functional programming language. Source
+files contain comments on non-indented lines and code on indented lines. You're
+reading a valid Arafel source file. Files must be encoded in UTF-8 or a
+compatible subset of it such as ASCII.
 
 
 VALUES
 
 An Arafel program produces values. An Arafel "host" decides what to do with
 those values. The default console host just writes them to the console.
-    
-Nat values represent natural (non-negative) numbers. They are either 0 or a 
-sequence of digits that doesn't start with zero. Digit group separators can 
-be used to make it easier to read large numbers. Here are some Nat values:
+
+Nat values represent natural (non-negative) numbers. They are either 0 or a
+sequence of digits that doesn't start with zero. Digit group separators can be
+used to make it easier to read large numbers. Here are some Nat values:
 
     0
     500
@@ -22,7 +22,7 @@ be used to make it easier to read large numbers. Here are some Nat values:
     43252003274489856000
     2022
     64
-        
+    
 Those last two values show that you can use decimal digits from scripts other
 than arabic numerals.
 
@@ -62,15 +62,14 @@ can be used in identifiers, but not as the leading character.
         
 FUNCTIONS
 
-Functions in Arafel are written like this which returns the square
-of a number:
+Functions in Arafel are written like this which returns the square of a number:
 
     
     let square(x) =
         *(x, x)
         
-Functions that you define this way can be used in expressions later in
-the program.
+Functions that you define this way can be used in expressions later in the
+program.
 
     
     *(*(365, 24), square(60))
@@ -106,8 +105,12 @@ Infinite list of natural numbers.
 
     let natsFromWithSkip(n, skip) =
         Cons(n, natsFromWithSkip(+(n, skip), skip))
+        
+    
     let allNatsFrom(n) =
         natsFromWithSkip(n, 1)
+        
+    
     let allNats =
         allNatsFrom(0)
         
@@ -150,14 +153,13 @@ Binary tree with data in the leaf nodes:
 
     type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
 
-This defines two different functions for creating trees, one called Leaf
-that takes a value and returns a tree with a single leaf node, and one
-called Node that returns a tree with two sub-trees.
+This defines two different functions for creating trees, one called Leaf that
+takes a value and returns a tree with a single leaf node, and one called Node
+that returns a tree with two sub-trees.
 
-It also defines a function called Tree that takes a type argument and
-returns a type. For example Tree(Int) is a tree of Int values and Tree(Str)
-is a tree of Str values. Tree is not a type, but is a function that returns
-a type.
+It also defines a function called Tree that takes a type argument and returns a
+type. For example Tree(Int) is a tree of Int values and Tree(Str) is a tree of
+Str values. Tree is not a type, but is a function that returns a type.
 
 Here we create a Tree(Str):
 
@@ -173,8 +175,8 @@ This produces the following tree where "*" indicate Nodes:
 :     *
 
 To use a union type, we use the "case" keyword to match with each of the
-functions that were used to create the tree. Here's a function to count the
-leaf nodes in our tree.
+functions that were used to create the tree. Here's a function to count the leaf
+nodes in our tree.
 
     
     let count(t) =
@@ -215,8 +217,9 @@ We can use this to apply our "square" function to each item in the list.
     
     map(square, natsFromTo(1, 5))
     
-This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also supply a function directly in the 
-call to map without defining a named function first.
+This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also
+supply a function directly in the call to map without defining a named function
+first.
 
 
     map((x) = x², natsFromTo(1, 5))

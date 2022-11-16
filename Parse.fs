@@ -15,46 +15,62 @@ type ParseAttribute(syntax:string) =
     inherit System.Attribute()
     member _.Syntax = syntax
 
+type Result<'r> =
+    | Match of 'r
+    | Nomatch of string list
+    | SyntaxError of string list
+
+let mergeErrors es =
+    List.ofSeq (Seq.sort (Seq.distinct (Seq.ofList es)))
+
 type ParserBuilder() =
     member _.Bind(p, f) =
         fun t ->
             let (m, t2) = p t
             match m with
-            | None -> None, t
-            | Some r -> (f r) t2
+            | Nomatch e -> (Nomatch e), t
+            | SyntaxError e -> (SyntaxError e), t2
+            | Match r -> (f r) t2
     member _.Combine(p1, p2) =
         fun t ->
             let (m, t2) = p1 t
             match m with
-            | None -> p2 t
-            | Some r -> (Some r), t2
+            | Match r -> (Match r), t2
+            | SyntaxError e -> (SyntaxError e), t2
+            | Nomatch e1 ->
+                let (m, t2) = p2 t
+                match m with
+                | Match r -> (Match r), t2
+                | SyntaxError e -> (SyntaxError e), t2
+                | Nomatch e2 -> (Nomatch (mergeErrors (e1 @ e2))), t
     member _.Delay(f) =
         f()
     member _.Return(r) =
-        fun t -> (Some r), t
+        fun t -> (Match r), t
     member _.ReturnFrom(p) = 
         p
     member _.Zero() =
-        fun t -> None, t
+        fun t -> Nomatch [], t
 
 let parser = new ParserBuilder()
 
-let stringToken (ctor:Cspan -> Token) =
+let stringToken (ctor:Cspan -> Token) ctorName =
     fun t ->
+        let nm = Nomatch [$"{ctorName} token"]
         match t with
-        | [] -> None, t
+        | [] -> nm, t
         | first::rest ->
+            let m = Match (tokenText first)
             match first with
-            | Id x          -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | String x      -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Operator x    -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Keyword x     -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Nat x         -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Superscript x -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Comment x     -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Punctuation x -> if first = ctor x then (Some (tokenText first)), rest else None, t
-            | Error c       -> None, t
-            | EndOfText     -> None, t
+            | Id x          -> if first = ctor x then m, rest else nm, t
+            | String x      -> if first = ctor x then m, rest else nm, t
+            | Operator x    -> if first = ctor x then m, rest else nm, t
+            | Keyword x     -> if first = ctor x then m, rest else nm, t
+            | Nat x         -> if first = ctor x then m, rest else nm, t
+            | Superscript x -> if first = ctor x then m, rest else nm, t
+            | Comment x     -> if first = ctor x then m, rest else nm, t
+            | Punctuation x -> if first = ctor x then m, rest else nm, t
+            | Error c       -> nm, t
 
 let private ten =
     bigint 10
@@ -78,24 +94,25 @@ let private parseNat (s:string) =
 
     parseNat' (s.EnumerateRunes() |> Seq.toList) (bigint 0)
 
-let bigintToken (ctor:Cspan -> Token) =
+let bigintToken (ctor:Cspan -> Token) ctorName =
     fun t ->
-        let (m, t2) = (stringToken ctor) t
+        let (m, t2) = (stringToken ctor ctorName) t
         match m with
-        | None -> None, t
-        | Some s ->
+        | Nomatch e -> (Nomatch e), t
+        | SyntaxError e -> (SyntaxError e), t2
+        | Match s ->
             match parseNat s with
-            | (false, _) -> None, t
-            | (true, n) -> (Some n), t2
+            | (false, _) -> (Nomatch ["Nat value"]), t
+            | (true, n) -> (Match n), t2
 
 let literal (s: string) =
     fun t ->
         match t with
-        | [] -> None, t
+        | [] -> Nomatch [$"«{s}»"], t
         | first::rest ->
             if tokenText first = s
-                then (Some ()), rest
-                else None, t
+                then (Match ()), rest
+                else Nomatch [$"«{s}»"], t
 
 let andThen p q =
     parser {
@@ -109,6 +126,14 @@ let orElse p q =
         return! p
         return! q
     }
+
+let checkpoint p =
+    fun t ->
+        let (m, t2) = p t
+        match m with
+        | Nomatch e -> (SyntaxError e), t2
+        | SyntaxError e -> (SyntaxError e), t2
+        | Match r -> (Match r), t2
 
 let option p =
     parser {
@@ -132,12 +157,14 @@ let rec zeroOrMore p =
     fun t ->
         let (m, t2) = p t
         match m with
-        | None -> (Some []), t
-        | Some r ->
+        | Nomatch _ -> (Match []), t
+        | SyntaxError e -> (SyntaxError e), t2
+        | Match r ->
             let (m2, t3) = (zeroOrMore p) t2
             match m2 with
-            | None -> (Some [r]), t2
-            | Some rs -> (Some (r::rs)), t3
+            | Nomatch _ -> (Match [r]), t2
+            | SyntaxError e -> (SyntaxError e), t3
+            | Match rs -> (Match (r::rs)), t3
 
 and oneOrMore p =
     parser {
@@ -174,6 +201,7 @@ type Parser =
     | OptionListP of Parser
     | ListP of Parser
     | NonEmptyListP of Parser
+    | CheckpointP of Parser
     | AndP of Parser * Parser
     | OrP of Parser * Parser
     | DelimitedP of Parser * Parser
@@ -207,56 +235,85 @@ let unboxed (s: string) =
 
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
+
     | ProductionP(_, _) ->
+
         match primaryType with
         | ProductionType name -> writer.Write (name.ToLowerInvariant())
         | _ -> raise (NotImplementedException())
+
     | TokenP(s) ->
+
         let tokenType =
             match primaryType with
             | StringType -> "stringToken"
             | BigintType -> "bigintToken"
             | _ -> raise (NotImplementedException())
+
         let u = unboxed s
         let tokenCtor = u.Substring(0, 1) + u.Substring(1).ToLowerInvariant()
-        writer.Write $"{tokenType} {tokenCtor}"
+        writer.Write $"{tokenType} {tokenCtor} \"{tokenCtor}\""
+
     | LiteralP(s) ->
+
         writer.Write $"literal \"{unboxed s}\""
+
+    | CheckpointP(p) ->
+
+        writer.Write "checkpoint ("
+        writeParser writer p primaryType
+        writer.Write ")"
+
     | OptionP(p) ->
+
         writer.Write "option ("
         writeParser writer p primaryType
         writer.Write ")"
+
     | OptionListP(p) ->
+
         writer.Write "optionlist ("
         writeParser writer p primaryType
         writer.Write ")"
+
     | ListP(p) ->
+
         writer.Write "zeroOrMore ("
         writeParser writer p primaryType
         writer.Write ")"
+
     | NonEmptyListP(p) ->
+
         writer.Write "oneOrMore ("
         writeParser writer p primaryType
         writer.Write ")"
+
     | AndP(p, q) ->
+
         writer.Write "andThen ("
         writeParser writer p primaryType
         writer.Write ") ("
         writeParser writer q primaryType
         writer.Write ")"
+
     | OrP(p, q) ->
+
         writer.Write "orElse ("
         writeParser writer p primaryType
         writer.Write ") ("
         writeParser writer q primaryType
         writer.Write ")"
+
     | DelimitedP(d, p) ->
+
         writer.Write "delimited ("
         writeParser writer d primaryType
         writer.Write ") ("
         writeParser writer p primaryType
         writer.Write ")"
+
     | SurroundP(a, b, p) ->
+
         writer.Write "surround ("
         writeParser writer a primaryType
         writer.Write ") ("

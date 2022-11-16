@@ -100,6 +100,7 @@ let rec getParserEbnf parser =
     | ProductionP(_, _) -> "_"
     | TokenP(s) -> unboxed s
     | LiteralP(s) -> "'" + (unboxed s) + "'"
+    | CheckpointP(p) -> getParserEbnf p
     | OptionP(p) -> "(" + (getParserEbnf p) + ")?"
     | OptionListP(p) -> "(" + (getParserEbnf p) + ")?"
     | ListP(p) -> "(" + (getParserEbnf p) + ")*"

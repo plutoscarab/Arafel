@@ -12,7 +12,6 @@ type Token =
     | String of Cspan
     | Comment of Cspan
     | Error of Cursor
-    | EndOfText
 
 let tokenStr (token:Token) =
     match token with
@@ -25,7 +24,6 @@ let tokenStr (token:Token) =
     | String s -> "String " + spanned s
     | Comment s -> "Comment " + spanned s
     | Error c -> "Error " + (c.Str)
-    | EndOfText -> ""
 
 let tokenText (token:Token) =
     match token with
@@ -38,20 +36,15 @@ let tokenText (token:Token) =
     | String s -> spanned s
     | Comment s -> spanned s
     | Error c -> c.Str
-    | EndOfText -> ""
 
-type TokenCursor =
-    { source: Token array;
-      index: int }
-
-    member c.More = c.index < c.source.Length
-
-    member c.Current = if c.More then c.source[c.index] else EndOfText
-
-    member c.Str = tokenStr (c.Current)
-
-    member c.Next = 
-        if c.More then 
-            { c with index = c.index + 1 }
-        else 
-            c
+let tokenCursor (token:Token) =
+    match token with
+    | Keyword s -> fst s
+    | Id s -> fst s
+    | Operator s -> fst s
+    | Punctuation s -> fst s
+    | Nat s -> fst s
+    | Superscript s -> fst s
+    | String s -> fst s
+    | Comment s -> fst s
+    | Error c -> c

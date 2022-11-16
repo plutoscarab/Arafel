@@ -94,6 +94,10 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         if s.EndsWith("␏") then
             writer.WriteLine "writer.Indent <- writer.Indent + 1"
 
+    | CheckpointP(p) ->
+
+        writeParser writer p primaryType name
+
     | OptionP(p) ->
 
         writer.WriteLine $"match {name} with"

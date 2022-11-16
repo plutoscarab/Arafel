@@ -14,15 +14,14 @@ open Ebnf
 
 let main =
 
-    Console.OutputEncoding <- Encoding.Unicode
-    let uc = Char.GetUnicodeCategory '₁'
+    Console.OutputEncoding <- Encoding.UTF8
 
     let productions = getProductions typeof<Statement>
     writeEbnf "generated/grammar.txt" productions
     writeParserFile "generated/arafel.fs" "Arafel" productions
     writePrintFile "generated/pretty.fs" "Pretty" productions
 
-    let src = File.ReadAllText("sample.af")
+    let src = File.ReadAllText("sample.af", Encoding.UTF8)
     let runes = src.EnumerateRunes() |> Seq.toList
     let cursors = Cursor.getCursors runes |> Seq.toArray
     let cursor = Cursor.makeCursor src
@@ -36,12 +35,14 @@ let main =
         let (r, t2) = Arafel.statement t
 
         match r with
-        | None ->
-            if (Tokens.tokenStr (List.head t)).StartsWith("Comment ") then
-                t <- List.tail t
-            else
-                raise (Exception "")
-        | Some e ->
+        | Nomatch e ->
+            let ex = String.concat ", " e
+            raise (Exception $"Expected {ex}")
+        | SyntaxError e ->
+            let ex = String.concat ", " e
+            let c = Tokens.tokenCursor (List.head t)
+            raise (Exception $"Line {c.line} Pos {c.pos} Expected {ex}")
+        | Match e ->
             Pretty.printStatement writer e
             writer.WriteLine ()
 
