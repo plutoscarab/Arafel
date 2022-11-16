@@ -142,3 +142,4 @@ let getProductions (t:Type) =
     getReferencedTypes [t] []
     |> List.filter (fun f -> f.FullName.StartsWith(moduleName))
     |> List.map (fun t -> Production(t.Name, unionCases t, indentOf t))
+    |> List.sortBy (fun (Production(name, _, _)) -> name)
