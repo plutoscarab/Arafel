@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Cursor.fs" />
+    <Compile Include="Tokens.fs" />
+    <Compile Include="Lexer.fs" />
+    <Compile Include="Parse.fs" />
+    <Compile Include="Print.fs" />
+    <Compile Include="Reflect.fs" />
+    <Compile Include="Ebnf.fs" />
+    <Compile Include="Syntax.fs" />
+    <Compile Include="Codegen.fs" />
+  </ItemGroup>
+
+</Project>

@@ -16,16 +16,11 @@ let main =
 
     Console.OutputEncoding <- Encoding.UTF8
 
-    let productions = getProductions typeof<Statement>
-    writeEbnf "generated/grammar.txt" productions
-    writeParserFile "generated/arafel.fs" "Arafel" productions
-    writePrintFile "generated/pretty.fs" "Pretty" productions
-
     let src = File.ReadAllText("sample.af", Encoding.UTF8)
     let runes = src.EnumerateRunes() |> Seq.toList
     let cursors = Cursor.getCursors runes |> Seq.toArray
     let cursor = Cursor.makeCursor src
-    let tokens = Lexer.tokenise cursor |> Seq.toList
+    let tokens = Lexer.tokenise Arafel.keywords cursor |> Seq.toList
     use file = File.CreateText("generated/pretty.af")
     use writer = new IndentedTextWriter(file)
 

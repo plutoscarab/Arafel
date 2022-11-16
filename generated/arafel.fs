@@ -5,6 +5,8 @@ open Lexer
 open Parse
 open Syntax
 
+let keywords = Set [ "case"; "else"; "forall"; "if"; "let"; "of"; "then"; "type" ]
+
 let rec atom tokens =
     let p = parser {
         return! parser {

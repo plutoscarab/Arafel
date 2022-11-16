@@ -210,6 +210,90 @@ type Parser =
     | DelimitedP of Parser * Parser
     | SurroundP of Parser * Parser * Parser
 
+let unboxed (s: string) =
+    s.Replace("␠", "")
+     .Replace("␤", "")
+     .Replace("␏", "")
+     .Replace("␎", "")
+     .Replace("␑", "")
+
+let rec getKeywords =
+    function
+    | ProductionP (_, _) -> Seq.empty
+    | TokenP _ -> Seq.empty
+    | LiteralP s ->
+        let u = unboxed s
+        if Rune.IsLetter(Rune.GetRuneAt(u, 0)) then seq { u } else Seq.empty
+    | OptionP p -> getKeywords p
+    | OptionListP p -> getKeywords p
+    | ListP p -> getKeywords p
+    | NonEmptyListP p -> getKeywords p
+    | CheckpointP p -> getKeywords p
+    | AndP (p, q) ->
+        Seq.concat [getKeywords p; getKeywords q]
+    | OrP (p, q) ->
+        Seq.concat [getKeywords p; getKeywords q]
+    | DelimitedP (p, q) ->
+        Seq.concat [getKeywords p; getKeywords q]
+    | SurroundP (p, q, r) ->
+        Seq.concat [getKeywords p; getKeywords q; getKeywords r]
+
+let rec private decodeParser ps =
+    match ps with
+    | "_"::rest ->
+        ProductionP(Raw, Raw), rest
+    | "_␤"::rest ->
+        ProductionP(Raw, Newline), rest
+    | "␤_"::rest ->
+        ProductionP(Newline, Raw), rest
+    | "␏_"::rest ->
+        ProductionP(Indent, Raw), rest
+    | "_␏"::rest ->
+        ProductionP(Raw, Indent), rest
+    | "⚠"::rest ->
+        let (p, rest') = decodeParser rest
+        (CheckpointP p), rest'
+    | "opt"::rest ->
+        let (p, rest') = decodeParser rest
+        (OptionP p), rest'
+    | "opt[]"::rest ->
+        let (p, rest') = decodeParser rest
+        (OptionListP p), rest'
+    | "0+"::rest ->
+        let (p, rest') = decodeParser rest
+        (ListP p, rest')
+    | "1+"::rest ->
+        let (p, rest') = decodeParser rest
+        (NonEmptyListP p, rest')
+    | "and"::rest ->
+        let (p, rest') = decodeParser rest
+        let (q, rest'') = decodeParser rest'
+        (AndP(p, q), rest'')
+    | "or"::rest ->
+        let (p, rest') = decodeParser rest
+        let (q, rest'') = decodeParser rest'
+        (OrP(p, q), rest'')
+    | "delim"::rest ->
+        let (p, rest') = decodeParser rest
+        let (q, rest'') = decodeParser rest'
+        (DelimitedP(p, q), rest'')
+    | "surr"::rest ->
+        let (p, rest') = decodeParser rest
+        let (q, rest'') = decodeParser rest'
+        let (r, rest''') = decodeParser rest''
+        (SurroundP(p, q, r), rest''')
+    | s::rest when s.Length > 2 && s.StartsWith("'") && s.EndsWith("'") ->
+        LiteralP(s.Substring(1, s.Length - 2)), rest
+    | s::rest when s = s.ToUpperInvariant() && s <> s.ToLowerInvariant() ->
+        TokenP(s), rest
+    | _ ->
+        raise (NotImplementedException())
+
+let decodeParserStr (s:string) =
+    let r, n = decodeParser (s.Split(' ') |> List.ofArray)
+    if n <> [] then raise (Exception "")
+    r
+
 type PrimaryType =
     | StringType
     | BigintType
@@ -228,13 +312,6 @@ type UnionCase =
 
 type Production =
     | Production of string * UnionCase list * bool
-
-let unboxed (s: string) =
-    s.Replace("␠", "")
-     .Replace("␤", "")
-     .Replace("␏", "")
-     .Replace("␎", "")
-     .Replace("␑", "")
 
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
@@ -344,7 +421,7 @@ let private writeCase (writer:IndentedTextWriter) (UnionCase(name, fields)) =
     writer.Indent <- writer.Indent - 1
     writer.WriteLine "}"
 
-let writeParserFile filename modulename (productions:Production list) =
+let writeParserFile filename modulename (productions:Production list) (keywords:string seq) =
     use file = File.CreateText(filename)
     use writer = new IndentedTextWriter(file)
     writer.WriteLine $"module {modulename}"
@@ -353,6 +430,9 @@ let writeParserFile filename modulename (productions:Production list) =
     writer.WriteLine "open Lexer"
     writer.WriteLine "open Parse"
     writer.WriteLine "open Syntax"
+    writer.WriteLine ()
+    let kw = String.concat "; " (Seq.map (fun s-> $"\"{s}\"") keywords)
+    writer.WriteLine $"let keywords = Set [ {kw} ]"
     let mutable keyword = "let rec"
 
     for Production(name, cases, indent) in productions do

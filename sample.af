@@ -1,9 +1,9 @@
 
 ARAFEL
 
-Arafel is a pure, lazy, statically-typed functional programming language. Source
-files contain comments on non-indented lines and code on indented lines. You're
-reading a valid Arafel source file. Files must be encoded in UTF-8 or a
+Arafel is a pure, semi-lazy, statically-typed functional programming language.
+Source files contain comments on non-indented lines and code on indented lines.
+You're reading a valid Arafel source file. Files must be encoded in UTF-8 or a
 compatible subset of it such as ASCII.
 
 
@@ -54,6 +54,7 @@ can be used in identifiers, but not as the leading character.
     let x₁ = 99
     let y፳ = 79
 
+
 FUNCTIONS
 
 Functions in Arafel are written like this which returns the square of a number:
@@ -70,6 +71,46 @@ There are many built-in functions, such as "sqrt":
     let hypot(a, b) = sqrt(+(square(a), square(b)))
 
     hypot(3, 4)
+
+
+TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
+
+Binary tree with data in the leaf nodes:
+
+    type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+
+This defines two different functions for creating trees, one called Leaf that
+takes a value and returns a tree with a single leaf node, and one called Node
+that returns a tree with two sub-trees.
+
+It also defines a function called Tree that takes a type argument and returns a
+type. For example Tree(Int) is a tree of Int values and Tree(Str) is a tree of
+Str values. Tree is not a type, but is a function that returns a type.
+
+Here we create a Tree(Str):
+
+    let x = Node(Leaf("a"), Node(Leaf("b"), Leaf("c")))
+
+This produces the following tree where "*" indicate Nodes:
+
+:     b   c
+:      \ /
+:   a   *
+:    \ /
+:     *
+
+To use a union type, we use the "case" keyword to match with each of the
+functions that were used to create the tree. Here's a function to count the leaf
+nodes in our tree.
+
+    let count(t) = case t of
+        Leaf(_) : 1 
+        Node(left, right) : +(count(left), count(right))
+
+    count(x)
+
+This prints "3" for the tree we created above.
+
 
 LISTS
 
@@ -121,44 +162,17 @@ Block comment in the middle of an expression.
 
     takeWhile((n) = <(n, 100), natsFromWithSkip(5, 2))
 
+Left-associative and right-associative accumulation:
 
-TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
+    let foldl(op, zero, list) =
+        case list of
+            Nil : zero
+            Cons(x, rest) : foldl(op, op(zero, x), rest)
 
-Binary tree with data in the leaf nodes:
-
-    type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
-
-This defines two different functions for creating trees, one called Leaf that
-takes a value and returns a tree with a single leaf node, and one called Node
-that returns a tree with two sub-trees.
-
-It also defines a function called Tree that takes a type argument and returns a
-type. For example Tree(Int) is a tree of Int values and Tree(Str) is a tree of
-Str values. Tree is not a type, but is a function that returns a type.
-
-Here we create a Tree(Str):
-
-    let x = Node(Leaf("a"), Node(Leaf("b"), Leaf("c")))
-
-This produces the following tree where "*" indicate Nodes:
-
-:     b   c
-:      \ /
-:   a   *
-:    \ /
-:     *
-
-To use a union type, we use the "case" keyword to match with each of the
-functions that were used to create the tree. Here's a function to count the leaf
-nodes in our tree.
-
-    let count(t) = case t of
-        Leaf(_) : 1 
-        Node(left, right) : +(count(left), count(right))
-
-    count(x)
-
-This prints "3" for the tree we created above.
+    let foldr(op, zero, list) =
+        case list of
+            Nil : zero
+            Cons(x, rest) : op(x, foldr(op, zero, rest))
 
 More complicated data structures can be deconstructed directly in "case"
 statements, like shown below.
@@ -170,6 +184,7 @@ statements, like shown below.
 
     all2nds(Cons(Pair(2, 4), Cons(Pair(3, 9), Nil)))
 
+
 FUNCTIONS AS VALUES, ALSO LAMBDAS 𝑎.𝑘.𝑎. ANONYMOUS FUNCTIONS
 
 Functions are values in and of themselves, and can be passed as arguments to
@@ -177,7 +192,7 @@ other functions. Here's a function that accepts a function as input and applies
 it to each value in a list to produce a new list.
 
     let map(func, list) = case list of
-                     Nil : Nil
+        Nil : Nil
         Cons(head, tail) : Cons(func(head), map(func, tail))
 
 We can use this to apply our "square" function to each item in the list.

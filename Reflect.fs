@@ -6,7 +6,7 @@ open Microsoft.FSharp.Reflection
 open Parse
 open Print
 
-let getImmediateDependencies (t:Type) =
+let private getImmediateDependencies (t:Type) =
     let deps =
         if FSharpType.IsTuple(t) then
             FSharpType.GetTupleElements(t) 
@@ -30,63 +30,7 @@ let getImmediateDependencies (t:Type) =
     |> Seq.distinct
     |> List.ofSeq
 
-let rec decodeParser ps =
-    match ps with
-    | "_"::rest ->
-        ProductionP(Raw, Raw), rest
-    | "_␤"::rest ->
-        ProductionP(Raw, Newline), rest
-    | "␤_"::rest ->
-        ProductionP(Newline, Raw), rest
-    | "␏_"::rest ->
-        ProductionP(Indent, Raw), rest
-    | "_␏"::rest ->
-        ProductionP(Raw, Indent), rest
-    | "⚠"::rest ->
-        let (p, rest') = decodeParser rest
-        (CheckpointP p), rest'
-    | "opt"::rest ->
-        let (p, rest') = decodeParser rest
-        (OptionP p), rest'
-    | "opt[]"::rest ->
-        let (p, rest') = decodeParser rest
-        (OptionListP p), rest'
-    | "0+"::rest ->
-        let (p, rest') = decodeParser rest
-        (ListP p, rest')
-    | "1+"::rest ->
-        let (p, rest') = decodeParser rest
-        (NonEmptyListP p, rest')
-    | "and"::rest ->
-        let (p, rest') = decodeParser rest
-        let (q, rest'') = decodeParser rest'
-        (AndP(p, q), rest'')
-    | "or"::rest ->
-        let (p, rest') = decodeParser rest
-        let (q, rest'') = decodeParser rest'
-        (OrP(p, q), rest'')
-    | "delim"::rest ->
-        let (p, rest') = decodeParser rest
-        let (q, rest'') = decodeParser rest'
-        (DelimitedP(p, q), rest'')
-    | "surr"::rest ->
-        let (p, rest') = decodeParser rest
-        let (q, rest'') = decodeParser rest'
-        let (r, rest''') = decodeParser rest''
-        (SurroundP(p, q, r), rest''')
-    | s::rest when s.Length > 2 && s.StartsWith("'") && s.EndsWith("'") ->
-        LiteralP(s.Substring(1, s.Length - 2)), rest
-    | s::rest when s = s.ToUpperInvariant() && s <> s.ToLowerInvariant() ->
-        TokenP(s), rest
-    | _ ->
-        raise (NotImplementedException())
-
-let decodeParserStr (s:string) =
-    let r, n = decodeParser (s.Split(' ') |> List.ofArray)
-    if n <> [] then raise (Exception "")
-    r
-
-let primaryType (t:Type) =
+let private primaryType (t:Type) =
     if t.Name = "String" then
         StringType
     elif t.Name = "BigInteger" then
@@ -94,7 +38,7 @@ let primaryType (t:Type) =
     else
         ProductionType t.Name
 
-let tupleField (t:Type) parser =
+let private tupleField (t:Type) parser =
     if t.Name = "FSharpList`1" then
         TupleField(primaryType (t.GetGenericArguments().[0]), ListM, parser)
     elif t.Name = "FSharpOption`1" then
@@ -102,7 +46,7 @@ let tupleField (t:Type) parser =
     else
         TupleField(primaryType t, SingleM, parser)
 
-let tupleFields (c:UnionCaseInfo) =
+let private tupleFields (c:UnionCaseInfo) =
     let fields = c.GetFields()
     let n = Array.length fields
 
@@ -110,25 +54,25 @@ let tupleFields (c:UnionCaseInfo) =
         c.GetCustomAttributes()
         |> Array.filter (fun f -> f :? Parse.ParseAttribute)
         |> Array.map (fun f -> f :?> Parse.ParseAttribute)
-        |> Array.map (fun f -> decodeParserStr f.Syntax)
+        |> Array.map (fun f -> Parse.decodeParserStr f.Syntax)
 
     if n <> Array.length(parsers) then raise (Exception "")
     Array.zip fields parsers
     |> Array.map (fun (f, p) -> tupleField f.PropertyType p)
     |> List.ofArray
 
-let unionCases (t:Type) =
+let private unionCases (t:Type) =
     FSharpType.GetUnionCases(t)
     |> List.ofArray
     |> List.map (fun c ->
         UnionCase(c.Name, tupleFields c))
 
-let indentOf (t:Type) =
+let private indentOf (t:Type) =
     match t.GetCustomAttributes(typeof<IndentAttribute>, true) with
     | [||] -> false
     | _ -> true
 
-let rec getReferencedTypes pending result =
+let rec private getReferencedTypes pending result =
     match pending with
     | [] -> result
     | t::rest ->
@@ -143,3 +87,19 @@ let getProductions (t:Type) =
     |> List.filter (fun f -> f.FullName.StartsWith(moduleName))
     |> List.map (fun t -> Production(t.Name, unionCases t, indentOf t))
     |> List.sortBy (fun (Production(name, _, _)) -> name)
+
+let private getKeywordsOfField (TupleField(_, _, parser)) =
+    Parse.getKeywords parser
+
+let private getKeywordsOfCase (UnionCase(_, fields)) =
+    Seq.concat (Seq.map getKeywordsOfField fields)
+
+let private getKeywordsOfProduction (Production(_, cases, _)) =
+    Set(Seq.concat (Seq.map getKeywordsOfCase cases))
+
+let rec getProductionKeywords =
+    function
+    | [] ->
+        Set.empty
+    | p::rest ->
+        Set.union (getKeywordsOfProduction p) (getProductionKeywords rest)

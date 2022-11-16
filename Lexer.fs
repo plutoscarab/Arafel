@@ -20,7 +20,7 @@ let rec private emptyLine (cursor:Cursor) =
 
 let superchars = "⁰¹²³⁴⁵⁶⁷⁸⁹"
 
-let tokenise (cursor:Cursor) =
+let tokenise (keywords:Set<string>) (cursor:Cursor) =
     seq {
         let mutable c = cursor
         let mutable line = 0
@@ -44,7 +44,7 @@ let tokenise (cursor:Cursor) =
                 while Rune.IsLetter(c.Current) || c.Str = "_" || Rune.IsDigit(c.Current) || (Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.OtherNumber && not (superchars.Contains(c.Str))) do
                     c <- c.Next
                 let s = spanned (start, c)
-                if s = "let" || s = "case" || s = "type" || s = "forall" || s = "if" then
+                if Set.contains s keywords then
                     yield Keyword (start, c)
                 else
                     yield Identifier (start, c)

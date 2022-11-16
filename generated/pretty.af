@@ -35,6 +35,20 @@
     
     hypot(3, 4)
     
+    type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+    
+    let x =
+        Node(Leaf(a), Node(Leaf(b), Leaf(c)))
+    
+    let count(t) =
+        case t of
+            Leaf(_):
+                1
+            Node(left, right):
+                +(count(left), count(right))
+    
+    count(x)
+    
     type List(a) = Nil | Cons(a, List(a))
     
     Nil
@@ -72,19 +86,19 @@
     
     takeWhile((n) = <(n, 100), natsFromWithSkip(5, 2))
     
-    type Tree(t) = Leaf(t) | Node(Tree(t), Tree(t))
+    let foldl(op, zero, list) =
+        case list of
+            Nil:
+                zero
+            Cons(x, rest):
+                foldl(op, op(zero, x), rest)
     
-    let x =
-        Node(Leaf(a), Node(Leaf(b), Leaf(c)))
-    
-    let count(t) =
-        case t of
-            Leaf(_):
-                1
-            Node(left, right):
-                +(count(left), count(right))
-    
-    count(x)
+    let foldr(op, zero, list) =
+        case list of
+            Nil:
+                zero
+            Cons(x, rest):
+                op(x, foldr(op, zero, rest))
     
     let all2nds(list) =
         case list of
