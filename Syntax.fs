@@ -4,7 +4,7 @@ open Parse
 open Print
 
 type LexprName =
-    | [<Parse("ID")>] IdentifierN of string
+    | [<Parse("IDENTIFIER")>] IdentifierN of string
     | [<Parse("OPERATOR")>] OperatorN of string
 
 type Lexpr =
@@ -16,21 +16,21 @@ type MonoType =
     | [<Parse("delim or '␠->␠' '␠→␠' _")>] MonoType of Lexpr list
 
 type PolyType =
-    | [<Parse("opt[] surr or 'forall␠' '∀␠' ⚠ ',␠' 1+ ID");
+    | [<Parse("opt[] surr or 'forall␠' '∀␠' ⚠ ',␠' 1+ IDENTIFIER");
         Parse("delim '␠|␠' _")>] 
       PolyType of string list * MonoType list
 
 type TypeDecl =
-    | [<Parse("and 'type␠' ⚠ ID");
-        Parse("opt[] surr '(' ')' delim ',␠' ID");
-        Parse("and '␠=␠' _␤")>]
+    | [<Parse("and 'type␠' ⚠ IDENTIFIER");
+        Parse("opt[] surr '(' ')' ⚠ delim ',␠' IDENTIFIER");
+        Parse("⚠ and '␠=␠' _␤")>]
       TypeDecl of string * string list * PolyType
 
 type Postfix =
     | [<Parse("␑SUPERSCRIPT")>] SuperscriptPF of bigint
 
 type Pattern =
-    | [<Parse("ID");
+    | [<Parse("IDENTIFIER");
         Parse("opt[] surr '(' ')' delim ',␠' _")>] 
       CtorPat of string * Pattern list
     | [<Parse("NAT")>]
@@ -40,7 +40,7 @@ type Pattern =
 
 type LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
-        Parse("and '␠=' _␤")>]
+        Parse("⚠ and '␠=' _␤")>]
       LetDecl of Lexpr * Statement
 
 and Atom =
@@ -49,7 +49,7 @@ and Atom =
     | [<Parse("OPERATOR")>] OperatorA of string
     | [<Parse("_")>] LambdaA of Lambda
     | [<Parse("surr '(' ')' ⚠ _")>] ParensA of Expr
-    | [<Parse("ID")>] IdentifierA of string
+    | [<Parse("IDENTIFIER")>] IdentifierA of string
     | [<Parse("_")>] CasesA of Cases
     | [<Parse("_")>] IfThenA of IfThen
 
@@ -60,8 +60,8 @@ and Case =
 
 and Cases =
     | [<Parse("and 'case␠' ⚠ _");
-        Parse("and '␠of␏' 1+ ␤_");
-        Parse("opt and '␤else' _")>]
+        Parse("⚠ and '␠of␏' 1+ ␤_");
+        Parse("opt and '␤else' ⚠ _")>]
       Cases of Expr * Case list * Statement option
 
 and Expr =
@@ -77,8 +77,8 @@ and [<Indent>] Statement =
 
 and IfThen =
     | [<Parse("and 'if␠' ⚠ _␏");
-        Parse("and '␤then␠' _");
-        Parse("and '␤else␠' _")>]
+        Parse("⚠ and '␤then␠' _");
+        Parse("⚠ and '␤else␠' _")>]
       IfThen of Expr * Expr * Expr
 
 and Lambda =

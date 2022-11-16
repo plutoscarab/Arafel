@@ -4,15 +4,15 @@ Postfix ::= SUPERSCRIPT
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Case ::= Pattern ':' Statement
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Statement)?
-Pattern ::= ID ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
+Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
 Lambda ::= '(' Pattern ')' '=' Expr
-Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | ID | Cases | IfThen
+Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen
 Expr ::= Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
 LetDecl ::= 'let' Lexpr '=' Statement
-LexprName ::= ID | OPERATOR
+LexprName ::= IDENTIFIER | OPERATOR
 Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
-PolyType ::= (('forall' | '∀') (ID)+ ',')? MonoType ('|' MonoType)*
-TypeDecl ::= 'type' ID ('(' ID (',' ID)* ')')? '=' PolyType
+PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
+TypeDecl ::= 'type' IDENTIFIER ('(' IDENTIFIER (',' IDENTIFIER)* ')')? '=' PolyType
 Prelude ::= TypeDecl | LetDecl
 Statement ::= (Prelude)* Expr

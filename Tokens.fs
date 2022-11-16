@@ -4,7 +4,7 @@ open Cursor
 
 type Token = 
     | Keyword of Cspan
-    | Id of Cspan
+    | Identifier of Cspan
     | Operator of Cspan
     | Punctuation of Cspan
     | Nat of Cspan
@@ -16,7 +16,7 @@ type Token =
 let tokenStr (token:Token) =
     match token with
     | Keyword s -> "Keyword " + spanned s
-    | Id s -> "Id " + spanned s
+    | Identifier s -> "Identifier " + spanned s
     | Operator s -> "Operator " + spanned s
     | Punctuation s -> "Punctuation " + spanned s
     | Nat s -> "Nat " + spanned s
@@ -28,7 +28,7 @@ let tokenStr (token:Token) =
 let tokenText (token:Token) =
     match token with
     | Keyword s -> spanned s
-    | Id s -> spanned s
+    | Identifier s -> spanned s
     | Operator s -> spanned s
     | Punctuation s -> spanned s
     | Nat s -> spanned s
@@ -40,7 +40,7 @@ let tokenText (token:Token) =
 let tokenCursor (token:Token) =
     match token with
     | Keyword s -> fst s
-    | Id s -> fst s
+    | Identifier s -> fst s
     | Operator s -> fst s
     | Punctuation s -> fst s
     | Nat s -> fst s

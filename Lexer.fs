@@ -47,7 +47,7 @@ let tokenise (cursor:Cursor) =
                 if s = "let" || s = "case" || s = "type" || s = "forall" || s = "if" then
                     yield Keyword (start, c)
                 else
-                    yield Id (start, c)
+                    yield Identifier (start, c)
             | r when Rune.IsDigit r ->
                 let mutable start = c
                 let mutable previous = c

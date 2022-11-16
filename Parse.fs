@@ -56,21 +56,24 @@ let parser = new ParserBuilder()
 
 let stringToken (ctor:Cspan -> Token) ctorName =
     fun t ->
-        let nm = Nomatch [$"{ctorName} token"]
+        let nm = (Nomatch [$"{ctorName} token"]), t
         match t with
-        | [] -> nm, t
+        | [] -> nm
         | first::rest ->
-            let m = Match (tokenText first)
+            let f x =
+                if first = ctor x
+                    then (Match (tokenText first)), rest
+                    else nm
             match first with
-            | Id x          -> if first = ctor x then m, rest else nm, t
-            | String x      -> if first = ctor x then m, rest else nm, t
-            | Operator x    -> if first = ctor x then m, rest else nm, t
-            | Keyword x     -> if first = ctor x then m, rest else nm, t
-            | Nat x         -> if first = ctor x then m, rest else nm, t
-            | Superscript x -> if first = ctor x then m, rest else nm, t
-            | Comment x     -> if first = ctor x then m, rest else nm, t
-            | Punctuation x -> if first = ctor x then m, rest else nm, t
-            | Error c       -> nm, t
+            | Identifier x          -> f x
+            | String x      -> f x
+            | Operator x    -> f x
+            | Keyword x     -> f x
+            | Nat x         -> f x
+            | Superscript x -> f x
+            | Comment x     -> f x
+            | Punctuation x -> f x
+            | Error c       -> nm
 
 let private ten =
     bigint 10

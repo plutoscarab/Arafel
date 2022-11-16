@@ -15,8 +15,8 @@ let rec postfix tokens =
 and ifthen tokens =
     let p = parser {
         let! f0 = andThen (literal "if") (checkpoint (expr))
-        let! f1 = andThen (literal "then") (expr)
-        let! f2 = andThen (literal "else") (expr)
+        let! f1 = checkpoint (andThen (literal "then") (expr))
+        let! f2 = checkpoint (andThen (literal "else") (expr))
         return IfThen(f0, f1, f2)
     }
     p tokens
@@ -32,8 +32,8 @@ and case tokens =
 and cases tokens =
     let p = parser {
         let! f0 = andThen (literal "case") (checkpoint (expr))
-        let! f1 = andThen (literal "of") (oneOrMore (case))
-        let! f2 = option (andThen (literal "else") (statement))
+        let! f1 = checkpoint (andThen (literal "of") (oneOrMore (case)))
+        let! f2 = option (andThen (literal "else") (checkpoint (statement)))
         return Cases(f0, f1, f2)
     }
     p tokens
@@ -41,7 +41,7 @@ and cases tokens =
 and pattern tokens =
     let p = parser {
         return! parser {
-            let! f0 = stringToken Id "Id"
+            let! f0 = stringToken Identifier "Identifier"
             let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (pattern)))
             return CtorPat(f0, f1)
         }
@@ -87,7 +87,7 @@ and atom tokens =
             return ParensA(f0)
         }
         return! parser {
-            let! f0 = stringToken Id "Id"
+            let! f0 = stringToken Identifier "Identifier"
             return IdentifierA(f0)
         }
         return! parser {
@@ -113,7 +113,7 @@ and expr tokens =
 and letdecl tokens =
     let p = parser {
         let! f0 = andThen (literal "let") (checkpoint (lexpr))
-        let! f1 = andThen (literal "=") (statement)
+        let! f1 = checkpoint (andThen (literal "=") (statement))
         return LetDecl(f0, f1)
     }
     p tokens
@@ -121,7 +121,7 @@ and letdecl tokens =
 and lexprname tokens =
     let p = parser {
         return! parser {
-            let! f0 = stringToken Id "Id"
+            let! f0 = stringToken Identifier "Identifier"
             return IdentifierN(f0)
         }
         return! parser {
@@ -148,7 +148,7 @@ and monotype tokens =
 
 and polytype tokens =
     let p = parser {
-        let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (checkpoint (literal ",")) (oneOrMore (stringToken Id "Id")))
+        let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (checkpoint (literal ",")) (oneOrMore (stringToken Identifier "Identifier")))
         let! f1 = delimited (literal "|") (monotype)
         return PolyType(f0, f1)
     }
@@ -156,9 +156,9 @@ and polytype tokens =
 
 and typedecl tokens =
     let p = parser {
-        let! f0 = andThen (literal "type") (checkpoint (stringToken Id "Id"))
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (stringToken Id "Id")))
-        let! f2 = andThen (literal "=") (polytype)
+        let! f0 = andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))
+        let! f1 = optionlist (surround (literal "(") (literal ")") (checkpoint (delimited (literal ",") (stringToken Identifier "Identifier"))))
+        let! f2 = checkpoint (andThen (literal "=") (polytype))
         return TypeDecl(f0, f1, f2)
     }
     p tokens

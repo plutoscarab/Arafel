@@ -6,11 +6,11 @@ open System.Linq
 open System.Numerics
 open System.Text
 
-open Syntax
 open Reflect
 open Parse
 open Print
 open Ebnf
+open Syntax
 
 let main =
 
@@ -32,17 +32,26 @@ let main =
     let mutable t = tokens
 
     while t <> [] do
+
         let (r, t2) = Arafel.statement t
 
+        let rec orLast =
+            function
+            | [] -> []
+            | [s] -> [s]
+            | [p; u] -> [p; "or " + u]
+            | h::t -> h::(orLast t)
+
+        let err e t =
+            let ex = String.concat ", " (orLast e)
+            let he = List.head t
+            let cu = Tokens.tokenCursor he
+            let tx = Tokens.tokenText he
+            raise (Exception $"Line {cu.line} Pos {cu.pos} «{tx}»: Expected {ex}.")
+
         match r with
-        | Nomatch e ->
-            let ex = String.concat ", " e
-            let c = Tokens.tokenCursor (List.head t)
-            raise (Exception $"Line {c.line} Pos {c.pos} Expected {ex}")
-        | SyntaxError e ->
-            let ex = String.concat ", " e
-            let c = Tokens.tokenCursor (List.head t)
-            raise (Exception $"Line {c.line} Pos {c.pos} Expected {ex}")
+        | Nomatch e -> err e t
+        | SyntaxError e -> err e t2
         | Match e ->
             Pretty.printStatement writer e
             writer.WriteLine ()
