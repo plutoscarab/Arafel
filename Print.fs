@@ -204,5 +204,6 @@ let writePrintFile filename modulename (productions:Production list) =
             writer.WriteLine $"| {name}({fs}) ->"
             writeCase writer fields
 
+        writer.WriteLine ()
         writer.WriteLine "writer.Indent <- n"
         writer.Indent <- writer.Indent - 1

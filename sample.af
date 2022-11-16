@@ -102,7 +102,7 @@ List item extraction:
 
     let head(list) =
         case list of
-            Cons(head, tail) : Just(head)
+            Cons(a, _) : Just(a)
             else Nothing
 
 Odd numbers 5 through 99:
@@ -153,13 +153,22 @@ functions that were used to create the tree. Here's a function to count the leaf
 nodes in our tree.
 
     let count(t) = case t of
-                  Leaf(_) : 1 
+        Leaf(_) : 1 
         Node(left, right) : +(count(left), count(right))
 
     count(x)
 
 This prints "3" for the tree we created above.
 
+More complicated data structures can be deconstructed directly in "case"
+statements, like shown below.
+
+    let all2nds(list) =
+        case list of
+            Nil : Nil
+            Cons(Pair(_, b), rest) : Cons(b, all2nds(rest))
+
+    all2nds(Cons(Pair(2, 4), Cons(Pair(3, 9), Nil)))
 
 FUNCTIONS AS VALUES, ALSO LAMBDAS 𝑎.𝑘.𝑎. ANONYMOUS FUNCTIONS
 

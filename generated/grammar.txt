@@ -3,16 +3,16 @@
 Postfix ::= SUPERSCRIPT | COMMENT
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Case ::= Pattern ':' Statement
-Matches ::= 'case' Expr 'of' (Case)+ ('else' Statement)?
+Cases ::= 'case' Expr 'of' (Case)+ ('else' Statement)?
 Pattern ::= ID ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
 Lambda ::= '(' Pattern ')' '=' Expr
-Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | ID | Matches | IfThen
+Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | ID | Cases | IfThen
 Expr ::= Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
+LetDecl ::= 'let' Lexpr '=' Statement
+LexprName ::= ID | OPERATOR
+Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
 PolyType ::= (('forall' | '∀') (ID)+ ',')? MonoType ('|' MonoType)*
 TypeDecl ::= 'type' ID ('(' ID (',' ID)* ')')? '=' PolyType
-LexprName ::= ID | OPERATOR
-Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
-LetDecl ::= 'let' Lexpr '=' Statement
-Prelude ::= LetDecl | TypeDecl | COMMENT
+Prelude ::= COMMENT | TypeDecl | LetDecl
 Statement ::= (Prelude)* Expr

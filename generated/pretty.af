@@ -121,8 +121,8 @@ List item extraction:
 
     let head(list) =
         case list of
-            Cons(head, tail):
-                Just(head)
+            Cons(a, _):
+                Just(a)
             else
                 Nothing
                 
@@ -191,7 +191,20 @@ nodes in our tree.
     
 This prints "3" for the tree we created above.
 
+More complicated data structures can be deconstructed directly in "case"
+statements, like shown below.
 
+
+    let all2nds(list) =
+        case list of
+            Nil:
+                Nil
+            Cons(Pair(_, b), rest):
+                Cons(b, all2nds(rest))
+                
+    
+    all2nds(Cons(Pair(2, 4), Cons(Pair(3, 9), Nil)))
+    
 FUNCTIONS AS VALUES, ALSO LAMBDAS 𝑎.𝑘.𝑎. ANONYMOUS FUNCTIONS
 
 Functions are values in and of themselves, and can be passed as arguments to

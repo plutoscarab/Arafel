@@ -35,12 +35,12 @@ and case tokens =
     }
     p tokens
 
-and matches tokens =
+and cases tokens =
     let p = parser {
         let! f0 = andThen (literal "case") (checkpoint (expr))
         let! f1 = andThen (literal "of") (oneOrMore (case))
         let! f2 = option (andThen (literal "else") (statement))
-        return Matches(f0, f1, f2)
+        return Cases(f0, f1, f2)
     }
     p tokens
 
@@ -64,8 +64,8 @@ and pattern tokens =
 
 and lambda tokens =
     let p = parser {
-        let! f0 = surround (literal "(") (literal ")") (checkpoint (pattern))
-        let! f1 = andThen (literal "=") (expr)
+        let! f0 = surround (literal "(") (literal ")") (pattern)
+        let! f1 = andThen (literal "=") (checkpoint (expr))
         return Lambda(f0, f1)
     }
     p tokens
@@ -89,7 +89,7 @@ and atom tokens =
             return LambdaA(f0)
         }
         return! parser {
-            let! f0 = surround (literal "(") (literal ")") (expr)
+            let! f0 = surround (literal "(") (literal ")") (checkpoint (expr))
             return ParensA(f0)
         }
         return! parser {
@@ -97,8 +97,8 @@ and atom tokens =
             return IdentifierA(f0)
         }
         return! parser {
-            let! f0 = matches
-            return MatchA(f0)
+            let! f0 = cases
+            return CasesA(f0)
         }
         return! parser {
             let! f0 = ifthen
@@ -113,6 +113,35 @@ and expr tokens =
         let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (expr)))
         let! f2 = zeroOrMore (postfix)
         return Expr(f0, f1, f2)
+    }
+    p tokens
+
+and letdecl tokens =
+    let p = parser {
+        let! f0 = andThen (literal "let") (checkpoint (lexpr))
+        let! f1 = andThen (literal "=") (statement)
+        return LetDecl(f0, f1)
+    }
+    p tokens
+
+and lexprname tokens =
+    let p = parser {
+        return! parser {
+            let! f0 = stringToken Id "Id"
+            return IdentifierN(f0)
+        }
+        return! parser {
+            let! f0 = stringToken Operator "Operator"
+            return OperatorN(f0)
+        }
+    }
+    p tokens
+
+and lexpr tokens =
+    let p = parser {
+        let! f0 = lexprname
+        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (lexpr)))
+        return Lexpr(f0, f1)
     }
     p tokens
 
@@ -140,48 +169,19 @@ and typedecl tokens =
     }
     p tokens
 
-and lexprname tokens =
-    let p = parser {
-        return! parser {
-            let! f0 = stringToken Id "Id"
-            return IdentifierN(f0)
-        }
-        return! parser {
-            let! f0 = stringToken Operator "Operator"
-            return OperatorN(f0)
-        }
-    }
-    p tokens
-
-and lexpr tokens =
-    let p = parser {
-        let! f0 = lexprname
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (lexpr)))
-        return Lexpr(f0, f1)
-    }
-    p tokens
-
-and letdecl tokens =
-    let p = parser {
-        let! f0 = andThen (literal "let") (checkpoint (lexpr))
-        let! f1 = andThen (literal "=") (statement)
-        return LetDecl(f0, f1)
-    }
-    p tokens
-
 and prelude tokens =
     let p = parser {
         return! parser {
-            let! f0 = letdecl
-            return LetP(f0)
+            let! f0 = stringToken Comment "Comment"
+            return CommentP(f0)
         }
         return! parser {
             let! f0 = typedecl
             return TypeP(f0)
         }
         return! parser {
-            let! f0 = stringToken Comment "Comment"
-            return CommentP(f0)
+            let! f0 = letdecl
+            return LetP(f0)
         }
     }
     p tokens

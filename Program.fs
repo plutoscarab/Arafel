@@ -37,7 +37,8 @@ let main =
         match r with
         | Nomatch e ->
             let ex = String.concat ", " e
-            raise (Exception $"Expected {ex}")
+            let c = Tokens.tokenCursor (List.head t)
+            raise (Exception $"Line {c.line} Pos {c.pos} Expected {ex}")
         | SyntaxError e ->
             let ex = String.concat ", " e
             let c = Tokens.tokenCursor (List.head t)

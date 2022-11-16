@@ -49,9 +49,9 @@ and Atom =
     | [<Parse("STRING")>] StringA of string
     | [<Parse("OPERATOR")>] OperatorA of string
     | [<Parse("_")>] LambdaA of Lambda
-    | [<Parse("surr '(' ')' _")>] ParensA of Expr
+    | [<Parse("surr '(' ')' ⚠ _")>] ParensA of Expr
     | [<Parse("ID")>] IdentifierA of string
-    | [<Parse("_")>] MatchA of Matches
+    | [<Parse("_")>] CasesA of Cases
     | [<Parse("_")>] IfThenA of IfThen
 
 and Case =
@@ -59,11 +59,11 @@ and Case =
         Parse("and ':␤' _")>]
       Case of Pattern * Statement
 
-and Matches =
+and Cases =
     | [<Parse("and 'case␠' ⚠ _");
         Parse("and '␠of␏' 1+ ␤_");
         Parse("opt and '␤else␤' _")>]
-      Matches of Expr * Case list * Statement option
+      Cases of Expr * Case list * Statement option
 
 and Expr =
     | [<Parse("_");
@@ -83,11 +83,11 @@ and IfThen =
       IfThen of Expr * Expr * Expr
 
 and Lambda =
-    | [<Parse("surr '(' ')' ⚠ _");
-        Parse("and '␠=␠' _")>]
+    | [<Parse("surr '(' ')' _");
+        Parse("and '␠=␠' ⚠ _")>]
       Lambda of Pattern * Expr
 
 and Prelude =
-    | [<Parse("_")>] LetP of LetDecl
-    | [<Parse("_")>] TypeP of TypeDecl
     | [<Parse("COMMENT")>] CommentP of string
+    | [<Parse("_")>] TypeP of TypeDecl
+    | [<Parse("_")>] LetP of LetDecl
