@@ -3,6 +3,7 @@
 Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen
 Case ::= Pattern ':' Statement
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Statement)?
+Command ::= TypeDecl | LetDecl | Expr
 Expr ::= Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Lambda ::= '(' Pattern ')' '=' Expr

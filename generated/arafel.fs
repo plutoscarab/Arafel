@@ -61,6 +61,23 @@ and cases tokens =
     }
     p tokens
 
+and command tokens =
+    let p = parser {
+        return! parser {
+            let! f0 = typedecl
+            return TypeCmd(f0)
+        }
+        return! parser {
+            let! f0 = letdecl
+            return LetCmd(f0)
+        }
+        return! parser {
+            let! f0 = expr
+            return ExprCmd(f0)
+        }
+    }
+    p tokens
+
 and expr tokens =
     let p = parser {
         let! f0 = atom

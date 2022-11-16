@@ -89,3 +89,8 @@ and Lambda =
 and Prelude =
     | [<Parse("_")>] TypeP of TypeDecl
     | [<Parse("_")>] LetP of LetDecl
+
+and Command =
+    | [<Parse("_")>] TypeCmd of TypeDecl
+    | [<Parse("_")>] LetCmd of LetDecl
+    | [<Parse("_")>] ExprCmd of Expr
