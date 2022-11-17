@@ -17,7 +17,7 @@
     <Compile Include="Syntax.fs" />
     <Compile Include="generated/pretty.fs" />
     <Compile Include="generated/arafel.fs" />
-    <Compile Include="Program.fs" />
+    <Compile Include="Af.fs" />
   </ItemGroup>
 
 </Project>

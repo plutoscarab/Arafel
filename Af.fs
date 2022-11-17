@@ -71,26 +71,41 @@ let tokenise (src: string) =
 type Value =
     | NatV of bigint
     | StringV of string
-    | OperatorV of string
-    | LambdaV of Lambda
+    | ErrorV of string
+    | NotImplV
+
+type Context =
+    { bound : Map<LexprName, Value> }
+
+type Resolution =
+    | ContextR of Context
+    | ValueR of Value
+    | ErrorR of string
+    | NotImplR
 
 let rec evalId context id =
-    raise (NotImplementedException())
+    match context.bound.TryFind id with
+    | None -> ErrorV $"{id} is not bound to a value."
+    | Some v -> v
 
 and evalCases context cases =
-    raise (NotImplementedException())
+    NotImplV
 
 and evalIfThen context ifThen =
-    raise (NotImplementedException())
+    NotImplV
 
 and evalAtom context =
     function
     | NatA n -> NatV n
     | StringA s -> StringV s
-    | OperatorA s -> OperatorV s
-    | LambdaA e -> LambdaV e
+    | OperatorA s -> NotImplV
+    | LambdaA e -> NotImplV
     | ParensA e -> evalExpr context e
-    | IdentifierA id -> evalId context id
+    | IdentifierA id ->
+        if Rune.IsLetter(Rune.GetRuneAt(id, 0)) then
+            evalId context (IdentifierN id)
+        else
+            evalId context (OperatorN id)
     | CasesA e -> evalCases context e
     | IfThenA e -> evalIfThen context e
 
@@ -98,15 +113,33 @@ and evalExpr context (Expr(atom, args, postfix)) =
     let eatom = evalAtom context atom
     eatom
 
+and evalStatement context (Statement(preludes, expr)) =
+    match preludes with
+    | [] -> evalExpr context expr
+    | _ -> NotImplV
+
+let applyLet context lexpr statement =
+    match lexpr with
+    | Lexpr (id, []) ->
+        match evalId context id with
+        | ErrorV _ ->
+            match evalStatement context statement with
+            | ErrorV e -> ErrorR e
+            | NotImplV -> NotImplR
+            | v -> ContextR { bound = Map.add id v (context.bound) }
+        | _ -> ErrorR $"{id} is already bound to a value."
+    | _ -> NotImplR
+
 let apply context =
     function
     | LetCmd (LetDecl(lexpr, statement)) ->
-        context
+        applyLet context lexpr statement
     | TypeCmd (TypeDecl(id, parms, polytype)) ->
-        context
+        NotImplR
     | ExprCmd e ->
-        let value = evalExpr context e
-        context
+        match evalExpr context e with
+        | ErrorV e -> ErrorR e
+        | v -> ValueR v
 
 let execute context src =
     let t = tokenise src
@@ -114,14 +147,13 @@ let execute context src =
 
     match m with
     | Nomatch e ->
-        Console.WriteLine (errStr e t)
-        context
+        ErrorR (errStr e t)
     | SyntaxError e ->
-        Console.WriteLine (errStr e t2)
-        context
+        ErrorR (errStr e t2)
     | Match code ->
         use writer = new IndentedTextWriter(Console.Out)
         Pretty.printCommand writer code
+        writer.WriteLine ()
         apply context code
 
 let main =
@@ -130,7 +162,7 @@ let main =
     sanityCheck
     Console.WriteLine "Enter 'quit' to quit. End lines with '\\' for multiline."
     let mutable src = ""
-    let mutable context = ()
+    let mutable context = { bound = Map.empty<LexprName, Value> }
 
     for line in lines() do
         let d = line.EndsWith("\\")
@@ -138,6 +170,10 @@ let main =
         src <- src + " " + c
 
         if not d then
-            context <- execute context src
+            match execute context src with
+            | ContextR c -> context <- c
+            | ValueR v -> Console.WriteLine (v.ToString())
+            | ErrorR e -> Console.WriteLine e
+            | NotImplR -> Console.WriteLine "Capability not yet implemented."
             src <- ""
     0
