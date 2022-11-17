@@ -47,7 +47,7 @@ let rec atom tokens =
 and case tokens =
     let p = parser {
         let! f0 = pattern
-        let! f1 = andThen (literal ":") (statement)
+        let! f1 = andThen (literal ":") (expr)
         return Case(f0, f1)
     }
     p tokens
@@ -56,7 +56,7 @@ and cases tokens =
     let p = parser {
         let! f0 = andThen (literal "case") (checkpoint (expr))
         let! f1 = checkpoint (andThen (literal "of") (oneOrMore (case)))
-        let! f2 = option (andThen (literal "else") (checkpoint (statement)))
+        let! f2 = option (andThen (literal "else") (checkpoint (expr)))
         return Cases(f0, f1, f2)
     }
     p tokens
@@ -80,10 +80,11 @@ and command tokens =
 
 and expr tokens =
     let p = parser {
-        let! f0 = atom
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (expr)))
-        let! f2 = zeroOrMore (postfix)
-        return Expr(f0, f1, f2)
+        let! f0 = zeroOrMore (prelude)
+        let! f1 = atom
+        let! f2 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (expr)))
+        let! f3 = zeroOrMore (postfix)
+        return Expr(f0, f1, f2, f3)
     }
     p tokens
 
@@ -107,7 +108,7 @@ and lambda tokens =
 and letdecl tokens =
     let p = parser {
         let! f0 = andThen (literal "let") (checkpoint (lexpr))
-        let! f1 = checkpoint (andThen (literal "=") (statement))
+        let! f1 = checkpoint (andThen (literal "=") (expr))
         return LetDecl(f0, f1)
     }
     p tokens
@@ -183,14 +184,6 @@ and prelude tokens =
             let! f0 = letdecl
             return LetP(f0)
         }
-    }
-    p tokens
-
-and statement tokens =
-    let p = parser {
-        let! f0 = zeroOrMore (prelude)
-        let! f1 = expr
-        return Statement(f0, f1)
     }
     p tokens
 

@@ -1,13 +1,13 @@
 /* Use, for example, at https://www.bottlecaps.de/rr/ui */
 
 Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen
-Case ::= Pattern ':' Statement
-Cases ::= 'case' Expr 'of' (Case)+ ('else' Statement)?
+Case ::= Pattern ':' Expr
+Cases ::= 'case' Expr 'of' (Case)+ ('else' Expr)?
 Command ::= TypeDecl | LetDecl | Expr
-Expr ::= Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
+Expr ::= (Prelude)* Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
 IfThen ::= 'if' Expr 'then' Expr 'else' Expr
 Lambda ::= '(' Pattern ')' '=' Expr
-LetDecl ::= 'let' Lexpr '=' Statement
+LetDecl ::= 'let' Lexpr '=' Expr
 Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
 LexprName ::= IDENTIFIER | OPERATOR
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
@@ -15,5 +15,4 @@ Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
 PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
 Postfix ::= SUPERSCRIPT
 Prelude ::= TypeDecl | LetDecl
-Statement ::= (Prelude)* Expr
 TypeDecl ::= 'type' IDENTIFIER ('(' IDENTIFIER (',' IDENTIFIER)* ')')? '=' PolyType

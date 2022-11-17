@@ -37,12 +37,13 @@ let sanityCheck =
     let tokens = Lexer.tokenise Arafel.keywords cursor |> Seq.toList
     use file = File.CreateText("generated/pretty.af")
     use writer = new IndentedTextWriter(file)
+    writer.Indent <- 1
 
     let mutable t = tokens
 
     while t <> [] do
 
-        let (r, t2) = Arafel.statement t
+        let (r, t2) = Arafel.expr t
 
         let err e t =
             raise (Exception (errStr e t))
@@ -51,7 +52,8 @@ let sanityCheck =
         | Nomatch e -> err e t
         | SyntaxError e -> err e t2
         | Match e ->
-            Pretty.printStatement writer e
+            writer.WriteLine ()
+            Pretty.printExpr writer e
             writer.WriteLine ()
 
         t <- t2
@@ -109,21 +111,16 @@ and evalAtom context =
     | CasesA e -> evalCases context e
     | IfThenA e -> evalIfThen context e
 
-and evalExpr context (Expr(atom, args, postfix)) =
+and evalExpr context (Expr(prelude, atom, args, postfix)) =
     let eatom = evalAtom context atom
     eatom
 
-and evalStatement context (Statement(preludes, expr)) =
-    match preludes with
-    | [] -> evalExpr context expr
-    | _ -> NotImplV
-
-let applyLet context lexpr statement =
+let applyLet context lexpr expr =
     match lexpr with
     | Lexpr (id, []) ->
         match evalId context id with
         | ErrorV _ ->
-            match evalStatement context statement with
+            match evalExpr context expr with
             | ErrorV e -> ErrorR e
             | NotImplV -> NotImplR
             | v -> ContextR { bound = Map.add id v (context.bound) }
@@ -132,8 +129,8 @@ let applyLet context lexpr statement =
 
 let apply context =
     function
-    | LetCmd (LetDecl(lexpr, statement)) ->
-        applyLet context lexpr statement
+    | LetCmd (LetDecl(lexpr, expr)) ->
+        applyLet context lexpr expr
     | TypeCmd (TypeDecl(id, parms, polytype)) ->
         NotImplR
     | ExprCmd e ->
@@ -167,7 +164,7 @@ let main =
     for line in lines() do
         let d = line.EndsWith("\\")
         let c = if d then line.Substring(0, line.Length - 1).Trim() else line
-        src <- src + " " + c
+        src <- src + c + " "
 
         if not d then
             match execute context src with

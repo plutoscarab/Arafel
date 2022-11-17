@@ -244,12 +244,20 @@ let rec private decodeParser ps =
         ProductionP(Raw, Raw), rest
     | "_␤"::rest ->
         ProductionP(Raw, Newline), rest
-    | "␤_"::rest ->
-        ProductionP(Newline, Raw), rest
-    | "␏_"::rest ->
-        ProductionP(Indent, Raw), rest
     | "_␏"::rest ->
         ProductionP(Raw, Indent), rest
+    | "␤_"::rest ->
+        ProductionP(Newline, Raw), rest
+    | "␤_␤"::rest ->
+        ProductionP(Newline, Newline), rest
+    | "␤_␏"::rest ->
+        ProductionP(Newline, Indent), rest
+    | "␏_"::rest ->
+        ProductionP(Indent, Raw), rest
+    | "␏_␤"::rest ->
+        ProductionP(Indent, Newline), rest
+    | "␏_␏"::rest ->
+        ProductionP(Indent, Indent), rest
     | "⚠"::rest ->
         let (p, rest') = decodeParser rest
         (CheckpointP p), rest'

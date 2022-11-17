@@ -40,7 +40,9 @@ and printCase (writer:IndentedTextWriter) value =
     | Case(f0, f1) ->
         printPattern writer f0
         writer.Write ":"
-        printStatement writer f1
+        writer.Indent <- writer.Indent + 1
+        writer.WriteLine ()
+        printExpr writer f1
     
     writer.Indent <- n
 
@@ -61,7 +63,9 @@ and printCases (writer:IndentedTextWriter) value =
         | Some f2' ->
             writer.WriteLine ""
             writer.Write "else"
-            printStatement writer f2'
+            writer.Indent <- writer.Indent + 1
+            writer.WriteLine ()
+            printExpr writer f2'
     
     writer.Indent <- n
 
@@ -82,24 +86,27 @@ and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Expr(f0, f1, f2) ->
-        printAtom writer f0
-        match f1 with
+    | Expr(f0, f1, f2, f3) ->
+        for f0' in f0 do
+            printPrelude writer f0'
+            writer.WriteLine ()
+        printAtom writer f1
+        match f2 with
         | [] -> ignore()
         | _ ->
             writer.Write "("
-            match f1 with
+            match f2 with
             | [] -> ignore()
-            | [f1'] ->
-                printExpr writer f1'
-            | f1'::f1'' ->
-                printExpr writer f1'
-                for f1_ in f1'' do
+            | [f2'] ->
+                printExpr writer f2'
+            | f2'::f2'' ->
+                printExpr writer f2'
+                for f2_ in f2'' do
                     writer.Write ", "
-                    printExpr writer f1_
+                    printExpr writer f2_
             writer.Write ")"
-        for f2' in f2 do
-            printPostfix writer f2'
+        for f3' in f3 do
+            printPostfix writer f3'
     
     writer.Indent <- n
 
@@ -141,7 +148,9 @@ and printLetDecl (writer:IndentedTextWriter) value =
         writer.Write "let "
         printLexpr writer f0
         writer.Write " ="
-        printStatement writer f1
+        writer.Indent <- writer.Indent + 1
+        writer.WriteLine ()
+        printExpr writer f1
         writer.WriteLine ()
     
     writer.Indent <- n
@@ -266,20 +275,6 @@ and printPrelude (writer:IndentedTextWriter) value =
         printTypeDecl writer f0
     | LetP(f0) ->
         printLetDecl writer f0
-    
-    writer.Indent <- n
-
-and printStatement (writer:IndentedTextWriter) value =
-    let n = writer.Indent
-    writer.Indent <- n + 1
-    
-    match value with
-    | Statement(f0, f1) ->
-        for f0' in f0 do
-            writer.WriteLine ()
-            printPrelude writer f0'
-        writer.WriteLine ()
-        printExpr writer f1
     
     writer.Indent <- n
 

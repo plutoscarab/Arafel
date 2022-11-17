@@ -40,8 +40,8 @@ type Pattern =
 
 type LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
-        Parse("⚠ and '␠=' _␤")>]
-      LetDecl of Lexpr * Statement
+        Parse("⚠ and '␠=␏' ␤_␤")>]
+      LetDecl of Lexpr * Expr
 
 and Atom =
     | [<Parse("NAT")>] NatA of bigint
@@ -55,25 +55,21 @@ and Atom =
 
 and Case =
     | [<Parse("_");
-        Parse("and ':' _")>]
-      Case of Pattern * Statement
+        Parse("and ':␏' ␤_")>]
+      Case of Pattern * Expr
 
 and Cases =
     | [<Parse("and 'case␠' ⚠ _");
         Parse("⚠ and '␠of␏' 1+ ␤_");
-        Parse("opt and '␤else' ⚠ _")>]
-      Cases of Expr * Case list * Statement option
+        Parse("opt and '␤else␏' ⚠ ␤_")>]
+      Cases of Expr * Case list * Expr option
 
 and Expr =
-    | [<Parse("_");
+    | [<Parse("0+ _␤");
+        Parse("_");
         Parse("opt[] surr '(' ')' delim ',␠' _");
         Parse("0+ _")>]
-      Expr of Atom * Expr list * Postfix list
-
-and [<Indent>] Statement =
-    | [<Parse("0+ ␤_");
-        Parse("␤_")>]
-      Statement of Prelude list * Expr
+      Expr of Prelude list * Atom * Expr list * Postfix list
 
 and IfThen =
     | [<Parse("and 'if␠' ⚠ _␏");
