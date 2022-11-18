@@ -154,7 +154,6 @@ let execute context src =
         apply context code
 
 let main =
-
     Console.OutputEncoding <- Encoding.UTF8
     sanityCheck
     Console.WriteLine "Enter 'quit' to quit. End lines with '\\' for multiline."

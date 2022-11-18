@@ -15,6 +15,7 @@
     <Compile Include="Reflect.fs" />
     <Compile Include="Ebnf.fs" />
     <Compile Include="Syntax.fs" />
+    <Compile Include="Typing.fs" />
     <Compile Include="generated/pretty.fs" />
     <Compile Include="generated/arafel.fs" />
     <Compile Include="Af.fs" />
