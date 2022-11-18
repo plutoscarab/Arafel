@@ -1,3 +1,4 @@
+
 0       End of text: Expected {ex}.
 1       Line {line} Pos {pos} Token {tx}: Expected {ex}.
 2       {id} is not bound to a value.

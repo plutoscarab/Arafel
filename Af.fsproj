@@ -19,7 +19,8 @@
     <Compile Include="generated/pretty.fs" />
     <Compile Include="generated/arafel.fs" />
     <Compile Include="generated/en-us.fs" />
-    <Compile Include="Localisation.fs" />
+    <Compile Include="generated/ru-ru.fs" />
+    <Compile Include="generated/localisation.fs" />
     <Compile Include="Af.fs" />
   </ItemGroup>
 
