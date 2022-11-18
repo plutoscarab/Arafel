@@ -18,6 +18,8 @@
     <Compile Include="Typing.fs" />
     <Compile Include="generated/pretty.fs" />
     <Compile Include="generated/arafel.fs" />
+    <Compile Include="generated/en-us.fs" />
+    <Compile Include="Localisation.fs" />
     <Compile Include="Af.fs" />
   </ItemGroup>
 

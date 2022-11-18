@@ -11,6 +11,8 @@ open Parse
 open Print
 open Ebnf
 open Syntax
+open Typing
+open Localisation
 
 let rec orLast =
     function
@@ -24,12 +26,12 @@ let errStr e t =
 
     match t with
     | [] ->
-        $"End of text: Expected {ex}."
+        loc.EndOfText(ex)
     | he::_ ->
         let cu = Tokens.tokenCursor he
         let tx = Tokens.tokenText he
-        $"Line {cu.line} Pos {cu.pos} «{tx}»: Expected {ex}."
-
+        loc.LinePosToken(cu.line, cu.pos, tx, ex)
+        
 let sanityCheck =
 
     let src = File.ReadAllText("sample.af", Encoding.UTF8)
@@ -73,12 +75,25 @@ let tokenise (src: string) =
 type Value =
     | NatV of bigint
     | StringV of string
+    | FunctionV of TypeExpr list list
     | ErrorV of string
     | NotImplV
+    with
+    override this.ToString() =
+        match this with
+        | NatV n -> n.ToString()
+        | StringV s -> "\"" + s + "\""
+        | FunctionV tss ->
+            "[ " + (String.concat "; " 
+                (List.map (fun ts ->
+                    (String.concat " -> " (List.map (fun t ->
+                        t.ToString()) ts))) tss)) + " ]"
+        | ErrorV s -> s
+        | NotImplV -> "Not implemented"
 
 type Context = { 
     bound : Map<LexprName, Value>;
-    ops : Set<Typing.Operation>;
+    ops : Set<Operation>;
     }
 
 type Resolution =
@@ -89,7 +104,7 @@ type Resolution =
 
 let rec evalId context id =
     match context.bound.TryFind id with
-    | None -> ErrorV $"{id} is not bound to a value."
+    | None -> ErrorV (loc.IsNotBound(id))
     | Some v -> v
 
 and evalCases context cases =
@@ -102,9 +117,21 @@ and evalOp context prelude opname args =
 
     let matches =
         context.ops 
-        |> Set.filter (fun (Typing.Operation (name, _)) -> name = opname)
+        |> Set.filter (fun (Operation (name, _)) -> name = opname)
+        |> Set.map (fun (Operation (_, args)) -> args)
 
-    NotImplV
+    if Set.count(matches) = 0 then
+        ErrorV (loc.OperatorNotBound(opname))
+    else
+        let argc = List.length(args)
+        let cmax = (matches |> Set.map (List.length) |> Seq.max) - 1
+
+        if argc = 0 then
+            FunctionV (Set.toList matches)
+        elif argc > cmax then
+            ErrorV (loc.TooManyArguments(argc, opname, cmax))
+        else
+            NotImplV
 
 and evalExpr context (Expr(prelude, atom, args, postfix)) =
     let value =
@@ -115,7 +142,8 @@ and evalExpr context (Expr(prelude, atom, args, postfix)) =
         | LambdaA e -> NotImplV
         | ParensA e -> evalExpr context e
         | IdentifierA id ->
-            if Rune.IsLetter(Rune.GetRuneAt(id, 0)) then
+            let r = Rune.GetRuneAt(id, 0)
+            if Rune.IsLetter(r) || r.ToString() = "_" then
                 evalId context (IdentifierN id)
             else
                 evalId context (OperatorN id)
@@ -132,7 +160,7 @@ let applyLet context lexpr expr =
             | ErrorV e -> ErrorR e
             | NotImplV -> NotImplR
             | v -> ContextR { context with bound = Map.add id v (context.bound) }
-        | _ -> ErrorR $"{id} is already bound to a value."
+        | _ -> ErrorR (loc.IsAlreadyBound(id))
     | _ -> NotImplR
 
 let apply context =
@@ -147,30 +175,48 @@ let apply context =
         | NotImplV -> NotImplR
         | v -> ValueR v
 
-let execute context src =
+let execute ctx src =
+    let mutable context = ctx
     let t = tokenise src
-    let (m, t2) = Arafel.command t
+    let mutable t1 = t
 
-    match m with
-    | Nomatch e ->
-        ErrorR (errStr e t)
-    | SyntaxError e ->
-        ErrorR (errStr e t2)
-    | Match code ->
-        use writer = new IndentedTextWriter(Console.Out)
-        Pretty.printCommand writer code
-        writer.WriteLine ()
-        apply context code
+    while t1 <> [] do
+        let (m, t2) = Arafel.command t1
+
+        let resolution =
+            match m with
+            | Nomatch e ->
+                ErrorR (errStr e t1)
+            | SyntaxError e ->
+                ErrorR (errStr e t2)
+            | Match code ->
+                use writer = new IndentedTextWriter(Console.Out)
+                Pretty.printCommand writer code
+                writer.WriteLine ()
+                apply context code
+
+        match resolution with
+        | ContextR c -> context <- c
+        | ValueR v -> Console.WriteLine (v.ToString())
+        | ErrorR e -> Console.WriteLine e
+        | NotImplR -> Console.WriteLine (loc.CapabilityNotYet())
+
+        if t1 = t2 then
+            t1 <- []
+        else
+            t1 <- t2
+
+    context
 
 let main =
     Console.OutputEncoding <- Encoding.UTF8
     sanityCheck
-    Console.WriteLine "Enter 'quit' to quit. End lines with '\\' for multiline."
+    Console.WriteLine (loc.EnterQuitTo())
     let mutable src = ""
 
     let mutable context = {
         bound = Map.empty<LexprName, Value>;
-        ops = Typing.nativeOps;
+        ops = nativeOps;
     }
 
     for line in lines() do
@@ -179,10 +225,6 @@ let main =
         src <- src + " " + c
 
         if not d then
-            match execute context src with
-            | ContextR c -> context <- c
-            | ValueR v -> Console.WriteLine (v.ToString())
-            | ErrorR e -> Console.WriteLine e
-            | NotImplR -> Console.WriteLine "Capability not yet implemented."
+            context <- execute context src
             src <- ""
     0

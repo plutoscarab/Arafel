@@ -26,15 +26,33 @@ type GenericType =
 
 type FunctionType =
     | Function of TypeId * TypeExpr list
+    with
+    override this.ToString() =
+        match this with
+        | Function (id, args) ->
+            let argstrs = List.map (fun a -> a.ToString()) args
+            String.concat " -> " argstrs
 
 and TypeExpr =
-    | NativeType of TypeId
+    | NativeType of TypeId * string
     | TypeVar of TypeId
     | GenericType of GenericType
     | ConcreteType of TypeId * GenericType * TypeExpr list
     | FunctionType of FunctionType
     | ProductType of TypeId * TypeExpr list
     with
+    override this.ToString() =
+        match this with
+        | NativeType (_, name) -> name
+        | TypeVar id -> $"TypeVar {id}"
+        | GenericType g -> $"GenericType {g}"
+        | ConcreteType (id, g, args) ->
+            let argstrs = List.map (fun a -> a.ToString()) args
+            $"{g}(" + (String.concat ", " argstrs) + ")"
+        | FunctionType f -> f.ToString()
+        | ProductType (id, args) ->
+            let argstrs = List.map (fun a -> a.ToString()) args
+            String.concat " * " argstrs
     static member (*)(a, b) =
         let mkProduct' (a, b) = ProductType (mkTypeId(), [a; b])
         (memoize mkProduct') (a, b)
@@ -42,8 +60,8 @@ and TypeExpr =
         let mkFunction' (a, b) = FunctionType (Function (mkTypeId(), [a; b]))
         (memoize mkFunction') (a, b)
 
-let mkNative() =
-    NativeType (mkTypeId())
+let mkNative name =
+    NativeType (mkTypeId(), name)
 
 let mkVar() =
     TypeVar (mkTypeId())
@@ -65,12 +83,12 @@ let mkFunction =
         FunctionType (Function (mkTypeId(), args))
     memoize mkFunction'
 
-let unitType = mkNative()
-let typeType = mkNative()
-let boolType = mkNative()
-let intType = mkNative()
-let charType = mkNative()
-let strType = mkNative()
+let unitType = mkNative "unit"
+let typeType = mkNative "type"
+let boolType = mkNative "bool"
+let intType = mkNative "int"
+let charType = mkNative "char"
+let strType = mkNative "str"
 
 let nativeTypes = Map [
     "unit", unitType;

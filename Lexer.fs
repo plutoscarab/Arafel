@@ -50,30 +50,14 @@ let tokenise (keywords:Set<string>) (cursor:Cursor) =
                     yield Identifier (start, c)
             | r when Rune.IsDigit r ->
                 let mutable start = c
-                let mutable previous = c
-                let mutable wasComma = false
-                while Rune.IsDigit (c.Current) || (c.Str = "_" && not wasComma) do
-                    wasComma <- c.Str = "_"
-                    previous <- c
+                while Rune.IsDigit (c.Current) || c.Str = "_" do
                     c <- c.Next
-                if wasComma then 
-                    yield Error previous
-                elif c.index > start.index + 1 && start.Str = "0" then
-                    yield Error start
-                elif Rune.IsLetter (c.Current) then
-                    yield Error c
-                else
-                    yield Nat (start, c)
+                yield Nat (start, c)
             | r when superchars.Contains(r.ToString()) ->
                 let mutable start = c
                 while superchars.Contains(c.Str) do
                     c <- c.Next
-                if c.index > start.index + 1 && start.Str = "0" then
-                    yield Error start
-                elif Rune.IsLetter (c.Current) then
-                    yield Error c
-                else
-                    yield Superscript (start, c)
+                yield Superscript (start, c)
             | r when r.ToString() = "\"" ->
                 c <- c.Next
                 let mutable start = c

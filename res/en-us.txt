@@ -1,0 +1,8 @@
+0       End of text: Expected {ex}.
+1       Line {line} Pos {pos} Token {tx}: Expected {ex}.
+2       {id} is not bound to a value.
+3       Too many arguments {argc} given for function {opname} which accepts no more than {cmax}.
+4       {id} is already bound to a value.
+5       Enter 'quit' to quit. End lines with '\\' for multiline.
+6       Capability not yet implemented.
+7       Operator {opname} not bound to a function.
