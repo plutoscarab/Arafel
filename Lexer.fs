@@ -68,7 +68,12 @@ let tokenise (keywords:Set<string>) (cursor:Cursor) =
                 let mutable start = c
                 while superchars.Contains(c.Str) do
                     c <- c.Next
-                yield Superscript (start, c)
+                if c.index > start.index + 1 && start.Str = "0" then
+                    yield Error start
+                elif Rune.IsLetter (c.Current) then
+                    yield Error c
+                else
+                    yield Superscript (start, c)
             | r when r.ToString() = "\"" ->
                 c <- c.Next
                 let mutable start = c

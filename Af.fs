@@ -76,8 +76,10 @@ type Value =
     | ErrorV of string
     | NotImplV
 
-type Context =
-    { bound : Map<LexprName, Value> }
+type Context = { 
+    bound : Map<LexprName, Value>;
+    ops : Set<Typing.Operation>;
+    }
 
 type Resolution =
     | ContextR of Context
@@ -96,24 +98,30 @@ and evalCases context cases =
 and evalIfThen context ifThen =
     NotImplV
 
-and evalAtom context =
-    function
-    | NatA n -> NatV n
-    | StringA s -> StringV s
-    | OperatorA s -> NotImplV
-    | LambdaA e -> NotImplV
-    | ParensA e -> evalExpr context e
-    | IdentifierA id ->
-        if Rune.IsLetter(Rune.GetRuneAt(id, 0)) then
-            evalId context (IdentifierN id)
-        else
-            evalId context (OperatorN id)
-    | CasesA e -> evalCases context e
-    | IfThenA e -> evalIfThen context e
+and evalOp context prelude opname args =
+
+    let matches =
+        context.ops 
+        |> Set.filter (fun (Typing.Operation (name, _)) -> name = opname)
+
+    NotImplV
 
 and evalExpr context (Expr(prelude, atom, args, postfix)) =
-    let eatom = evalAtom context atom
-    eatom
+    let value =
+        match atom with
+        | NatA n -> NatV n
+        | StringA s -> StringV s
+        | OperatorA s -> evalOp context prelude s args
+        | LambdaA e -> NotImplV
+        | ParensA e -> evalExpr context e
+        | IdentifierA id ->
+            if Rune.IsLetter(Rune.GetRuneAt(id, 0)) then
+                evalId context (IdentifierN id)
+            else
+                evalId context (OperatorN id)
+        | CasesA e -> evalCases context e
+        | IfThenA e -> evalIfThen context e
+    value
 
 let applyLet context lexpr expr =
     match lexpr with
@@ -123,7 +131,7 @@ let applyLet context lexpr expr =
             match evalExpr context expr with
             | ErrorV e -> ErrorR e
             | NotImplV -> NotImplR
-            | v -> ContextR { bound = Map.add id v (context.bound) }
+            | v -> ContextR { context with bound = Map.add id v (context.bound) }
         | _ -> ErrorR $"{id} is already bound to a value."
     | _ -> NotImplR
 
@@ -136,6 +144,7 @@ let apply context =
     | ExprCmd e ->
         match evalExpr context e with
         | ErrorV e -> ErrorR e
+        | NotImplV -> NotImplR
         | v -> ValueR v
 
 let execute context src =
@@ -158,12 +167,16 @@ let main =
     sanityCheck
     Console.WriteLine "Enter 'quit' to quit. End lines with '\\' for multiline."
     let mutable src = ""
-    let mutable context = { bound = Map.empty<LexprName, Value> }
+
+    let mutable context = {
+        bound = Map.empty<LexprName, Value>;
+        ops = Typing.nativeOps;
+    }
 
     for line in lines() do
         let d = line.EndsWith("\\")
         let c = if d then line.Substring(0, line.Length - 1).Trim() else line
-        src <- src + c + " "
+        src <- src + " " + c
 
         if not d then
             match execute context src with
