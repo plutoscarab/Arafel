@@ -89,7 +89,7 @@ let private parseNat (s:string) =
                 parseNat' rest n
             else
                 let v = Convert.ToInt32(Rune.GetNumericValue r)
-                let u = if v = -1 then ("⁰¹²³⁴⁵⁶⁷⁸⁹".IndexOf(rs)) else v
+                let u = if v = -1 then (superchars.IndexOf(rs)) else v
                 if u = -1 then
                     false, bigint 0
                 else 
@@ -322,7 +322,7 @@ type Multiplicity =
     | ListM
 
 type TupleField =
-    | TupleField of PrimaryType * Multiplicity * Parser
+    | TupleField of name: string * PrimaryType * Multiplicity * Parser
 
 type UnionCase =
     | UnionCase of string * TupleField list
@@ -419,7 +419,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer p primaryType
         writer.Write ")"
 
-let private writeField (writer:IndentedTextWriter) (TupleField(primaryType, _, parser)) =
+let private writeField writer (TupleField(_, primaryType, _, parser)) =
     writeParser writer parser primaryType
     writer.WriteLine ()
 

@@ -7,6 +7,7 @@ open Ebnf
 open Parse
 open Print
 open Random
+open Visit
 
 let private coreLocale = "en-us"
 let private coreFilename = "res\\" + coreLocale + ".txt"
@@ -134,6 +135,7 @@ let main =
     writeParserFile "generated/arafel.fs" "Arafel" productions keywords
     writePrintFile "generated/pretty.fs" "Pretty" productions
     writeTesterFile "generated/tester.fs" "Tester" productions
+    writeVisitorFile "generated/visitor.fs" "Visitor" productions
     writeLocalisation()
 
     let fs = loc "." "*.fs"

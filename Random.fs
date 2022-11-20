@@ -61,9 +61,11 @@ let writeTesterFile filename modulename (productions:Production list) =
             writer.Indent <- writer.Indent + 1
             let nf = List.length fields
             let fi = [0 .. nf - 1]
+            let mutable fnames : string list = []
 
-            for TupleField(primaryType, multiplicity, parser), j in List.zip fields fi do
-                writer.Write $"let f{j} = "
+            for TupleField(fname, primaryType, multiplicity, parser), j in List.zip fields fi do
+                writer.Write $"let {fname} = "
+                fnames <- fnames @ [fname]
 
                 match multiplicity with
                 | SingleM -> ()
@@ -80,7 +82,7 @@ let writeTesterFile filename modulename (productions:Production list) =
 
                 writer.WriteLine " rand (depth + 1)"
             
-            let ctor = fi |> List.map (fun i -> $"f{i}") |> String.concat ", "
+            let ctor = fnames |> String.concat ", "
             writer.WriteLine $"{name}({ctor})"
             writer.Indent <- writer.Indent - 1
 

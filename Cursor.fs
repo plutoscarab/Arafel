@@ -35,7 +35,7 @@ let spanned (span: Cspan) =
     |> List.map (fun i -> start.source[i].ToString())
     |> String.concat ""
 
-let makeCursor (source:string) =
+let mkCursor (source:string) =
     let runes = source.EnumerateRunes() |> Array.ofSeq
     { source = runes; index = 0; line = 1; pos = 1 }
 

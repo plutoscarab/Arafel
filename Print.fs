@@ -156,7 +156,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         writeParser writer p primaryType name
         writeParser writer b primaryType name
 
-let private writeField (writer:IndentedTextWriter) (TupleField(primaryType, _, parser)) name =
+let private writeField writer (TupleField(_, primaryType, _, parser)) name =
     writeParser writer parser primaryType name
 
 let private writeCase (writer:IndentedTextWriter) fields =

@@ -110,7 +110,7 @@ let rec getParserEbnf parser =
     | DelimitedP(d, p) -> getParserEbnf(p) + " (" + getParserEbnf(d) + " " + getParserEbnf(p) + ")*"
     | SurroundP(a, b, p) -> getParserEbnf(a) + " " + getParserEbnf(p) + " " + getParserEbnf(b)   
 
-let getFieldEbnf (TupleField(primary, _, parser)) =
+let getFieldEbnf (TupleField(_, primary, _, parser)) =
     match primary with
     | ProductionType name -> (getParserEbnf parser).Replace("_", name)
     | _ -> getParserEbnf parser

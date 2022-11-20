@@ -38,13 +38,13 @@ let private primaryType (t:Type) =
     else
         ProductionType t.Name
 
-let private tupleField (t:Type) parser =
+let private tupleField name (t:Type) parser =
     if t.Name = "FSharpList`1" then
-        TupleField(primaryType (t.GetGenericArguments().[0]), ListM, parser)
+        TupleField(name, primaryType (t.GetGenericArguments().[0]), ListM, parser)
     elif t.Name = "FSharpOption`1" then
-        TupleField(primaryType (t.GetGenericArguments().[0]), OptionM, parser)
+        TupleField(name, primaryType (t.GetGenericArguments().[0]), OptionM, parser)
     else
-        TupleField(primaryType t, SingleM, parser)
+        TupleField(name, primaryType t, SingleM, parser)
 
 let private tupleFields (c:UnionCaseInfo) =
     let fields = c.GetFields()
@@ -58,7 +58,7 @@ let private tupleFields (c:UnionCaseInfo) =
 
     if n <> Array.length(parsers) then raise (Exception "")
     Array.zip fields parsers
-    |> Array.map (fun (f, p) -> tupleField f.PropertyType p)
+    |> Array.map (fun (f, p) -> tupleField f.Name f.PropertyType p)
     |> List.ofArray
 
 let private unionCases (t:Type) =
@@ -88,7 +88,7 @@ let getProductions (t:Type) =
     |> List.map (fun t -> Production(t.Name, unionCases t, indentOf t))
     |> List.sortBy (fun (Production(name, _, _)) -> name)
 
-let private getKeywordsOfField (TupleField(_, _, parser)) =
+let private getKeywordsOfField (TupleField(_, _, _, parser)) =
     Parse.getKeywords parser
 
 let private getKeywordsOfCase (UnionCase(_, fields)) =
