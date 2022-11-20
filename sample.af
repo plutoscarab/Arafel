@@ -219,10 +219,10 @@ This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also
 supply a function directly in the call to map without defining a named function
 first.
 
-    map((x) = x², natsFromTo(1, 5))
+    map(fn x -> x², natsFromTo(1, 5))
 
 An unnamed function like this is called a lambda function, after Lambda
-calculus.
+Calculus.
 
 
 CUSTOM OPERATORS
@@ -231,7 +231,7 @@ Concatenate two lists.
 
     let 😀(list1, list2) =
         case list1 of
-                         Nil : list2
+            Nil : list2
             Cons(head, tail) : Cons(head, 😀(tail, list2))
 
     😀(Cons(1, Cons(2, Nil)), Cons(3, Cons(4, Cons(5, Nil))))

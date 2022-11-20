@@ -1,13 +1,25 @@
-module Arafel
+module Parser
 
 open Tokens
 open Lexer
 open Parse
 open Syntax
 
-let keywords = Set [ "case"; "elif"; "else"; "forall"; "if"; "let"; "of"; "then"; "type" ]
+let keywords = Set [
+    "case";
+    "elif";
+    "else";
+    "fn";
+    "forall";
+    "if";
+    "let";
+    "of";
+    "then";
+    "type";
+    "λ";
+]
 
-let rec atom tokens =
+let rec parseAtom tokens =
     let p = parser {
         return! parser {
             let! f0 = bigintToken Nat "Nat"
@@ -22,11 +34,11 @@ let rec atom tokens =
             return OperatorA(f0)
         }
         return! parser {
-            let! f0 = lambda
+            let! f0 = parseLambda
             return LambdaA(f0)
         }
         return! parser {
-            let! f0 = surround (literal "(") (literal ")") (checkpoint (expr))
+            let! f0 = surround (literal "(") (literal ")") (checkpoint (parseExpr))
             return ParensA(f0)
         }
         return! parser {
@@ -34,103 +46,103 @@ let rec atom tokens =
             return IdentifierA(f0)
         }
         return! parser {
-            let! f0 = cases
+            let! f0 = parseCases
             return CasesA(f0)
         }
         return! parser {
-            let! f0 = ifthen
+            let! f0 = parseIfThen
             return IfThenA(f0)
         }
     }
     p tokens
 
-and case tokens =
+and parseCase tokens =
     let p = parser {
-        let! f0 = pattern
-        let! f1 = andThen (literal ":") (expr)
+        let! f0 = parsePattern
+        let! f1 = andThen (literal ":") (parseExpr)
         return Case(f0, f1)
     }
     p tokens
 
-and cases tokens =
+and parseCases tokens =
     let p = parser {
-        let! f0 = andThen (literal "case") (checkpoint (expr))
-        let! f1 = checkpoint (andThen (literal "of") (oneOrMore (case)))
-        let! f2 = option (andThen (literal "else") (checkpoint (expr)))
+        let! f0 = andThen (literal "case") (checkpoint (parseExpr))
+        let! f1 = checkpoint (andThen (literal "of") (oneOrMore (parseCase)))
+        let! f2 = option (andThen (literal "else") (checkpoint (parseExpr)))
         return Cases(f0, f1, f2)
     }
     p tokens
 
-and command tokens =
+and parseCommand tokens =
     let p = parser {
         return! parser {
-            let! f0 = typedecl
+            let! f0 = parseTypeDecl
             return TypeCmd(f0)
         }
         return! parser {
-            let! f0 = letdecl
+            let! f0 = parseLetDecl
             return LetCmd(f0)
         }
         return! parser {
-            let! f0 = expr
+            let! f0 = parseExpr
             return ExprCmd(f0)
         }
     }
     p tokens
 
-and elseif tokens =
+and parseElseIf tokens =
     let p = parser {
-        let! f0 = andThen (literal "elif") (checkpoint (expr))
-        let! f1 = checkpoint (andThen (literal "then") (expr))
+        let! f0 = andThen (literal "elif") (checkpoint (parseExpr))
+        let! f1 = checkpoint (andThen (literal "then") (parseExpr))
         return ElseIf(f0, f1)
     }
     p tokens
 
-and expr tokens =
+and parseExpr tokens =
     let p = parser {
-        let! f0 = zeroOrMore (prelude)
-        let! f1 = atom
-        let! f2 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (expr)))
-        let! f3 = zeroOrMore (postfix)
+        let! f0 = zeroOrMore (parsePrelude)
+        let! f1 = parseAtom
+        let! f2 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr)))
+        let! f3 = zeroOrMore (parsePostfix)
         return Expr(f0, f1, f2, f3)
     }
     p tokens
 
-and ifthen tokens =
+and parseIfThen tokens =
     let p = parser {
-        let! f0 = andThen (literal "if") (checkpoint (expr))
-        let! f1 = checkpoint (andThen (literal "then") (expr))
-        let! f2 = zeroOrMore (elseif)
-        let! f3 = checkpoint (andThen (literal "else") (expr))
+        let! f0 = andThen (literal "if") (checkpoint (parseExpr))
+        let! f1 = checkpoint (andThen (literal "then") (parseExpr))
+        let! f2 = zeroOrMore (parseElseIf)
+        let! f3 = checkpoint (andThen (literal "else") (parseExpr))
         return IfThen(f0, f1, f2, f3)
     }
     p tokens
 
-and lambda tokens =
+and parseLambda tokens =
     let p = parser {
-        let! f0 = surround (literal "(") (literal ")") (pattern)
-        let! f1 = andThen (literal "=") (checkpoint (expr))
+        let! f0 = andThen (orElse (literal "fn") (literal "λ")) (parsePattern)
+        let! f1 = andThen (orElse (literal "->") (literal "→")) (checkpoint (parseExpr))
         return Lambda(f0, f1)
     }
     p tokens
 
-and letdecl tokens =
+and parseLetDecl tokens =
     let p = parser {
-        let! f0 = andThen (literal "let") (checkpoint (lexpr))
-        let! f1 = checkpoint (andThen (literal "=") (expr))
+        let! f0 = andThen (literal "let") (checkpoint (parseLexpr))
+        let! f1 = checkpoint (andThen (literal "=") (parseExpr))
         return LetDecl(f0, f1)
     }
     p tokens
 
-and lexpr tokens =
+and parseLexpr tokens =
     let p = parser {
-        let! f0 = lexprname
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (lexpr)))
+        let! f0 = parseLexprName
+        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseLexpr)))
         return Lexpr(f0, f1)
     }
     p tokens
 
-and lexprname tokens =
+and parseLexprName tokens =
     let p = parser {
         return! parser {
             let! f0 = stringToken Identifier "Identifier"
@@ -143,18 +155,18 @@ and lexprname tokens =
     }
     p tokens
 
-and monotype tokens =
+and parseMonoType tokens =
     let p = parser {
-        let! f0 = delimited (orElse (literal "->") (literal "→")) (lexpr)
+        let! f0 = delimited (orElse (literal "->") (literal "→")) (parseLexpr)
         return MonoType(f0)
     }
     p tokens
 
-and pattern tokens =
+and parsePattern tokens =
     let p = parser {
         return! parser {
             let! f0 = stringToken Identifier "Identifier"
-            let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (pattern)))
+            let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parsePattern)))
             return CtorPat(f0, f1)
         }
         return! parser {
@@ -168,39 +180,39 @@ and pattern tokens =
     }
     p tokens
 
-and polytype tokens =
+and parsePolyType tokens =
     let p = parser {
         let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (checkpoint (literal ",")) (oneOrMore (stringToken Identifier "Identifier")))
-        let! f1 = delimited (literal "|") (monotype)
+        let! f1 = delimited (literal "|") (parseMonoType)
         return PolyType(f0, f1)
     }
     p tokens
 
-and postfix tokens =
+and parsePostfix tokens =
     let p = parser {
         let! f0 = bigintToken Superscript "Superscript"
         return SuperscriptPF(f0)
     }
     p tokens
 
-and prelude tokens =
+and parsePrelude tokens =
     let p = parser {
         return! parser {
-            let! f0 = typedecl
+            let! f0 = parseTypeDecl
             return TypeP(f0)
         }
         return! parser {
-            let! f0 = letdecl
+            let! f0 = parseLetDecl
             return LetP(f0)
         }
     }
     p tokens
 
-and typedecl tokens =
+and parseTypeDecl tokens =
     let p = parser {
         let! f0 = andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))
         let! f1 = optionlist (surround (literal "(") (literal ")") (checkpoint (delimited (literal ",") (stringToken Identifier "Identifier"))))
-        let! f2 = checkpoint (andThen (literal "=") (polytype))
+        let! f2 = checkpoint (andThen (literal "=") (parsePolyType))
         return TypeDecl(f0, f1, f2)
     }
     p tokens

@@ -12,24 +12,24 @@ let rec printAtom (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | NatA(f0) ->
-        writeSafe writer f0
-    | StringA(f0) ->
-        writeSafe writer f0
-    | OperatorA(f0) ->
-        writeSafe writer f0
-    | LambdaA(f0) ->
-        printLambda writer f0
-    | ParensA(f0) ->
+    | NatA(value) ->
+        writeSafe writer value
+    | StringA(value) ->
+        writeSafe writer value
+    | OperatorA(symbol) ->
+        writeSafe writer symbol
+    | LambdaA(lambda) ->
+        printLambda writer lambda
+    | ParensA(expr) ->
         writer.Write "("
-        printExpr writer f0
+        printExpr writer expr
         writer.Write ")"
-    | IdentifierA(f0) ->
-        writeSafe writer f0
-    | CasesA(f0) ->
-        printCases writer f0
-    | IfThenA(f0) ->
-        printIfThen writer f0
+    | IdentifierA(name) ->
+        writeSafe writer name
+    | CasesA(cases) ->
+        printCases writer cases
+    | IfThenA(ifthen) ->
+        printIfThen writer ifthen
     
     writer.Indent <- n
 
@@ -37,12 +37,12 @@ and printCase (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Case(f0, f1) ->
-        printPattern writer f0
+    | Case(pattern, expr) ->
+        printPattern writer pattern
         writer.Write ":"
         writer.Indent <- writer.Indent + 1
         writer.WriteLine ()
-        printExpr writer f1
+        printExpr writer expr
     
     writer.Indent <- n
 
@@ -50,22 +50,22 @@ and printCases (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Cases(f0, f1, f2) ->
+    | Cases(expr, cases, otherwise) ->
         writer.Write "case "
-        printExpr writer f0
+        printExpr writer expr
         writer.Write " of"
         writer.Indent <- writer.Indent + 1
-        for f1' in f1 do
+        for cases' in cases do
             writer.WriteLine ()
-            printCase writer f1'
-        match f2 with
+            printCase writer cases'
+        match otherwise with
         | None -> ignore()
-        | Some f2' ->
+        | Some otherwise' ->
             writer.WriteLine ""
             writer.Write "else"
             writer.Indent <- writer.Indent + 1
             writer.WriteLine ()
-            printExpr writer f2'
+            printExpr writer otherwise'
     
     writer.Indent <- n
 
@@ -73,12 +73,12 @@ and printCommand (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | TypeCmd(f0) ->
-        printTypeDecl writer f0
-    | LetCmd(f0) ->
-        printLetDecl writer f0
-    | ExprCmd(f0) ->
-        printExpr writer f0
+    | TypeCmd(typeDecl) ->
+        printTypeDecl writer typeDecl
+    | LetCmd(letDecl) ->
+        printLetDecl writer letDecl
+    | ExprCmd(expr) ->
+        printExpr writer expr
     
     writer.Indent <- n
 
@@ -86,12 +86,12 @@ and printElseIf (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | ElseIf(f0, f1) ->
+    | ElseIf(condition, trueExpr) ->
         writer.WriteLine ""
         writer.Write "elif "
-        printExpr writer f0
+        printExpr writer condition
         writer.Write " then "
-        printExpr writer f1
+        printExpr writer trueExpr
     
     writer.Indent <- n
 
@@ -99,27 +99,27 @@ and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Expr(f0, f1, f2, f3) ->
-        for f0' in f0 do
-            printPrelude writer f0'
+    | Expr(prelude, atom, args, post) ->
+        for prelude' in prelude do
+            printPrelude writer prelude'
             writer.WriteLine ()
-        printAtom writer f1
-        match f2 with
+        printAtom writer atom
+        match args with
         | [] -> ignore()
         | _ ->
             writer.Write "("
-            match f2 with
+            match args with
             | [] -> ignore()
-            | [f2'] ->
-                printExpr writer f2'
-            | f2'::f2'' ->
-                printExpr writer f2'
-                for f2_ in f2'' do
+            | [args'] ->
+                printExpr writer args'
+            | args'::args'' ->
+                printExpr writer args'
+                for args_ in args'' do
                     writer.Write ", "
-                    printExpr writer f2_
+                    printExpr writer args_
             writer.Write ")"
-        for f3' in f3 do
-            printPostfix writer f3'
+        for post' in post do
+            printPostfix writer post'
     
     writer.Indent <- n
 
@@ -127,17 +127,17 @@ and printIfThen (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | IfThen(f0, f1, f2, f3) ->
+    | IfThen(condition, trueExpr, elseifs, falseExpr) ->
         writer.Write "if "
-        printExpr writer f0
+        printExpr writer condition
         writer.Write " then "
-        printExpr writer f1
+        printExpr writer trueExpr
         writer.Indent <- writer.Indent + 1
-        for f2' in f2 do
-            printElseIf writer f2'
+        for elseifs' in elseifs do
+            printElseIf writer elseifs'
         writer.WriteLine ""
         writer.Write "else "
-        printExpr writer f3
+        printExpr writer falseExpr
     
     writer.Indent <- n
 
@@ -145,12 +145,11 @@ and printLambda (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Lambda(f0, f1) ->
-        writer.Write "("
-        printPattern writer f0
-        writer.Write ")"
-        writer.Write " = "
-        printExpr writer f1
+    | Lambda(pattern, expr) ->
+        writer.Write "λ "
+        printPattern writer pattern
+        writer.Write " → "
+        printExpr writer expr
     
     writer.Indent <- n
 
@@ -158,13 +157,13 @@ and printLetDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | LetDecl(f0, f1) ->
+    | LetDecl(name, expr) ->
         writer.Write "let "
-        printLexpr writer f0
+        printLexpr writer name
         writer.Write " ="
         writer.Indent <- writer.Indent + 1
         writer.WriteLine ()
-        printExpr writer f1
+        printExpr writer expr
         writer.WriteLine ()
     
     writer.Indent <- n
@@ -173,21 +172,21 @@ and printLexpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Lexpr(f0, f1) ->
-        printLexprName writer f0
-        match f1 with
+    | Lexpr(name, parameters) ->
+        printLexprName writer name
+        match parameters with
         | [] -> ignore()
         | _ ->
             writer.Write "("
-            match f1 with
+            match parameters with
             | [] -> ignore()
-            | [f1'] ->
-                printLexpr writer f1'
-            | f1'::f1'' ->
-                printLexpr writer f1'
-                for f1_ in f1'' do
+            | [parameters'] ->
+                printLexpr writer parameters'
+            | parameters'::parameters'' ->
+                printLexpr writer parameters'
+                for parameters_ in parameters'' do
                     writer.Write ", "
-                    printLexpr writer f1_
+                    printLexpr writer parameters_
             writer.Write ")"
     
     writer.Indent <- n
@@ -196,10 +195,10 @@ and printLexprName (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | IdentifierN(f0) ->
-        writeSafe writer f0
-    | OperatorN(f0) ->
-        writeSafe writer f0
+    | IdentifierN(name) ->
+        writeSafe writer name
+    | OperatorN(symbol) ->
+        writeSafe writer symbol
     
     writer.Indent <- n
 
@@ -207,16 +206,16 @@ and printMonoType (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | MonoType(f0) ->
-        match f0 with
+    | MonoType(types) ->
+        match types with
         | [] -> ignore()
-        | [f0'] ->
-            printLexpr writer f0'
-        | f0'::f0'' ->
-            printLexpr writer f0'
-            for f0_ in f0'' do
-                writer.Write " -> "
-                printLexpr writer f0_
+        | [types'] ->
+            printLexpr writer types'
+        | types'::types'' ->
+            printLexpr writer types'
+            for types_ in types'' do
+                writer.Write " → "
+                printLexpr writer types_
     
     writer.Indent <- n
 
@@ -224,26 +223,26 @@ and printPattern (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | CtorPat(f0, f1) ->
-        writeSafe writer f0
-        match f1 with
+    | CtorPat(ctor, args) ->
+        writeSafe writer ctor
+        match args with
         | [] -> ignore()
         | _ ->
             writer.Write "("
-            match f1 with
+            match args with
             | [] -> ignore()
-            | [f1'] ->
-                printPattern writer f1'
-            | f1'::f1'' ->
-                printPattern writer f1'
-                for f1_ in f1'' do
+            | [args'] ->
+                printPattern writer args'
+            | args'::args'' ->
+                printPattern writer args'
+                for args_ in args'' do
                     writer.Write ", "
-                    printPattern writer f1_
+                    printPattern writer args_
             writer.Write ")"
-    | NatPat(f0) ->
-        writeSafe writer f0
-    | StringPat(f0) ->
-        writeSafe writer f0
+    | NatPat(value) ->
+        writeSafe writer value
+    | StringPat(value) ->
+        writeSafe writer value
     
     writer.Indent <- n
 
@@ -251,23 +250,23 @@ and printPolyType (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | PolyType(f0, f1) ->
-        match f0 with
+    | PolyType(foralls, cases) ->
+        match foralls with
         | [] -> ignore()
         | _ ->
-            writer.Write "forall "
-            for f0' in f0 do
-                writeSafe writer f0'
+            writer.Write "∀ "
+            for foralls' in foralls do
+                writeSafe writer foralls'
             writer.Write ", "
-        match f1 with
+        match cases with
         | [] -> ignore()
-        | [f1'] ->
-            printMonoType writer f1'
-        | f1'::f1'' ->
-            printMonoType writer f1'
-            for f1_ in f1'' do
+        | [cases'] ->
+            printMonoType writer cases'
+        | cases'::cases'' ->
+            printMonoType writer cases'
+            for cases_ in cases'' do
                 writer.Write " | "
-                printMonoType writer f1_
+                printMonoType writer cases_
     
     writer.Indent <- n
 
@@ -275,8 +274,8 @@ and printPostfix (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | SuperscriptPF(f0) ->
-        let s = toSuperscript f0
+    | SuperscriptPF(value) ->
+        let s = toSuperscript value
         writeSafe writer s
     
     writer.Indent <- n
@@ -285,10 +284,10 @@ and printPrelude (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | TypeP(f0) ->
-        printTypeDecl writer f0
-    | LetP(f0) ->
-        printLetDecl writer f0
+    | TypeP(typeDecl) ->
+        printTypeDecl writer typeDecl
+    | LetP(letDecl) ->
+        printLetDecl writer letDecl
     
     writer.Indent <- n
 
@@ -296,25 +295,25 @@ and printTypeDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | TypeDecl(f0, f1, f2) ->
+    | TypeDecl(name, parameters, ptype) ->
         writer.Write "type "
-        writeSafe writer f0
-        match f1 with
+        writeSafe writer name
+        match parameters with
         | [] -> ignore()
         | _ ->
             writer.Write "("
-            match f1 with
+            match parameters with
             | [] -> ignore()
-            | [f1'] ->
-                writeSafe writer f1'
-            | f1'::f1'' ->
-                writeSafe writer f1'
-                for f1_ in f1'' do
+            | [parameters'] ->
+                writeSafe writer parameters'
+            | parameters'::parameters'' ->
+                writeSafe writer parameters'
+                for parameters_ in parameters'' do
                     writer.Write ", "
-                    writeSafe writer f1_
+                    writeSafe writer parameters_
             writer.Write ")"
         writer.Write " = "
-        printPolyType writer f2
+        printPolyType writer ptype
         writer.WriteLine ()
     
     writer.Indent <- n

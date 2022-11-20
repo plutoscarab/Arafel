@@ -1,6 +1,6 @@
 module Visit
 
-open Parse
+open Arafel.CodeDom
 
 let writeVisitorFile filename modulename productions =
     use file = System.IO.File.CreateText(filename)

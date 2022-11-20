@@ -84,8 +84,8 @@ and ElseIf =
       ElseIf of condition: Expr * trueExpr: Expr
 
 and Lambda =
-    | [<Parse("surr '(' ')' _");
-        Parse("and '␠=␠' ⚠ _")>]
+    | [<Parse("and or 'fn␠' 'λ␠' _");
+        Parse("and or '␠->␠' '␠→␠' ⚠ _")>]
       Lambda of pattern: Pattern * expr: Expr
 
 and Prelude =

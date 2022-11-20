@@ -6,6 +6,7 @@ open System.Collections.Generic
 open System.IO
 open System.Text
 
+open Arafel.CodeDom
 open Cursor
 open Lexer
 open Tokens
@@ -191,41 +192,6 @@ let surround a b p =
         return r
     }
 
-type Formatter =
-    | Raw
-    | Newline
-    | Indent
-
-type Parser =
-    | ProductionP of Formatter * Formatter
-    | TokenP of string
-    | LiteralP of string
-    | OptionP of Parser
-    | OptionListP of Parser
-    | ListP of Parser
-    | NonEmptyListP of Parser
-    | CheckpointP of Parser
-    | AndP of Parser * Parser
-    | OrP of Parser * Parser
-    | DelimitedP of Parser * Parser
-    | SurroundP of Parser * Parser * Parser
-
-let rec isNonempty =
-    function
-    | NonEmptyListP _ -> true
-    | DelimitedP _ -> true
-    | AndP (_, p) -> isNonempty p
-    | SurroundP (_, _, p) -> isNonempty p
-    | CheckpointP p -> isNonempty p
-    | _ -> false
-
-let unboxed (s: string) =
-    s.Replace("␠", "")
-     .Replace("␤", "")
-     .Replace("␏", "")
-     .Replace("␎", "")
-     .Replace("␑", "")
-
 let rec getKeywords =
     function
     | ProductionP (_, _) -> Seq.empty
@@ -311,32 +277,13 @@ let decodeParserStr (s:string) =
     if n <> [] then raise (Exception "")
     r
 
-type PrimaryType =
-    | StringType
-    | BigintType
-    | ProductionType of string
-
-type Multiplicity =
-    | SingleM
-    | OptionM
-    | ListM
-
-type TupleField =
-    | TupleField of name: string * PrimaryType * Multiplicity * Parser
-
-type UnionCase =
-    | UnionCase of string * TupleField list
-
-type Production =
-    | Production of string * UnionCase list * bool
-
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
 
     | ProductionP(_, _) ->
 
         match primaryType with
-        | ProductionType name -> writer.Write (name.ToLowerInvariant())
+        | ProductionType name -> writer.Write $"parse{name}"
         | _ -> raise (NotImplementedException())
 
     | TokenP(s) ->
@@ -448,13 +395,17 @@ let writeParserFile filename modulename (productions:Production list) (keywords:
     writer.WriteLine "open Parse"
     writer.WriteLine "open Syntax"
     writer.WriteLine ()
-    let kw = String.concat "; " (Seq.map (fun s-> $"\"{s}\"") keywords)
-    writer.WriteLine $"let keywords = Set [ {kw} ]"
+    writer.WriteLine $"let keywords = Set ["
+
+    for kw in keywords do
+        writer.WriteLine $"    \"{kw}\";"
+
+    writer.WriteLine $"]"
     let mutable keyword = "let rec"
 
     for Production(name, cases, indent) in productions do
         writer.WriteLine ()
-        let pname = name.ToLowerInvariant()
+        let pname = $"parse{name}"
         writer.WriteLine $"{keyword} {pname} tokens ="
         keyword <- "and"
         writer.Indent <- writer.Indent + 1

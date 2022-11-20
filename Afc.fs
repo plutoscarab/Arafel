@@ -2,11 +2,11 @@
 open System
 open System.IO
 
-open Arafel
 open Cursor
 open Lexer
 open Localisation
 open Parse
+open Parser
 
 let rec orLast =
     function
@@ -27,12 +27,12 @@ let errStr e t =
         loc.LinePosToken(cu.line, cu.pos, tx, ex)
 
 let parseExpressions src =
-    let tokens = tokenise Arafel.keywords (mkCursor src) |> Seq.toList
+    let tokens = tokenise Parser.keywords (mkCursor src) |> Seq.toList
     let mutable current = tokens
 
     seq {
         while current <> [] do
-            let (result, next) = Arafel.expr current
+            let (result, next) = parseExpr current
             
             match result with
             | Nomatch e ->

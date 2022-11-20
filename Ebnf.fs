@@ -3,7 +3,7 @@ module Ebnf
 open System
 open System.IO
 
-open Parse
+open Arafel.CodeDom
 
 let scan line =
     seq {

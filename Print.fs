@@ -6,10 +6,10 @@ open System.Collections.Generic
 open System.IO
 open System.Text
 
+open Arafel.CodeDom
 open Cursor
 open Lexer
 open Tokens
-open Parse
 
 type IndentAttribute() = inherit System.Attribute()
 
@@ -131,7 +131,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
 
     | OrP(p, q) ->
 
-        writeParser writer p primaryType name
+        writeParser writer q primaryType name
 
     | DelimitedP(d, p) ->
 
@@ -156,17 +156,16 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         writeParser writer p primaryType name
         writeParser writer b primaryType name
 
-let private writeField writer (TupleField(_, primaryType, _, parser)) name =
+let fieldName =
+    function
+    | TupleField (name, _, _, _) -> name
+
+let private writeField writer (TupleField(name, primaryType, _, parser)) =
     writeParser writer parser primaryType name
 
 let private writeCase (writer:IndentedTextWriter) fields =
     writer.Indent <- writer.Indent + 1
-    let mutable i = 0
-
-    for field in fields do
-        writeField writer field $"f{i}"
-        i <- i + 1
-
+    List.iter (writeField writer) fields
     writer.Indent <- writer.Indent - 1
 
 let writePrintFile filename modulename (productions:Production list) =
@@ -199,8 +198,7 @@ let writePrintFile filename modulename (productions:Production list) =
         writer.WriteLine "match value with"
 
         for UnionCase(name, fields) in cases do
-            let n = List.length fields
-            let fs = String.concat ", " (List.map (fun i -> $"f{i}") [0..n-1])
+            let fs = String.concat ", " (List.map fieldName fields)
             writer.WriteLine $"| {name}({fs}) ->"
             writeCase writer fields
 

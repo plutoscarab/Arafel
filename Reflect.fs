@@ -3,7 +3,7 @@ module Reflect
 open System
 open Microsoft.FSharp.Reflection
 
-open Parse
+open Arafel.CodeDom
 open Print
 
 let private getImmediateDependencies (t:Type) =

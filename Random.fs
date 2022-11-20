@@ -4,7 +4,7 @@ open System
 open System.CodeDom.Compiler
 open System.IO
 
-open Parse
+open Arafel.CodeDom
 
 let mkOption mk =
     fun (rand: Random) depth ->
