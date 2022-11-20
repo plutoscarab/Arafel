@@ -9,6 +9,7 @@ open System.Text
 open Reflect
 open Parse
 open Print
+open Tester
 open Ebnf
 open Syntax
 open Typing
@@ -33,6 +34,14 @@ let errStr e t =
         loc.LinePosToken(cu.line, cu.pos, tx, ex)
         
 let sanityCheck =
+
+    let r = randomExpr (new Random()) -1
+    Directory.CreateDirectory "output" |> ignore
+    use rf = File.CreateText "output/random.af"
+    use rw = new IndentedTextWriter(rf)
+    rw.Indent <- 1
+    rw.WriteLine ()
+    Pretty.printExpr rw r
 
     let src = File.ReadAllText("sample.af", Encoding.UTF8)
     let cursor = Cursor.makeCursor src

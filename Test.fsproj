@@ -12,18 +12,16 @@
     <Compile Include="Lexer.fs" />
     <Compile Include="Parse.fs" />
     <Compile Include="Print.fs" />
-    <Compile Include="Random.fs" />
     <Compile Include="Reflect.fs" />
     <Compile Include="Ebnf.fs" />
     <Compile Include="Syntax.fs" />
     <Compile Include="Typing.fs" />
     <Compile Include="generated/pretty.fs" />
     <Compile Include="generated/arafel.fs" />
-    <Compile Include="generated/tester.fs" />
     <Compile Include="generated/en-us.fs" />
     <Compile Include="generated/ru-ru.fs" />
     <Compile Include="generated/localisation.fs" />
-    <Compile Include="Af.fs" />
+    <Compile Include="Test.fs" />
   </ItemGroup>
 
 </Project>

@@ -115,9 +115,10 @@ and printIfThen (writer:IndentedTextWriter) value =
     
     match value with
     | IfThen(f0, f1, f2) ->
-        writer.Write "if "
-        printExpr writer f0
+        writer.Write "if"
         writer.Indent <- writer.Indent + 1
+        writer.WriteLine ()
+        printExpr writer f0
         writer.WriteLine ""
         writer.Write "then "
         printExpr writer f1

@@ -80,7 +80,8 @@
             Nil:
                 Nil
             Cons(head, tail):
-                if pred(head)
+                if
+                    pred(head)
                     then Cons(head, takeWhile(pred, tail))
                     else Nil
     
@@ -117,7 +118,8 @@
                 Cons(func(head), map(func, tail))
     
     let natsFromTo(from, to) =
-        if >(from, to)
+        if
+            >(from, to)
             then Nil
             else Cons(from, natsFromTo(+(from, 1), to))
     

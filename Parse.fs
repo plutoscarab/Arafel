@@ -210,6 +210,15 @@ type Parser =
     | DelimitedP of Parser * Parser
     | SurroundP of Parser * Parser * Parser
 
+let rec isNonempty =
+    function
+    | NonEmptyListP _ -> true
+    | DelimitedP _ -> true
+    | AndP (_, p) -> isNonempty p
+    | SurroundP (_, _, p) -> isNonempty p
+    | CheckpointP p -> isNonempty p
+    | _ -> false
+
 let unboxed (s: string) =
     s.Replace("␠", "")
      .Replace("␤", "")
