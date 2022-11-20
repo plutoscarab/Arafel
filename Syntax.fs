@@ -72,10 +72,16 @@ and Expr =
       Expr of Prelude list * Atom * Expr list * Postfix list
 
 and IfThen =
-    | [<Parse("and 'if␏' ⚠ ␤_");
-        Parse("⚠ and '␤then␠' _");
+    | [<Parse("and 'if␠' ⚠ _");
+        Parse("⚠ and '␠then␠' _␏");
+        Parse("0+ _");
         Parse("⚠ and '␤else␠' _")>]
-      IfThen of Expr * Expr * Expr
+      IfThen of Expr * Expr * ElseIf list * Expr
+
+and ElseIf =
+    | [<Parse("and '␤elif␠' ⚠ _");
+        Parse("⚠ and '␠then␠' _")>]
+      ElseIf of Expr * Expr
 
 and Lambda =
     | [<Parse("surr '(' ')' _");

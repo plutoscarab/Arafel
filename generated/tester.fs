@@ -58,6 +58,13 @@ and randomCommand (rand: Random) depth =
         let f0 = randomExpr rand (depth + 1)
         ExprCmd(f0)
 
+and randomElseIf (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let f0 = randomExpr rand (depth + 1)
+        let f1 = randomExpr rand (depth + 1)
+        ElseIf(f0, f1)
+
 and randomExpr (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
@@ -72,8 +79,9 @@ and randomIfThen (rand: Random) depth =
     | _ ->
         let f0 = randomExpr rand (depth + 1)
         let f1 = randomExpr rand (depth + 1)
-        let f2 = randomExpr rand (depth + 1)
-        IfThen(f0, f1, f2)
+        let f2 = mkList randomElseIf rand (depth + 1)
+        let f3 = randomExpr rand (depth + 1)
+        IfThen(f0, f1, f2, f3)
 
 and randomLambda (rand: Random) depth =
     match rand.Next(1) with

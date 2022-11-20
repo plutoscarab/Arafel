@@ -35,18 +35,11 @@ let errStr e t =
         
 let sanityCheck =
 
-    let r = randomExpr (new Random()) -1
-    Directory.CreateDirectory "output" |> ignore
-    use rf = File.CreateText "output/random.af"
-    use rw = new IndentedTextWriter(rf)
-    rw.Indent <- 1
-    rw.WriteLine ()
-    Pretty.printExpr rw r
-
     let src = File.ReadAllText("sample.af", Encoding.UTF8)
     let cursor = Cursor.makeCursor src
     let tokens = Lexer.tokenise Arafel.keywords cursor |> Seq.toList
-    use file = File.CreateText("generated/pretty.af")
+    Directory.CreateDirectory "output" |> ignore
+    use file = File.CreateText("output/pretty.af")
     use writer = new IndentedTextWriter(file)
     writer.Indent <- 1
 

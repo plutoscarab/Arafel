@@ -112,6 +112,16 @@ nodes in our tree.
 This prints "3" for the tree we created above.
 
 
+IF .. THEN .. ELIF .. ELSE
+
+    let yy = *(
+        if =(a, 0) then 22
+            elif =(b, 0) then 311
+            elif =(c, +(a, b)) then 109
+            else 85, 
+        if isOrange then 1 else 0)
+
+
 LISTS
 
 There is no build-in support for lists yet. Define lists using

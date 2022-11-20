@@ -82,6 +82,19 @@ and printCommand (writer:IndentedTextWriter) value =
     
     writer.Indent <- n
 
+and printElseIf (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | ElseIf(f0, f1) ->
+        writer.WriteLine ""
+        writer.Write "elif "
+        printExpr writer f0
+        writer.Write " then "
+        printExpr writer f1
+    
+    writer.Indent <- n
+
 and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
@@ -114,17 +127,17 @@ and printIfThen (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | IfThen(f0, f1, f2) ->
-        writer.Write "if"
-        writer.Indent <- writer.Indent + 1
-        writer.WriteLine ()
+    | IfThen(f0, f1, f2, f3) ->
+        writer.Write "if "
         printExpr writer f0
-        writer.WriteLine ""
-        writer.Write "then "
+        writer.Write " then "
         printExpr writer f1
+        writer.Indent <- writer.Indent + 1
+        for f2' in f2 do
+            printElseIf writer f2'
         writer.WriteLine ""
         writer.Write "else "
-        printExpr writer f2
+        printExpr writer f3
     
     writer.Indent <- n
 

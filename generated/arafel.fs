@@ -5,7 +5,7 @@ open Lexer
 open Parse
 open Syntax
 
-let keywords = Set [ "case"; "else"; "forall"; "if"; "let"; "of"; "then"; "type" ]
+let keywords = Set [ "case"; "elif"; "else"; "forall"; "if"; "let"; "of"; "then"; "type" ]
 
 let rec atom tokens =
     let p = parser {
@@ -78,6 +78,14 @@ and command tokens =
     }
     p tokens
 
+and elseif tokens =
+    let p = parser {
+        let! f0 = andThen (literal "elif") (checkpoint (expr))
+        let! f1 = checkpoint (andThen (literal "then") (expr))
+        return ElseIf(f0, f1)
+    }
+    p tokens
+
 and expr tokens =
     let p = parser {
         let! f0 = zeroOrMore (prelude)
@@ -92,8 +100,9 @@ and ifthen tokens =
     let p = parser {
         let! f0 = andThen (literal "if") (checkpoint (expr))
         let! f1 = checkpoint (andThen (literal "then") (expr))
-        let! f2 = checkpoint (andThen (literal "else") (expr))
-        return IfThen(f0, f1, f2)
+        let! f2 = zeroOrMore (elseif)
+        let! f3 = checkpoint (andThen (literal "else") (expr))
+        return IfThen(f0, f1, f2, f3)
     }
     p tokens
 
