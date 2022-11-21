@@ -37,6 +37,8 @@ type Pattern =
       NatPat of value: bigint
     | [<Parse("STRING")>]
       StringPat of value: string
+    | [<Parse("BOOL")>]
+      BoolPat of value: bool
 
 type LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
@@ -84,9 +86,9 @@ and ElseIf =
       ElseIf of condition: Expr * trueExpr: Expr
 
 and Lambda =
-    | [<Parse("and or 'fn␠' 'λ␠' _");
-        Parse("and or '␠->␠' '␠→␠' ⚠ _")>]
-      Lambda of pattern: Pattern * expr: Expr
+    | [<Parse("and 'fn' surr '(' ')' _");
+        Parse("and '␠=␠' ⚠ _")>]
+      Lambda of name: Lexpr * expr: Expr
 
 and Prelude =
     | [<Parse("_")>] TypeP of typeDecl: TypeDecl

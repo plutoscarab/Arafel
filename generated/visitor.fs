@@ -1,4 +1,5 @@
 module Visitor
+// Generated code. Do not edit.
 
 open System
 open Syntax
@@ -139,16 +140,16 @@ type Visitor() =
         match value with
         | IfThen (condition, trueExpr, elseifs, falseExpr) -> this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr)
     
-    abstract member Lambda_Lambda: Pattern * Expr -> Lambda
-    default this.Lambda_Lambda(pattern, expr) =
-        let pattern' = this.VisitPattern pattern
+    abstract member Lambda_Lambda: Lexpr * Expr -> Lambda
+    default this.Lambda_Lambda(name, expr) =
+        let name' = this.VisitLexpr name
         let expr' = this.VisitExpr expr
-        Lambda (pattern', expr')
+        Lambda (name', expr')
     
     abstract member VisitLambda: Lambda -> Lambda
     default this.VisitLambda(value) =
         match value with
-        | Lambda (pattern, expr) -> this.Lambda_Lambda(pattern, expr)
+        | Lambda (name, expr) -> this.Lambda_Lambda(name, expr)
     
     abstract member LetDecl_LetDecl: Lexpr * Expr -> LetDecl
     default this.LetDecl_LetDecl(name, expr) =
@@ -214,12 +215,18 @@ type Visitor() =
         let value' = value
         StringPat (value')
     
+    abstract member Pattern_BoolPat: bool -> Pattern
+    default this.Pattern_BoolPat(value) =
+        let value' = value
+        BoolPat (value')
+    
     abstract member VisitPattern: Pattern -> Pattern
     default this.VisitPattern(value) =
         match value with
         | CtorPat (ctor, args) -> this.Pattern_CtorPat(ctor, args)
         | NatPat (value) -> this.Pattern_NatPat(value)
         | StringPat (value) -> this.Pattern_StringPat(value)
+        | BoolPat (value) -> this.Pattern_BoolPat(value)
     
     abstract member PolyType_PolyType: string list * MonoType list -> PolyType
     default this.PolyType_PolyType(foralls, cases) =

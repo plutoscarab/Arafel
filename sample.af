@@ -170,7 +170,7 @@ Block comment in the middle of an expression.
                 else
                     Nil
 
-    takeWhile((n) = <(n, 100), natsFromWithSkip(5, 2))
+    takeWhile(fn(n) = <(n, 100), natsFromWithSkip(5, 2))
 
 Left-associative and right-associative accumulation:
 
@@ -219,9 +219,9 @@ This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also
 supply a function directly in the call to map without defining a named function
 first.
 
-    map(fn x -> x², natsFromTo(1, 5))
+    map(fn(x) = x², natsFromTo(1, 5))
 
-An unnamed function like this is called a lambda function, after Lambda
+An unnamed function like this is called a lambda function, named after Lambda
 Calculus.
 
 

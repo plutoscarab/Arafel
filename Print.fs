@@ -58,6 +58,8 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         | StringType
         | BigintType ->
             writer.WriteLine $"writer.Write {name}"
+        | BoolType ->
+            writer.WriteLine $"writer.Write {name}.ToString().ToLowerInvariant()"
         | ProductionType p ->
             writer.WriteLine $"print{p} writer {name}"
 
@@ -172,6 +174,7 @@ let writePrintFile filename modulename (productions:Production list) =
     use file = File.CreateText(filename)
     use writer = new IndentedTextWriter(file)
     writer.WriteLine $"module {modulename}"
+    writer.WriteLine "// Generated code. Do not edit."
     writer.WriteLine ()
     writer.WriteLine "open System.CodeDom.Compiler"
     writer.WriteLine ()

@@ -6,6 +6,7 @@ let writeVisitorFile filename modulename productions =
     use file = System.IO.File.CreateText(filename)
     use writer = new System.CodeDom.Compiler.IndentedTextWriter(file)
     writer.WriteLine $"module {modulename}"
+    writer.WriteLine "// Generated code. Do not edit."
     writer.WriteLine ()
     writer.WriteLine "open System"
     writer.WriteLine "open Syntax"
@@ -28,6 +29,7 @@ let writeVisitorFile filename modulename productions =
                 match primaryType with
                 | StringType -> writer.Write "string"
                 | BigintType -> writer.Write "bigint"
+                | BoolType -> writer.Write "bool"
                 | ProductionType p -> writer.Write p
                 match multiplicity with
                 | SingleM -> ignore ()

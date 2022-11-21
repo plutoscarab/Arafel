@@ -35,10 +35,14 @@ let mkBigint rand depth =
     (mkList mkDigit) rand 3
     |> List.fold (fun x y -> (bigint 100) * x + y) (bigint 0)
 
+let mkBool (rand: Random) depth =
+    rand.Next(2) > 0
+
 let writeTesterFile filename modulename (productions:Production list) =
     use file = File.CreateText(filename)
     use writer = new IndentedTextWriter(file)
     writer.WriteLine $"module {modulename}"
+    writer.WriteLine "// Generated code. Do not edit."
     writer.WriteLine ()
     writer.WriteLine "open System"
     writer.WriteLine "open Random"
@@ -78,6 +82,7 @@ let writeTesterFile filename modulename (productions:Production list) =
                 match primaryType with
                 | StringType -> writer.Write "mkString"
                 | BigintType -> writer.Write "mkBigint"
+                | BoolType -> writer.Write "mkBool"
                 | ProductionType p -> writer.Write $"random{p}"
 
                 writer.WriteLine " rand (depth + 1)"

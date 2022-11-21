@@ -22,7 +22,8 @@ let rec readResources (filename: string) =
     File.ReadLines filename
     |> Seq.skip 1
     |> Seq.map (fun s ->
-        (Int32.Parse(s.Substring(0, 8).Trim()), s.Substring(8)))
+        let sp = s.IndexOf ' '
+        (s.Substring(0, sp), s.Substring(sp).Trim()))
     |> Map
 
 let writeResources (filename: string) =
@@ -30,6 +31,7 @@ let writeResources (filename: string) =
     use w = File.CreateText $"generated/{locale}.fs"
     let lm = locale.Replace("-", "_")
     w.WriteLine $"module Localisation_{lm}"
+    w.WriteLine "// Generated code. Do not edit."
 
     if filename = coreFilename then
         w.WriteLine ()
@@ -79,37 +81,20 @@ let writeResources (filename: string) =
                 f <- f.Substring(0, i) + "«" + f.Substring(i, j - i + 1) + "»" + f.Substring(j + 1)
                 i <- j + 2
 
-        let sanitise s =
-            s
-            |> Seq.filter (Char.IsLetter)
-            |> String.Concat
-
-        let normcase (s: string) =
-            s.Substring(0, 1).ToUpperInvariant() + s.Substring(1).ToLowerInvariant()
-
-        let words =
-            (Map.find id core).Split(' ')
-            |> Seq.filter (fun w -> not (w.StartsWith("{")))
-            |> Seq.map sanitise
-            |> Seq.filter (fun s -> not (String.IsNullOrEmpty(s)))
-            |> Seq.take 3
-            |> Seq.map normcase
-            |> String.concat ""
-
         w.WriteLine ()
-        w.WriteLine $"    // ID {id}"
 
         if filename = coreFilename then
-            w.WriteLine $"    abstract member {words} : {tstr} -> string"
-            w.WriteLine $"    default _.{words}({pstr}) ="
+            w.WriteLine $"    abstract member {id} : {tstr} -> string"
+            w.WriteLine $"    default _.{id}({pstr}) ="
         else
-            w.WriteLine $"    override _.{words}({pstr}) ="
+            w.WriteLine $"    override _.{id}({pstr}) ="
 
         w.WriteLine $"        $\"{f}\""
 
 let writeLocalisation() =
     use locFile = File.CreateText "generated/localisation.fs"
     locFile.WriteLine "module Localisation"
+    locFile.WriteLine "// Generated code. Do not edit."
     locFile.WriteLine ()
     locFile.WriteLine "let locMap = Map ["
 

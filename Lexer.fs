@@ -44,6 +44,10 @@ let tokenise (keywords:Set<string>) (cursor:Cursor) =
                 while Rune.IsLetter(c.Current) || c.Str = "_" || Rune.IsDigit(c.Current) || (Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.OtherNumber && not (superchars.Contains(c.Str))) do
                     c <- c.Next
                 let s = spanned (start, c)
+                if s = "false" then
+                    yield Bool (start, c)
+                elif s = "true" then
+                    yield Bool (start, c)
                 if Set.contains s keywords then
                     yield Keyword (start, c)
                 else

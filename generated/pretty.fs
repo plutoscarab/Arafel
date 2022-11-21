@@ -1,4 +1,5 @@
 module Pretty
+// Generated code. Do not edit.
 
 open System.CodeDom.Compiler
 
@@ -145,10 +146,12 @@ and printLambda (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Lambda(pattern, expr) ->
-        writer.Write "λ "
-        printPattern writer pattern
-        writer.Write " → "
+    | Lambda(name, expr) ->
+        writer.Write "fn"
+        writer.Write "("
+        printLexpr writer name
+        writer.Write ")"
+        writer.Write " = "
         printExpr writer expr
     
     writer.Indent <- n
@@ -242,6 +245,8 @@ and printPattern (writer:IndentedTextWriter) value =
     | NatPat(value) ->
         writeSafe writer value
     | StringPat(value) ->
+        writeSafe writer value
+    | BoolPat(value) ->
         writeSafe writer value
     
     writer.Indent <- n

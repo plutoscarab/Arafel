@@ -22,6 +22,7 @@ type Parser =
 type PrimaryType =
     | StringType
     | BigintType
+    | BoolType
     | ProductionType of string
 
 type Multiplicity =

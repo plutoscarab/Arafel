@@ -1,4 +1,5 @@
 module Parser
+// Generated code. Do not edit.
 
 open Tokens
 open Lexer
@@ -16,7 +17,6 @@ let keywords = Set [
     "of";
     "then";
     "type";
-    "λ";
 ]
 
 let rec parseAtom tokens =
@@ -120,8 +120,8 @@ and parseIfThen tokens =
 
 and parseLambda tokens =
     let p = parser {
-        let! f0 = andThen (orElse (literal "fn") (literal "λ")) (parsePattern)
-        let! f1 = andThen (orElse (literal "->") (literal "→")) (checkpoint (parseExpr))
+        let! f0 = andThen (literal "fn") (surround (literal "(") (literal ")") (parseLexpr))
+        let! f1 = andThen (literal "=") (checkpoint (parseExpr))
         return Lambda(f0, f1)
     }
     p tokens
@@ -176,6 +176,10 @@ and parsePattern tokens =
         return! parser {
             let! f0 = stringToken String "String"
             return StringPat(f0)
+        }
+        return! parser {
+            let! f0 = boolToken Bool "Bool"
+            return BoolPat(f0)
         }
     }
     p tokens

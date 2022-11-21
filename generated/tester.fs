@@ -1,4 +1,5 @@
 module Tester
+// Generated code. Do not edit.
 
 open System
 open Random
@@ -86,9 +87,9 @@ and randomIfThen (rand: Random) depth =
 and randomLambda (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
-        let pattern = randomPattern rand (depth + 1)
+        let name = randomLexpr rand (depth + 1)
         let expr = randomExpr rand (depth + 1)
-        Lambda(pattern, expr)
+        Lambda(name, expr)
 
 and randomLetDecl (rand: Random) depth =
     match rand.Next(1) with
@@ -120,7 +121,7 @@ and randomMonoType (rand: Random) depth =
         MonoType(types)
 
 and randomPattern (rand: Random) depth =
-    match rand.Next(3) with
+    match rand.Next(4) with
     | 0 ->
         let ctor = mkString rand (depth + 1)
         let args = mkList randomPattern rand (depth + 1)
@@ -128,9 +129,12 @@ and randomPattern (rand: Random) depth =
     | 1 ->
         let value = mkBigint rand (depth + 1)
         NatPat(value)
-    | _ ->
+    | 2 ->
         let value = mkString rand (depth + 1)
         StringPat(value)
+    | _ ->
+        let value = mkBool rand (depth + 1)
+        BoolPat(value)
 
 and randomPolyType (rand: Random) depth =
     match rand.Next(1) with

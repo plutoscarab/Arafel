@@ -66,8 +66,9 @@ let stringToken (ctor:Cspan -> Token) ctorName =
                     then (Match (tokenText first)), rest
                     else nm
             match first with
-            | Identifier x          -> f x
+            | Identifier x  -> f x
             | String x      -> f x
+            | Bool x        -> f x
             | Operator x    -> f x
             | Keyword x     -> f x
             | Nat x         -> f x
@@ -98,6 +99,12 @@ let private parseNat (s:string) =
 
     parseNat' (s.EnumerateRunes() |> Seq.toList) (bigint 0)
 
+let private parseBool =
+    function
+    | "false" -> (true, false)
+    | "true" -> (true, true)
+    | _ -> (false, false)
+
 let bigintToken (ctor:Cspan -> Token) ctorName =
     fun t ->
         let (m, t2) = (stringToken ctor ctorName) t
@@ -108,6 +115,17 @@ let bigintToken (ctor:Cspan -> Token) ctorName =
             match parseNat s with
             | (false, _) -> (Nomatch ["Nat value"]), t
             | (true, n) -> (Match n), t2
+
+let boolToken (ctor:Cspan -> Token) ctorName =
+    fun t ->
+        let (m, t2) = (stringToken ctor ctorName) t
+        match m with
+        | Nomatch e -> (Nomatch e), t
+        | SyntaxError e -> (SyntaxError e), t2
+        | Match s ->
+            match parseBool s with
+            | (false, _) -> (Nomatch ["Bool value"]), t
+            | (true, b) -> (Match b), t2
 
 let literal (s: string) =
     fun t ->
@@ -292,6 +310,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
             match primaryType with
             | StringType -> "stringToken"
             | BigintType -> "bigintToken"
+            | BoolType -> "boolToken"
             | _ -> raise (NotImplementedException())
 
         let u = unboxed s
@@ -389,6 +408,7 @@ let writeParserFile filename modulename (productions:Production list) (keywords:
     use file = File.CreateText(filename)
     use writer = new IndentedTextWriter(file)
     writer.WriteLine $"module {modulename}"
+    writer.WriteLine "// Generated code. Do not edit."
     writer.WriteLine ()
     writer.WriteLine "open Tokens"
     writer.WriteLine "open Lexer"

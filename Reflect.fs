@@ -35,6 +35,8 @@ let private primaryType (t:Type) =
         StringType
     elif t.Name = "BigInteger" then
         BigintType
+    elif t.Name = "Boolean" then
+        BoolType
     else
         ProductionType t.Name
 

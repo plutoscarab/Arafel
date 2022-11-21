@@ -7,12 +7,12 @@ Command ::= TypeDecl | LetDecl | Expr
 ElseIf ::= 'elif' Expr 'then' Expr
 Expr ::= (Prelude)* Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
 IfThen ::= 'if' Expr 'then' Expr (ElseIf)* 'else' Expr
-Lambda ::= ('fn' | 'λ') Pattern ('->' | '→') Expr
+Lambda ::= 'fn' '(' Lexpr ')' '=' Expr
 LetDecl ::= 'let' Lexpr '=' Expr
 Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
 LexprName ::= IDENTIFIER | OPERATOR
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
-Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING
+Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING | BOOL
 PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
 Postfix ::= SUPERSCRIPT
 Prelude ::= TypeDecl | LetDecl
