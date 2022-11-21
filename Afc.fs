@@ -34,7 +34,7 @@ let parseExpressions src =
 
     seq {
         while current <> [] do
-            let (result, next) = parseExpr current
+            let (result, next) = parseExpr current []
             
             match result with
             | Nomatch e ->
@@ -63,33 +63,31 @@ type CoreVisitor() =
         match name' with
         | Lexpr(n, ps) ->
             let folder p ex =
-                Expr (LambdaA (Lambda (p, ex)), [], [])
+                Expr (LambdaA (Lambda (p, ex)), [])
             let lambda = List.foldBack folder ps expr'
             LetDecl (Lexpr(n, []), lambda, inExpr')
 
     // Fully curry all the arguments of function applications
-    override this.Expr_Expr(atom, args, post) =
+    override this.Expr_Expr(atom, args) =
         let folder ex arg =
-            Expr (ParensA (ex), [arg], [])
+            Expr (ParensA (ex), [arg])
         let zero =
-            Expr (atom, [], [])
+            Expr (atom, [])
         match List.fold folder zero args with
-        | Expr(at, ar, _) ->
+        | Expr(at, ar) ->
             let atom' = this.VisitAtom at
             let args' = List.map this.VisitExpr ar
-            let post' = List.map this.VisitPostfix post
 
             // Parenthesis elimination
-            let mutable result = Expr (atom', args', post')
+            let mutable result = Expr (atom', args')
 
             match atom' with
             | ParensA pexpr ->
                 match pexpr with
-                | Expr (patom, pargs, ppost) ->
+                | Expr (patom, pargs) ->
                     if (pargs = [] || args' = [])
-                        && (ppost = [] || post' = [])
                     then
-                        result <- Expr (patom, args' @ pargs, post' @ ppost) 
+                        result <- Expr (patom, args' @ pargs) 
             | _ -> ignore ()
 
             result
@@ -103,7 +101,7 @@ type CoreVisitor() =
                 let cs = CasesA (Cases (co, [
                     Case (BoolPat (true), th)
                 ], Some expr))
-                Expr (cs, [], [])
+                Expr (cs, [])
             let elseExpr = List.foldBack folder elseifs falseExpr
             CasesA (Cases (condition, [
                 Case (BoolPat (true), trueExpr)

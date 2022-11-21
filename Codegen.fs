@@ -128,6 +128,6 @@ let main =
     let gen = loc "generated" "*.*"
 
     File.WriteAllText ("generated/loc.txt",
-        (sprintf "F#    %d\ngen'd %d\n" fs gen))
+        (sprintf "Lines of code\nF#    %d\ngen'd %d\n" fs gen))
 
     0

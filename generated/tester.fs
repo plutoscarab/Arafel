@@ -6,32 +6,35 @@ open Random
 open Syntax
 
 let rec randomAtom (rand: Random) depth =
-    match rand.Next(10) with
+    match rand.Next(11) with
     | 0 ->
+        let exponent = randomExponent rand (depth + 1)
+        ExponentA(exponent)
+    | 1 ->
         let value = mkBigint rand (depth + 1)
         NatA(value)
-    | 1 ->
+    | 2 ->
         let value = mkString rand (depth + 1)
         StringA(value)
-    | 2 ->
+    | 3 ->
         let symbol = mkString rand (depth + 1)
         OperatorA(symbol)
-    | 3 ->
+    | 4 ->
         let lambda = randomLambda rand (depth + 1)
         LambdaA(lambda)
-    | 4 ->
+    | 5 ->
         let expr = randomExpr rand (depth + 1)
         ParensA(expr)
-    | 5 ->
+    | 6 ->
         let name = mkString rand (depth + 1)
         IdentifierA(name)
-    | 6 ->
+    | 7 ->
         let cases = randomCases rand (depth + 1)
         CasesA(cases)
-    | 7 ->
+    | 8 ->
         let ifthen = randomIfThen rand (depth + 1)
         IfThenA(ifthen)
-    | 8 ->
+    | 9 ->
         let letDecl = randomLetDecl rand (depth + 1)
         LetA(letDecl)
     | _ ->
@@ -60,13 +63,19 @@ and randomElseIf (rand: Random) depth =
         let trueExpr = randomExpr rand (depth + 1)
         ElseIf(condition, trueExpr)
 
+and randomExponent (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let expr = randomExpr rand (depth + 1)
+        let exponent = mkBigint rand (depth + 1)
+        Exponent(expr, exponent)
+
 and randomExpr (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
         let atom = randomAtom rand (depth + 1)
         let args = mkList randomExpr rand (depth + 1)
-        let post = mkList randomPostfix rand (depth + 1)
-        Expr(atom, args, post)
+        Expr(atom, args)
 
 and randomIfThen (rand: Random) depth =
     match rand.Next(1) with
@@ -136,12 +145,6 @@ and randomPolyType (rand: Random) depth =
         let foralls = mkList mkString rand (depth + 1)
         let cases = mkNonempty randomMonoType rand (depth + 1)
         PolyType(foralls, cases)
-
-and randomPostfix (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let value = mkBigint rand (depth + 1)
-        SuperscriptPF(value)
 
 and randomTypeDecl (rand: Random) depth =
     match rand.Next(1) with

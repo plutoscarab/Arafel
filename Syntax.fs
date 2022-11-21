@@ -20,9 +20,6 @@ type PolyType =
         Parse("delim '␠|␠' _")>] 
       PolyType of foralls: string list * cases: MonoType list
 
-type Postfix =
-    | [<Parse("␑SUPERSCRIPT")>] SuperscriptPF of value: bigint
-
 type Pattern =
     | [<Parse("IDENTIFIER");
         Parse("opt[] surr '(' ')' delim ',␠' _")>] 
@@ -46,6 +43,11 @@ and LetDecl =
         Parse("⚠ and '␠=␏' ␤_␎");
         Parse("⚠ out '␤␤' _")>]
       LetDecl of name: Lexpr * expr: Expr * inExpr: Expr
+
+and Exponent =
+    | [<Parse("_");
+        Parse("␑SUPERSCRIPT")>] 
+      Exponent of expr: Expr * exponent: bigint
 
 and Atom =
     | [<Parse("NAT")>] NatA of value: bigint
@@ -72,9 +74,8 @@ and Cases =
 
 and Expr =
     | [<Parse("_");
-        Parse("opt[] surr '(' ')' delim ',␠' _");
-        Parse("0+ _")>]
-      Expr of atom: Atom * args: Expr list * post: Postfix list
+        Parse("opt[] surr '(' ')' delim ',␠' _")>]
+      Expr of atom: Atom * args: Expr list
 
 and IfThen =
     | [<Parse("and 'if␠' ⚠ _");

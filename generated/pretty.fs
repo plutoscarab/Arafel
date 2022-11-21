@@ -13,6 +13,8 @@ let rec printAtom (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
+    | ExponentA(exponent) ->
+        printExponent writer exponent
     | NatA(value) ->
         writeSafe writer value
     | StringA(value) ->
@@ -87,11 +89,22 @@ and printElseIf (writer:IndentedTextWriter) value =
     
     writer.Indent <- n
 
+and printExponent (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | Exponent(expr, exponent) ->
+        printExpr writer expr
+        let s = toSuperscript exponent
+        writeSafe writer s
+    
+    writer.Indent <- n
+
 and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Expr(atom, args, post) ->
+    | Expr(atom, args) ->
         printAtom writer atom
         match args with
         | [] -> ignore()
@@ -107,8 +120,6 @@ and printExpr (writer:IndentedTextWriter) value =
                     writer.Write ", "
                     printExpr writer args_
             writer.Write ")"
-        for post' in post do
-            printPostfix writer post'
     
     writer.Indent <- n
 
@@ -264,16 +275,6 @@ and printPolyType (writer:IndentedTextWriter) value =
             for cases_ in cases'' do
                 writer.Write " | "
                 printMonoType writer cases_
-    
-    writer.Indent <- n
-
-and printPostfix (writer:IndentedTextWriter) value =
-    let n = writer.Indent
-    
-    match value with
-    | SuperscriptPF(value) ->
-        let s = toSuperscript value
-        writeSafe writer s
     
     writer.Indent <- n
 

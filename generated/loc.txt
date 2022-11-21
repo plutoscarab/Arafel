@@ -1,2 +1,3 @@
-F#    1869
-gen'd 1028
+Lines of code
+F#    1890
+gen'd 1110

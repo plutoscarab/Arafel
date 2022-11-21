@@ -6,6 +6,11 @@ open Syntax
 
 type Visitor() =
     
+    abstract member Atom_ExponentA: Exponent -> Atom
+    default this.Atom_ExponentA(exponent) =
+        let exponent' = this.VisitExponent exponent
+        ExponentA (exponent')
+    
     abstract member Atom_NatA: bigint -> Atom
     default this.Atom_NatA(value) =
         let value' = value
@@ -59,6 +64,7 @@ type Visitor() =
     abstract member VisitAtom: Atom -> Atom
     default this.VisitAtom(value) =
         match value with
+        | ExponentA (exponent) -> this.Atom_ExponentA(exponent)
         | NatA (value) -> this.Atom_NatA(value)
         | StringA (value) -> this.Atom_StringA(value)
         | OperatorA (symbol) -> this.Atom_OperatorA(symbol)
@@ -104,17 +110,27 @@ type Visitor() =
         match value with
         | ElseIf (condition, trueExpr) -> this.ElseIf_ElseIf(condition, trueExpr)
     
-    abstract member Expr_Expr: Atom * Expr list * Postfix list -> Expr
-    default this.Expr_Expr(atom, args, post) =
+    abstract member Exponent_Exponent: Expr * bigint -> Exponent
+    default this.Exponent_Exponent(expr, exponent) =
+        let expr' = this.VisitExpr expr
+        let exponent' = exponent
+        Exponent (expr', exponent')
+    
+    abstract member VisitExponent: Exponent -> Exponent
+    default this.VisitExponent(value) =
+        match value with
+        | Exponent (expr, exponent) -> this.Exponent_Exponent(expr, exponent)
+    
+    abstract member Expr_Expr: Atom * Expr list -> Expr
+    default this.Expr_Expr(atom, args) =
         let atom' = this.VisitAtom atom
         let args' = List.map this.VisitExpr args
-        let post' = List.map this.VisitPostfix post
-        Expr (atom', args', post')
+        Expr (atom', args')
     
     abstract member VisitExpr: Expr -> Expr
     default this.VisitExpr(value) =
         match value with
-        | Expr (atom, args, post) -> this.Expr_Expr(atom, args, post)
+        | Expr (atom, args) -> this.Expr_Expr(atom, args)
     
     abstract member IfThen_IfThen: Expr * Expr * ElseIf list * Expr -> IfThen
     default this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr) =
@@ -228,16 +244,6 @@ type Visitor() =
     default this.VisitPolyType(value) =
         match value with
         | PolyType (foralls, cases) -> this.PolyType_PolyType(foralls, cases)
-    
-    abstract member Postfix_SuperscriptPF: bigint -> Postfix
-    default this.Postfix_SuperscriptPF(value) =
-        let value' = value
-        SuperscriptPF (value')
-    
-    abstract member VisitPostfix: Postfix -> Postfix
-    default this.VisitPostfix(value) =
-        match value with
-        | SuperscriptPF (value) -> this.Postfix_SuperscriptPF(value)
     
     abstract member TypeDecl_TypeDecl: string * string list * PolyType * Expr -> TypeDecl
     default this.TypeDecl_TypeDecl(name, parameters, ptype, inExpr) =

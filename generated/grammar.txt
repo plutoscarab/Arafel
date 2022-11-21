@@ -1,10 +1,11 @@
 /* Use, for example, at https://www.bottlecaps.de/rr/ui */
 
-Atom ::= NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl
+Atom ::= Exponent | NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl
 Case ::= Pattern ':' Expr
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Expr)?
 ElseIf ::= 'elif' Expr 'then' Expr
-Expr ::= Atom ('(' Expr (',' Expr)* ')')? (Postfix)*
+Exponent ::= Expr SUPERSCRIPT
+Expr ::= Atom ('(' Expr (',' Expr)* ')')?
 IfThen ::= 'if' Expr 'then' Expr (ElseIf)* 'else' Expr
 Lambda ::= 'fn' '(' Lexpr ')' '=' Expr
 LetDecl ::= 'let' Lexpr '=' Expr Expr
@@ -13,5 +14,4 @@ LexprName ::= IDENTIFIER | OPERATOR
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
 Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING | BOOL
 PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
-Postfix ::= SUPERSCRIPT
 TypeDecl ::= 'type' IDENTIFIER ('(' IDENTIFIER (',' IDENTIFIER)* ')')? '=' PolyType Expr

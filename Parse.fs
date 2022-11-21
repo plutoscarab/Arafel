@@ -26,20 +26,20 @@ let mergeErrors es =
 
 type ParserBuilder() =
     member _.Bind(p, f) =
-        fun t ->
-            let (m, t2) = p t
+        fun t h ->
+            let (m, t2) = p t h
             match m with
             | Nomatch e -> (Nomatch e), t
             | SyntaxError e -> (SyntaxError e), t2
-            | Match r -> (f r) t2
+            | Match r -> (f r) t2 h
     member _.Combine(p1, p2) =
-        fun t ->
-            let (m, t2) = p1 t
+        fun t h ->
+            let (m, t2) = p1 t h
             match m with
             | Match r -> (Match r), t2
             | SyntaxError e -> (SyntaxError e), t2
             | Nomatch e1 ->
-                let (m, t2) = p2 t
+                let (m, t2) = p2 t h
                 match m with
                 | Match r -> (Match r), t2
                 | SyntaxError e -> (SyntaxError e), t2
@@ -47,16 +47,16 @@ type ParserBuilder() =
     member _.Delay(f) =
         f()
     member _.Return(r) =
-        fun t -> (Match r), t
+        fun t h -> (Match r), t
     member _.ReturnFrom(p) = 
         p
     member _.Zero() =
-        fun t -> Nomatch [], t
+        fun t h -> Nomatch [], t
 
 let parser = new ParserBuilder()
 
 let stringToken (ctor:Cspan -> Token) ctorName =
-    fun t ->
+    fun t h ->
         let nm = (Nomatch [$"{ctorName} token"]), t
         match t with
         | [] -> nm
@@ -106,8 +106,8 @@ let private parseBool =
     | _ -> (false, false)
 
 let bigintToken (ctor:Cspan -> Token) ctorName =
-    fun t ->
-        let (m, t2) = (stringToken ctor ctorName) t
+    fun t h ->
+        let (m, t2) = (stringToken ctor ctorName) t h
         match m with
         | Nomatch e -> (Nomatch e), t
         | SyntaxError e -> (SyntaxError e), t2
@@ -117,8 +117,8 @@ let bigintToken (ctor:Cspan -> Token) ctorName =
             | (true, n) -> (Match n), t2
 
 let boolToken (ctor:Cspan -> Token) ctorName =
-    fun t ->
-        let (m, t2) = (stringToken ctor ctorName) t
+    fun t h ->
+        let (m, t2) = (stringToken ctor ctorName) t h
         match m with
         | Nomatch e -> (Nomatch e), t
         | SyntaxError e -> (SyntaxError e), t2
@@ -128,7 +128,7 @@ let boolToken (ctor:Cspan -> Token) ctorName =
             | (true, b) -> (Match b), t2
 
 let literal (s: string) =
-    fun t ->
+    fun t h ->
         match t with
         | [] -> Nomatch [$"«{s}»"], t
         | first::rest ->
@@ -150,8 +150,8 @@ let orElse p q =
     }
 
 let checkpoint p =
-    fun t ->
-        let (m, t2) = p t
+    fun t h ->
+        let (m, t2) = p t h
         match m with
         | Nomatch e -> (SyntaxError e), t2
         | SyntaxError e -> (SyntaxError e), t2
@@ -176,13 +176,13 @@ let optionlist p =
     }
 
 let rec zeroOrMore p =
-    fun t ->
-        let (m, t2) = p t
+    fun t h ->
+        let (m, t2) = p t h
         match m with
         | Nomatch _ -> (Match []), t
         | SyntaxError e -> (SyntaxError e), t2
         | Match r ->
-            let (m2, t3) = (zeroOrMore p) t2
+            let (m2, t3) = (zeroOrMore p) t2 h
             match m2 with
             | Nomatch _ -> (Match [r]), t2
             | SyntaxError e -> (SyntaxError e), t3
@@ -385,18 +385,18 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer p primaryType
         writer.Write ")"
 
-let private writeField writer (TupleField(_, primaryType, _, parser)) =
+let private writeField writer pname (TupleField(_, primaryType, _, parser)) isFirst =
     writeParser writer parser primaryType
     writer.WriteLine ()
 
-let private writeCase (writer:IndentedTextWriter) (UnionCase(name, fields)) =
+let private writeCase (writer:IndentedTextWriter) pname (UnionCase(name, fields)) =
     writer.WriteLine "parser {"
     writer.Indent <- writer.Indent + 1
     let mutable i = 0
 
     for field in fields do
         writer.Write $"let! f{i} = "
-        writeField writer field
+        writeField writer pname field (i = 0)
         i <- i + 1
 
     let fs = String.concat ", " (List.map (fun f -> $"f{f}") [0..i-1])
@@ -416,34 +416,50 @@ let writeParserFile filename modulename (productions:Production list) (keywords:
     writer.WriteLine "open Syntax"
     writer.WriteLine ()
     writer.WriteLine $"let keywords = Set ["
+    writer.Write "    "
+    let mutable col = 4
 
     for kw in keywords do
-        writer.WriteLine $"    \"{kw}\";"
+        if col + kw.Length > 77 then
+            writer.Write "\r\n    "
+            col <- 4
+        writer.Write $"\"{kw}\"; "
+        col <- col + kw.Length + 4
 
+    writer.WriteLine ()
     writer.WriteLine $"]"
     let mutable keyword = "let rec"
 
     for Production(name, cases, indent) in productions do
         writer.WriteLine ()
-        let pname = $"parse{name}"
-        writer.WriteLine $"{keyword} {pname} tokens ="
+        writer.WriteLine $"{keyword} parse{name}' () ="
         keyword <- "and"
         writer.Indent <- writer.Indent + 1
 
         if List.length(cases) = 1 then
-            writer.Write "let p = "
-            writeCase writer cases.[0]
-            writer.WriteLine "p tokens"
+            writeCase writer name cases.[0]
         else
-            writer.WriteLine "let p = parser {"
+            writer.WriteLine "parser {"
             writer.Indent <- writer.Indent + 1
 
             for unionCase in cases do
                 writer.Write "return! "
-                writeCase writer unionCase
+                writeCase writer name unionCase
 
             writer.Indent <- writer.Indent - 1
             writer.WriteLine "}"
-            writer.WriteLine "p tokens"
 
         writer.Indent <- writer.Indent - 1
+
+    for Production(name, cases, indent) in productions do
+        writer.WriteLine ()
+        writer.WriteLine $"and parse{name} tokens history ="
+        writer.WriteLine $"    if recursion \"{name}\" tokens history then"
+        writer.WriteLine $"        Nomatch [\"non-recursion\"], tokens"
+        writer.WriteLine $"    else"
+        writer.WriteLine $"        parse{name}'() tokens ((\"{name}\", tokenIndex tokens)::history)"
+
+let recursion pname tokens history =
+    let index = tokenIndex tokens
+    not (history |> List.takeWhile (fun (_, i) -> i = index) |> List.filter (fun (n, _) -> n = pname) |> List.isEmpty)
+

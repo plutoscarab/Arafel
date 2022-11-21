@@ -52,3 +52,8 @@ let tokenCursor (token:Token) =
     | Bool s -> fst s
     | Comment s -> fst s
     | Error c -> c
+
+let tokenIndex =
+    function
+    | [] -> -1
+    | t::_ -> (tokenCursor t).index

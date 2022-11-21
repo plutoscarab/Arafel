@@ -1,6 +1,7 @@
 digraph G {
     rankdir="BT"
     { rank=same; bool; bigint; string; }
+    Atom -> Exponent
     Atom -> bigint
     Atom -> string
     Atom -> Lambda
@@ -14,9 +15,10 @@ digraph G {
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
+    Exponent -> Expr
+    Exponent -> bigint
     Expr -> Atom
     Expr -> Expr
-    Expr -> Postfix
     IfThen -> Expr
     IfThen -> ElseIf
     Lambda -> Lexpr
@@ -33,7 +35,6 @@ digraph G {
     Pattern -> bool
     PolyType -> string
     PolyType -> MonoType
-    Postfix -> bigint
     TypeDecl -> string
     TypeDecl -> PolyType
     TypeDecl -> Expr
