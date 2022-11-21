@@ -24,6 +24,13 @@ type PrimaryType =
     | BigintType
     | BoolType
     | ProductionType of string
+    with
+    override this.ToString() =
+        match this with
+        | StringType -> "string"
+        | BigintType -> "bigint"
+        | BoolType -> "bool"
+        | ProductionType p -> p
 
 type Multiplicity =
     | SingleM

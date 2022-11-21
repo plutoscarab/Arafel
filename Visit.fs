@@ -26,11 +26,7 @@ let writeVisitorFile filename modulename productions =
                 fnames <- fname::fnames
                 writer.Write oper
                 oper <- " * "
-                match primaryType with
-                | StringType -> writer.Write "string"
-                | BigintType -> writer.Write "bigint"
-                | BoolType -> writer.Write "bool"
-                | ProductionType p -> writer.Write p
+                writer.Write primaryType
                 match multiplicity with
                 | SingleM -> ignore ()
                 | OptionM -> writer.Write " option"

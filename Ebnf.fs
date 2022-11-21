@@ -130,13 +130,7 @@ let writeEbnf filename productions =
         writer.WriteLine $"{name} ::= {getEbnf ucs}"
 
 let writeDotField pname (TupleField (_, primaryType, _, _)) =
-    let fname =
-        match primaryType with
-        | StringType -> "string"
-        | BigintType -> "bigint"
-        | BoolType -> "bool"
-        | ProductionType p -> p
-    $"{pname} -> {fname}"
+    $"{pname} -> {primaryType}"
 
 let writeDotCase pname (UnionCase (_, fields)) =
     Seq.map (writeDotField pname) fields
