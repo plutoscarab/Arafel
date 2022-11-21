@@ -55,16 +55,17 @@ type CoreVisitor() =
     inherit Visitor()
 
     // Fully curry all the arguments of functions
-    override this.LetDecl_LetDecl(name, expr) =
+    override this.LetDecl_LetDecl(name, expr, inExpr) =
         let name' = this.VisitLexpr name
         let expr' = this.VisitExpr expr
+        let inExpr' = this.VisitExpr inExpr
 
         match name' with
         | Lexpr(n, ps) ->
             let folder p ex =
                 Expr ([], LambdaA (Lambda (p, ex)), [], [])
             let lambda = List.foldBack folder ps expr'
-            LetDecl (Lexpr(n, []), lambda)
+            LetDecl (Lexpr(n, []), lambda, inExpr')
 
     // Fully curry all the arguments of function applications
     override this.Expr_Expr(prelude, atom, args, post) =

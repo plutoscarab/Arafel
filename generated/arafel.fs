@@ -53,6 +53,10 @@ let rec parseAtom tokens =
             let! f0 = parseIfThen
             return IfThenA(f0)
         }
+        return! parser {
+            let! f0 = parseLetDecl
+            return LetA(f0)
+        }
     }
     p tokens
 
@@ -113,7 +117,8 @@ and parseLetDecl tokens =
     let p = parser {
         let! f0 = andThen (literal "let") (checkpoint (parseLexpr))
         let! f1 = checkpoint (andThen (literal "=") (parseExpr))
-        return LetDecl(f0, f1)
+        let! f2 = checkpoint (parseExpr)
+        return LetDecl(f0, f1, f2)
     }
     p tokens
 
@@ -184,14 +189,8 @@ and parsePostfix tokens =
 
 and parsePrelude tokens =
     let p = parser {
-        return! parser {
-            let! f0 = parseTypeDecl
-            return TypeP(f0)
-        }
-        return! parser {
-            let! f0 = parseLetDecl
-            return LetP(f0)
-        }
+        let! f0 = parseTypeDecl
+        return TypeP(f0)
     }
     p tokens
 

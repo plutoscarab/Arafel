@@ -215,8 +215,9 @@ let rec getKeywords =
     | ProductionP (_, _) -> Seq.empty
     | TokenP _ -> Seq.empty
     | LiteralP s ->
-        let u = unboxed s
+        let u = plain s
         if Rune.IsLetter(Rune.GetRuneAt(u, 0)) then seq { u } else Seq.empty
+    | OutP (_, p) -> getKeywords p
     | OptionP p -> getKeywords p
     | OptionListP p -> getKeywords p
     | ListP p -> getKeywords p
@@ -231,62 +232,57 @@ let rec getKeywords =
     | SurroundP (p, q, r) ->
         Seq.concat [getKeywords p; getKeywords q; getKeywords r]
 
-let rec private decodeParser ps =
+let private formatter =
+    function
+    | '_' -> Raw
+    | '␤' -> Newline
+    | '␏' -> Indent
+    | '␎' -> Outdent
+    | _ -> raise (Exception())
+
+let rec private decodeParser (ps: string list) =
     match ps with
-    | "_"::rest ->
-        ProductionP(Raw, Raw), rest
-    | "_␤"::rest ->
-        ProductionP(Raw, Newline), rest
-    | "_␏"::rest ->
-        ProductionP(Raw, Indent), rest
-    | "␤_"::rest ->
-        ProductionP(Newline, Raw), rest
-    | "␤_␤"::rest ->
-        ProductionP(Newline, Newline), rest
-    | "␤_␏"::rest ->
-        ProductionP(Newline, Indent), rest
-    | "␏_"::rest ->
-        ProductionP(Indent, Raw), rest
-    | "␏_␤"::rest ->
-        ProductionP(Indent, Newline), rest
-    | "␏_␏"::rest ->
-        ProductionP(Indent, Indent), rest
+    | p::rest when p.Contains('_') ->
+        ProductionP (formatter (p[0]), formatter (p[^0])), rest
     | "⚠"::rest ->
         let (p, rest') = decodeParser rest
-        (CheckpointP p), rest'
+        CheckpointP p, rest'
     | "opt"::rest ->
         let (p, rest') = decodeParser rest
-        (OptionP p), rest'
+        OptionP p, rest'
     | "opt[]"::rest ->
         let (p, rest') = decodeParser rest
-        (OptionListP p), rest'
+        OptionListP p, rest'
     | "0+"::rest ->
         let (p, rest') = decodeParser rest
-        (ListP p, rest')
+        ListP p, rest'
     | "1+"::rest ->
         let (p, rest') = decodeParser rest
-        (NonEmptyListP p, rest')
+        NonEmptyListP p, rest'
     | "and"::rest ->
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
-        (AndP(p, q), rest'')
+        AndP (p, q), rest''
     | "or"::rest ->
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
-        (OrP(p, q), rest'')
+        OrP (p, q), rest''
     | "delim"::rest ->
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
-        (DelimitedP(p, q), rest'')
+        DelimitedP (p, q), rest''
     | "surr"::rest ->
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
         let (r, rest''') = decodeParser rest''
-        (SurroundP(p, q, r), rest''')
+        SurroundP (p, q, r), rest'''
+    | "out"::s::rest when s.Length > 2 && s.StartsWith("'") && s.EndsWith("'") ->
+        let (p, rest') = decodeParser rest
+        OutP (s.Substring(1, s.Length - 2), p), rest'
     | s::rest when s.Length > 2 && s.StartsWith("'") && s.EndsWith("'") ->
-        LiteralP(s.Substring(1, s.Length - 2)), rest
+        LiteralP (s.Substring(1, s.Length - 2)), rest
     | s::rest when s = s.ToUpperInvariant() && s <> s.ToLowerInvariant() ->
-        TokenP(s), rest
+        TokenP (s), rest
     | _ ->
         raise (NotImplementedException())
 
@@ -298,13 +294,13 @@ let decodeParserStr (s:string) =
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     match parser with
 
-    | ProductionP(_, _) ->
+    | ProductionP (_, _) ->
 
         match primaryType with
         | ProductionType name -> writer.Write $"parse{name}"
         | _ -> raise (NotImplementedException())
 
-    | TokenP(s) ->
+    | TokenP s ->
 
         let tokenType =
             match primaryType with
@@ -313,45 +309,49 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
             | BoolType -> "boolToken"
             | _ -> raise (NotImplementedException())
 
-        let u = unboxed s
+        let u = plain s
         let tokenCtor = u.Substring(0, 1) + u.Substring(1).ToLowerInvariant()
         writer.Write $"{tokenType} {tokenCtor} \"{tokenCtor}\""
 
-    | LiteralP(s) ->
+    | LiteralP s ->
 
-        writer.Write $"literal \"{unboxed s}\""
+        writer.Write $"literal \"{plain s}\""
 
-    | CheckpointP(p) ->
+    | OutP (_, p) ->
+
+        writeParser writer p primaryType
+
+    | CheckpointP p ->
 
         writer.Write "checkpoint ("
         writeParser writer p primaryType
         writer.Write ")"
 
-    | OptionP(p) ->
+    | OptionP p ->
 
         writer.Write "option ("
         writeParser writer p primaryType
         writer.Write ")"
 
-    | OptionListP(p) ->
+    | OptionListP p ->
 
         writer.Write "optionlist ("
         writeParser writer p primaryType
         writer.Write ")"
 
-    | ListP(p) ->
+    | ListP p ->
 
         writer.Write "zeroOrMore ("
         writeParser writer p primaryType
         writer.Write ")"
 
-    | NonEmptyListP(p) ->
+    | NonEmptyListP p ->
 
         writer.Write "oneOrMore ("
         writeParser writer p primaryType
         writer.Write ")"
 
-    | AndP(p, q) ->
+    | AndP (p, q) ->
 
         writer.Write "andThen ("
         writeParser writer p primaryType
@@ -359,7 +359,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer q primaryType
         writer.Write ")"
 
-    | OrP(p, q) ->
+    | OrP (p, q) ->
 
         writer.Write "orElse ("
         writeParser writer p primaryType
@@ -367,7 +367,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer q primaryType
         writer.Write ")"
 
-    | DelimitedP(d, p) ->
+    | DelimitedP (d, p) ->
 
         writer.Write "delimited ("
         writeParser writer d primaryType
@@ -375,7 +375,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer p primaryType
         writer.Write ")"
 
-    | SurroundP(a, b, p) ->
+    | SurroundP (a, b, p) ->
 
         writer.Write "surround ("
         writeParser writer a primaryType

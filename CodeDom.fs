@@ -4,6 +4,7 @@ type Formatter =
     | Raw
     | Newline
     | Indent
+    | Outdent
 
 type Parser =
     | ProductionP of Formatter * Formatter
@@ -14,6 +15,7 @@ type Parser =
     | ListP of Parser
     | NonEmptyListP of Parser
     | CheckpointP of Parser
+    | OutP of string * Parser
     | AndP of Parser * Parser
     | OrP of Parser * Parser
     | DelimitedP of Parser * Parser
@@ -55,7 +57,7 @@ let rec isNonempty =
     | CheckpointP p -> isNonempty p
     | _ -> false
 
-let unboxed (s: string) =
+let plain (s: string) =
     s.Replace("␠", "")
      .Replace("␤", "")
      .Replace("␏", "")

@@ -97,18 +97,19 @@ let parseProduction (s:string) =
 
 let rec getParserEbnf parser =
     match parser with
-    | ProductionP(_, _) -> "_"
-    | TokenP(s) -> unboxed s
-    | LiteralP(s) -> "'" + (unboxed s) + "'"
-    | CheckpointP(p) -> getParserEbnf p
-    | OptionP(p) -> "(" + (getParserEbnf p) + ")?"
-    | OptionListP(p) -> "(" + (getParserEbnf p) + ")?"
-    | ListP(p) -> "(" + (getParserEbnf p) + ")*"
-    | NonEmptyListP(p) -> "(" + (getParserEbnf p) + ")+"
-    | AndP(p, q) -> getParserEbnf(p) + " " + getParserEbnf(q)
-    | OrP(p, q) -> "(" + getParserEbnf(p) + " | " + getParserEbnf(q) + ")"
-    | DelimitedP(d, p) -> getParserEbnf(p) + " (" + getParserEbnf(d) + " " + getParserEbnf(p) + ")*"
-    | SurroundP(a, b, p) -> getParserEbnf(a) + " " + getParserEbnf(p) + " " + getParserEbnf(b)   
+    | ProductionP (_, _) -> "_"
+    | TokenP s -> plain s
+    | LiteralP s -> "'" + (plain s) + "'"
+    | OutP (_, p) -> getParserEbnf p
+    | CheckpointP p -> getParserEbnf p
+    | OptionP p -> "(" + (getParserEbnf p) + ")?"
+    | OptionListP p -> "(" + (getParserEbnf p) + ")?"
+    | ListP p -> "(" + (getParserEbnf p) + ")*"
+    | NonEmptyListP p -> "(" + (getParserEbnf p) + ")+"
+    | AndP (p, q) -> getParserEbnf(p) + " " + getParserEbnf(q)
+    | OrP (p, q) -> "(" + getParserEbnf(p) + " | " + getParserEbnf(q) + ")"
+    | DelimitedP (d, p) -> getParserEbnf(p) + " (" + getParserEbnf(d) + " " + getParserEbnf(p) + ")*"
+    | SurroundP (a, b, p) -> getParserEbnf(a) + " " + getParserEbnf(p) + " " + getParserEbnf(b)   
 
 let getFieldEbnf (TupleField(_, primary, _, parser)) =
     match primary with

@@ -6,7 +6,7 @@ open Random
 open Syntax
 
 let rec randomAtom (rand: Random) depth =
-    match rand.Next(8) with
+    match rand.Next(9) with
     | 0 ->
         let value = mkBigint rand (depth + 1)
         NatA(value)
@@ -28,9 +28,12 @@ let rec randomAtom (rand: Random) depth =
     | 6 ->
         let cases = randomCases rand (depth + 1)
         CasesA(cases)
-    | _ ->
+    | 7 ->
         let ifthen = randomIfThen rand (depth + 1)
         IfThenA(ifthen)
+    | _ ->
+        let letDecl = randomLetDecl rand (depth + 1)
+        LetA(letDecl)
 
 and randomCase (rand: Random) depth =
     match rand.Next(1) with
@@ -84,7 +87,8 @@ and randomLetDecl (rand: Random) depth =
     | _ ->
         let name = randomLexpr rand (depth + 1)
         let expr = randomExpr rand (depth + 1)
-        LetDecl(name, expr)
+        let inExpr = randomExpr rand (depth + 1)
+        LetDecl(name, expr, inExpr)
 
 and randomLexpr (rand: Random) depth =
     match rand.Next(1) with
@@ -138,13 +142,10 @@ and randomPostfix (rand: Random) depth =
         SuperscriptPF(value)
 
 and randomPrelude (rand: Random) depth =
-    match rand.Next(2) with
-    | 0 ->
+    match rand.Next(1) with
+    | _ ->
         let typeDecl = randomTypeDecl rand (depth + 1)
         TypeP(typeDecl)
-    | _ ->
-        let letDecl = randomLetDecl rand (depth + 1)
-        LetP(letDecl)
 
 and randomTypeDecl (rand: Random) depth =
     match rand.Next(1) with

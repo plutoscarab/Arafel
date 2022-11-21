@@ -45,14 +45,20 @@ let writeSafe (writer: IndentedTextWriter) value =
     else
         writer.Write s
 
+let private writeFormatter (writer:IndentedTextWriter) =
+    function
+    | Raw -> ignore()
+    | Newline -> writer.WriteLine "writer.WriteLine ()"
+    | Indent -> writer.WriteLine "writer.Indent <- writer.Indent + 1"
+    | Outdent ->
+        writer.WriteLine "writer.Indent <- writer.Indent - 1"
+        writer.WriteLine ()
+
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType name =
     match parser with
     | ProductionP(pre, post) ->
 
-        match pre with
-        | Raw -> ignore()
-        | Newline -> writer.WriteLine "writer.WriteLine ()"
-        | Indent -> writer.WriteLine "writer.Indent <- writer.Indent + 1"
+        writeFormatter writer pre
 
         match primaryType with
         | StringType
@@ -63,10 +69,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         | ProductionType p ->
             writer.WriteLine $"print{p} writer {name}"
 
-        match post with
-        | Raw -> ignore()
-        | Newline -> writer.WriteLine "writer.WriteLine ()"
-        | Indent -> writer.WriteLine "writer.Indent <- writer.Indent + 1"
+        writeFormatter writer post
 
         if pre = Indent then
             writer.WriteLine "writer.Indent <- writer.Indent - 1"
@@ -92,7 +95,7 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
                  .Split('␤')
 
         for i in [0..u.Length-1] do
-            let v = unboxed u.[i]
+            let v = plain u.[i]
             if i < u.Length - 1 then
                 writer.WriteLine $"writer.WriteLine \"{v}\""
             elif v <> "" then
@@ -100,6 +103,20 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
 
         if s.EndsWith("␏") then
             writer.WriteLine "writer.Indent <- writer.Indent + 1"
+
+    | OutP (s, p) ->
+
+        let u = s.Replace("␠", " ")
+                 .Split('␤')
+
+        for i in [0..u.Length-1] do
+            let v = plain u.[i]
+            if i < u.Length - 1 then
+                writer.WriteLine $"writer.WriteLine \"{v}\""
+            elif v <> "" then
+                writer.WriteLine $"writer.Write \"{v}\""
+
+        writeParser writer p primaryType name
 
     | CheckpointP(p) ->
 

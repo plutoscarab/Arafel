@@ -31,6 +31,8 @@ let rec printAtom (writer:IndentedTextWriter) value =
         printCases writer cases
     | IfThenA(ifthen) ->
         printIfThen writer ifthen
+    | LetA(letDecl) ->
+        printLetDecl writer letDecl
     
     writer.Indent <- n
 
@@ -120,7 +122,6 @@ and printIfThen (writer:IndentedTextWriter) value =
         printExpr writer condition
         writer.Write " then "
         printExpr writer trueExpr
-        writer.Indent <- writer.Indent + 1
         for elseifs' in elseifs do
             printElseIf writer elseifs'
         writer.WriteLine ""
@@ -147,14 +148,18 @@ and printLetDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | LetDecl(name, expr) ->
+    | LetDecl(name, expr, inExpr) ->
         writer.Write "let "
         printLexpr writer name
         writer.Write " ="
         writer.Indent <- writer.Indent + 1
         writer.WriteLine ()
         printExpr writer expr
-        writer.WriteLine ()
+        writer.Indent <- writer.Indent - 1
+        
+        writer.WriteLine ""
+        writer.WriteLine ""
+        printExpr writer inExpr
     
     writer.Indent <- n
 
@@ -279,8 +284,6 @@ and printPrelude (writer:IndentedTextWriter) value =
     match value with
     | TypeP(typeDecl) ->
         printTypeDecl writer typeDecl
-    | LetP(letDecl) ->
-        printLetDecl writer letDecl
     
     writer.Indent <- n
 

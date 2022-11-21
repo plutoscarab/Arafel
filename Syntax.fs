@@ -42,8 +42,9 @@ type Pattern =
 
 type LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
-        Parse("⚠ and '␠=␏' ␤_␤")>]
-      LetDecl of name: Lexpr * expr: Expr
+        Parse("⚠ and '␠=␏' ␤_␎");
+        Parse("⚠ out '␤␤' _")>]
+      LetDecl of name: Lexpr * expr: Expr * inExpr: Expr
 
 and Atom =
     | [<Parse("NAT")>] NatA of value: bigint
@@ -54,6 +55,7 @@ and Atom =
     | [<Parse("IDENTIFIER")>] IdentifierA of name: string
     | [<Parse("_")>] CasesA of cases: Cases
     | [<Parse("_")>] IfThenA of ifthen: IfThen
+    | [<Parse("_")>] LetA of letDecl: LetDecl
 
 and Case =
     | [<Parse("_");
@@ -75,7 +77,7 @@ and Expr =
 
 and IfThen =
     | [<Parse("and 'if␠' ⚠ _");
-        Parse("⚠ and '␠then␠' _␏");
+        Parse("⚠ and '␠then␠' _");
         Parse("0+ _");
         Parse("⚠ and '␤else␠' _")>]
       IfThen of condition: Expr * trueExpr: Expr * elseifs: ElseIf list * falseExpr: Expr
@@ -92,4 +94,3 @@ and Lambda =
 
 and Prelude =
     | [<Parse("_")>] TypeP of typeDecl: TypeDecl
-    | [<Parse("_")>] LetP of letDecl: LetDecl

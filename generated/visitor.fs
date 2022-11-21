@@ -46,6 +46,11 @@ type Visitor() =
         let ifthen' = this.VisitIfThen ifthen
         IfThenA (ifthen')
     
+    abstract member Atom_LetA: LetDecl -> Atom
+    default this.Atom_LetA(letDecl) =
+        let letDecl' = this.VisitLetDecl letDecl
+        LetA (letDecl')
+    
     abstract member VisitAtom: Atom -> Atom
     default this.VisitAtom(value) =
         match value with
@@ -57,6 +62,7 @@ type Visitor() =
         | IdentifierA (name) -> this.Atom_IdentifierA(name)
         | CasesA (cases) -> this.Atom_CasesA(cases)
         | IfThenA (ifthen) -> this.Atom_IfThenA(ifthen)
+        | LetA (letDecl) -> this.Atom_LetA(letDecl)
     
     abstract member Case_Case: Pattern * Expr -> Case
     default this.Case_Case(pattern, expr) =
@@ -129,16 +135,17 @@ type Visitor() =
         match value with
         | Lambda (name, expr) -> this.Lambda_Lambda(name, expr)
     
-    abstract member LetDecl_LetDecl: Lexpr * Expr -> LetDecl
-    default this.LetDecl_LetDecl(name, expr) =
+    abstract member LetDecl_LetDecl: Lexpr * Expr * Expr -> LetDecl
+    default this.LetDecl_LetDecl(name, expr, inExpr) =
         let name' = this.VisitLexpr name
         let expr' = this.VisitExpr expr
-        LetDecl (name', expr')
+        let inExpr' = this.VisitExpr inExpr
+        LetDecl (name', expr', inExpr')
     
     abstract member VisitLetDecl: LetDecl -> LetDecl
     default this.VisitLetDecl(value) =
         match value with
-        | LetDecl (name, expr) -> this.LetDecl_LetDecl(name, expr)
+        | LetDecl (name, expr, inExpr) -> this.LetDecl_LetDecl(name, expr, inExpr)
     
     abstract member Lexpr_Lexpr: LexprName * Lexpr list -> Lexpr
     default this.Lexpr_Lexpr(name, parameters) =
@@ -232,16 +239,10 @@ type Visitor() =
         let typeDecl' = this.VisitTypeDecl typeDecl
         TypeP (typeDecl')
     
-    abstract member Prelude_LetP: LetDecl -> Prelude
-    default this.Prelude_LetP(letDecl) =
-        let letDecl' = this.VisitLetDecl letDecl
-        LetP (letDecl')
-    
     abstract member VisitPrelude: Prelude -> Prelude
     default this.VisitPrelude(value) =
         match value with
         | TypeP (typeDecl) -> this.Prelude_TypeP(typeDecl)
-        | LetP (letDecl) -> this.Prelude_LetP(letDecl)
     
     abstract member TypeDecl_TypeDecl: string * string list * PolyType -> TypeDecl
     default this.TypeDecl_TypeDecl(name, parameters, ptype) =
