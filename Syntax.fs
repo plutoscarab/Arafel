@@ -20,12 +20,6 @@ type PolyType =
         Parse("delim '␠|␠' _")>] 
       PolyType of foralls: string list * cases: MonoType list
 
-type TypeDecl =
-    | [<Parse("and 'type␠' ⚠ IDENTIFIER");
-        Parse("opt[] surr '(' ')' ⚠ delim ',␠' IDENTIFIER");
-        Parse("⚠ and '␠=␠' _␤")>]
-      TypeDecl of name: string * parameters: string list * ptype: PolyType
-
 type Postfix =
     | [<Parse("␑SUPERSCRIPT")>] SuperscriptPF of value: bigint
 
@@ -40,7 +34,14 @@ type Pattern =
     | [<Parse("BOOL")>]
       BoolPat of value: bool
 
-type LetDecl =
+type TypeDecl =
+    | [<Parse("and 'type␠' ⚠ IDENTIFIER");
+        Parse("opt[] surr '(' ')' ⚠ delim ',␠' IDENTIFIER");
+        Parse("⚠ and '␠=␠' _␤");
+        Parse("␤_")>]
+      TypeDecl of name: string * parameters: string list * ptype: PolyType * inExpr: Expr
+
+and LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
         Parse("⚠ and '␠=␏' ␤_␎");
         Parse("⚠ out '␤␤' _")>]
@@ -56,6 +57,7 @@ and Atom =
     | [<Parse("_")>] CasesA of cases: Cases
     | [<Parse("_")>] IfThenA of ifthen: IfThen
     | [<Parse("_")>] LetA of letDecl: LetDecl
+    | [<Parse("_")>] TypeA of typeDecl: TypeDecl
 
 and Case =
     | [<Parse("_");
@@ -69,11 +71,10 @@ and Cases =
       Cases of expr: Expr * cases: Case list * otherwise: Expr option
 
 and Expr =
-    | [<Parse("0+ _␤");
-        Parse("_");
+    | [<Parse("_");
         Parse("opt[] surr '(' ')' delim ',␠' _");
         Parse("0+ _")>]
-      Expr of prelude: Prelude list * atom: Atom * args: Expr list * post: Postfix list
+      Expr of atom: Atom * args: Expr list * post: Postfix list
 
 and IfThen =
     | [<Parse("and 'if␠' ⚠ _");
@@ -91,6 +92,3 @@ and Lambda =
     | [<Parse("and 'fn' surr '(' ')' _");
         Parse("and '␠=␠' ⚠ _")>]
       Lambda of name: Lexpr * expr: Expr
-
-and Prelude =
-    | [<Parse("_")>] TypeP of typeDecl: TypeDecl

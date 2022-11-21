@@ -6,7 +6,7 @@ open Random
 open Syntax
 
 let rec randomAtom (rand: Random) depth =
-    match rand.Next(9) with
+    match rand.Next(10) with
     | 0 ->
         let value = mkBigint rand (depth + 1)
         NatA(value)
@@ -31,9 +31,12 @@ let rec randomAtom (rand: Random) depth =
     | 7 ->
         let ifthen = randomIfThen rand (depth + 1)
         IfThenA(ifthen)
-    | _ ->
+    | 8 ->
         let letDecl = randomLetDecl rand (depth + 1)
         LetA(letDecl)
+    | _ ->
+        let typeDecl = randomTypeDecl rand (depth + 1)
+        TypeA(typeDecl)
 
 and randomCase (rand: Random) depth =
     match rand.Next(1) with
@@ -60,11 +63,10 @@ and randomElseIf (rand: Random) depth =
 and randomExpr (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
-        let prelude = mkList randomPrelude rand (depth + 1)
         let atom = randomAtom rand (depth + 1)
         let args = mkList randomExpr rand (depth + 1)
         let post = mkList randomPostfix rand (depth + 1)
-        Expr(prelude, atom, args, post)
+        Expr(atom, args, post)
 
 and randomIfThen (rand: Random) depth =
     match rand.Next(1) with
@@ -141,16 +143,11 @@ and randomPostfix (rand: Random) depth =
         let value = mkBigint rand (depth + 1)
         SuperscriptPF(value)
 
-and randomPrelude (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let typeDecl = randomTypeDecl rand (depth + 1)
-        TypeP(typeDecl)
-
 and randomTypeDecl (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
         let name = mkString rand (depth + 1)
         let parameters = mkList mkString rand (depth + 1)
         let ptype = randomPolyType rand (depth + 1)
-        TypeDecl(name, parameters, ptype)
+        let inExpr = randomExpr rand (depth + 1)
+        TypeDecl(name, parameters, ptype, inExpr)

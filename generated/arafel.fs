@@ -57,6 +57,10 @@ let rec parseAtom tokens =
             let! f0 = parseLetDecl
             return LetA(f0)
         }
+        return! parser {
+            let! f0 = parseTypeDecl
+            return TypeA(f0)
+        }
     }
     p tokens
 
@@ -87,11 +91,10 @@ and parseElseIf tokens =
 
 and parseExpr tokens =
     let p = parser {
-        let! f0 = zeroOrMore (parsePrelude)
-        let! f1 = parseAtom
-        let! f2 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr)))
-        let! f3 = zeroOrMore (parsePostfix)
-        return Expr(f0, f1, f2, f3)
+        let! f0 = parseAtom
+        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr)))
+        let! f2 = zeroOrMore (parsePostfix)
+        return Expr(f0, f1, f2)
     }
     p tokens
 
@@ -187,18 +190,12 @@ and parsePostfix tokens =
     }
     p tokens
 
-and parsePrelude tokens =
-    let p = parser {
-        let! f0 = parseTypeDecl
-        return TypeP(f0)
-    }
-    p tokens
-
 and parseTypeDecl tokens =
     let p = parser {
         let! f0 = andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))
         let! f1 = optionlist (surround (literal "(") (literal ")") (checkpoint (delimited (literal ",") (stringToken Identifier "Identifier"))))
         let! f2 = checkpoint (andThen (literal "=") (parsePolyType))
-        return TypeDecl(f0, f1, f2)
+        let! f3 = parseExpr
+        return TypeDecl(f0, f1, f2, f3)
     }
     p tokens

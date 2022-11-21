@@ -8,12 +8,12 @@ digraph G {
     Atom -> Cases
     Atom -> IfThen
     Atom -> LetDecl
+    Atom -> TypeDecl
     Case -> Pattern
     Case -> Expr
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
-    Expr -> Prelude
     Expr -> Atom
     Expr -> Expr
     Expr -> Postfix
@@ -34,7 +34,7 @@ digraph G {
     PolyType -> string
     PolyType -> MonoType
     Postfix -> bigint
-    Prelude -> TypeDecl
     TypeDecl -> string
     TypeDecl -> PolyType
+    TypeDecl -> Expr
 }

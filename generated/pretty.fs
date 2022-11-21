@@ -33,6 +33,8 @@ let rec printAtom (writer:IndentedTextWriter) value =
         printIfThen writer ifthen
     | LetA(letDecl) ->
         printLetDecl writer letDecl
+    | TypeA(typeDecl) ->
+        printTypeDecl writer typeDecl
     
     writer.Indent <- n
 
@@ -89,10 +91,7 @@ and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Expr(prelude, atom, args, post) ->
-        for prelude' in prelude do
-            printPrelude writer prelude'
-            writer.WriteLine ()
+    | Expr(atom, args, post) ->
         printAtom writer atom
         match args with
         | [] -> ignore()
@@ -278,20 +277,11 @@ and printPostfix (writer:IndentedTextWriter) value =
     
     writer.Indent <- n
 
-and printPrelude (writer:IndentedTextWriter) value =
-    let n = writer.Indent
-    
-    match value with
-    | TypeP(typeDecl) ->
-        printTypeDecl writer typeDecl
-    
-    writer.Indent <- n
-
 and printTypeDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | TypeDecl(name, parameters, ptype) ->
+    | TypeDecl(name, parameters, ptype, inExpr) ->
         writer.Write "type "
         writeSafe writer name
         match parameters with
@@ -311,5 +301,7 @@ and printTypeDecl (writer:IndentedTextWriter) value =
         writer.Write " = "
         printPolyType writer ptype
         writer.WriteLine ()
+        writer.WriteLine ()
+        printExpr writer inExpr
     
     writer.Indent <- n
