@@ -126,5 +126,38 @@ let writeEbnf filename productions =
     writer.WriteLine "/* Use, for example, at https://www.bottlecaps.de/rr/ui */"
     writer.WriteLine ()
 
-    for Production(name, ucs, indent) in productions do
+    for Production(name, ucs, _) in productions do
         writer.WriteLine $"{name} ::= {getEbnf ucs}"
+
+let writeDotField pname (TupleField (_, primaryType, _, _)) =
+    let fname =
+        match primaryType with
+        | StringType -> "string"
+        | BigintType -> "bigint"
+        | BoolType -> "bool"
+        | ProductionType p -> p
+    $"{pname} -> {fname}"
+
+let writeDotCase pname (UnionCase (_, fields)) =
+    Seq.map (writeDotField pname) fields
+
+let writeDotProduction (Production (pname, ucs, _)) =
+    Seq.map (writeDotCase pname) ucs
+    |> Seq.concat
+
+let writeDot filename productions =
+
+    let edges = 
+        Seq.map writeDotProduction productions
+        |> Seq.concat
+        |> Seq.distinct
+
+    use writer = File.CreateText(filename)
+    writer.WriteLine "digraph G {"
+    writer.WriteLine "    rankdir=\"BT\""
+    writer.WriteLine "    { rank=same; bool; bigint; string; }"
+
+    for edge in edges do
+        writer.WriteLine $"    {edge}"
+
+    writer.WriteLine "}"

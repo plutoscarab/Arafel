@@ -117,6 +117,7 @@ let main =
     let productions = getProductions typeof<Command>
     let keywords = getProductionKeywords productions
     writeEbnf "generated/grammar.txt" productions
+    writeDot "generated/productions.dot" productions
     writeParserFile "generated/arafel.fs" "Parser" productions keywords
     writePrintFile "generated/pretty.fs" "Pretty" productions
     writeTesterFile "generated/tester.fs" "Tester" productions
