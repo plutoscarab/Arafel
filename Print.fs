@@ -79,7 +79,12 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         else
             if s.StartsWith("␤") then
                 writer.WriteLine "writer.WriteLine ()"
-            writer.WriteLine $"writeSafe writer {name}"
+
+            if primaryType = BoolType then
+                writer.WriteLine $"let b = {name}.ToString().ToLowerInvariant()"
+                writer.WriteLine "writer.Write b"
+            else
+                writer.WriteLine $"writeSafe writer {name}"
 
     | LiteralP(s) ->
 

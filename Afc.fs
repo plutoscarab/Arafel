@@ -54,6 +54,7 @@ let parseExpressions src =
 type CoreVisitor() =
     inherit Visitor()
 
+    // Fully curry all the arguments of functions
     override this.LetDecl_LetDecl(name, expr) =
         let name' = this.VisitLexpr name
         let expr' = this.VisitExpr expr
@@ -65,20 +66,36 @@ type CoreVisitor() =
             let lambda = List.foldBack folder ps expr'
             LetDecl (Lexpr(n, []), lambda)
 
+    // Fully curry all the arguments of function applications
     override this.Expr_Expr(prelude, atom, args, post) =
-        let prelude' = List.map this.VisitPrelude prelude
-        let atom' = this.VisitAtom atom
-        let args' = List.map this.VisitExpr args
-        let post' = List.map this.VisitPostfix post
         let folder ex arg =
             Expr ([], ParensA (ex), [arg], [])
         let zero =
-            Expr ([], atom', [], [])
-        let uc = List.fold folder zero args'
-        match uc with
+            Expr ([], atom, [], [])
+        match List.fold folder zero args with
         | Expr(_, at, ar, _) ->
-            Expr (prelude', at, ar, post')
+            let prelude' = List.map this.VisitPrelude prelude
+            let atom' = this.VisitAtom at
+            let args' = List.map this.VisitExpr ar
+            let post' = List.map this.VisitPostfix post
+
+            // Parenthesis elimination
+            let mutable result = Expr (prelude', atom', args', post')
+
+            match atom' with
+            | ParensA pexpr ->
+                match pexpr with
+                | Expr (ppre, patom, pargs, ppost) ->
+                    if (ppre = [] || prelude' = []) 
+                        && (pargs = [] || args' = [])
+                        && (ppost = [] || post' = [])
+                    then
+                        result <- Expr (prelude' @ ppre, patom, args' @ pargs, post' @ ppost) 
+            | _ -> ignore ()
+
+            result
     
+    // Replace if-then with case
     override this.Atom_IfThenA(ifthen) =
         let ifthen' = this.VisitIfThen ifthen
         match ifthen' with
@@ -105,10 +122,13 @@ let pretty filename exprs =
 
 [<EntryPoint>]
 let main (args: string[]) =
+
     let src = File.ReadAllText (args.[0])
     let exprs = parseExpressions src
     pretty "pretty.af" exprs
+
     let visitor = CoreVisitor()
-    let vexprs = List.map visitor.VisitExpr exprs
-    pretty "core.af" vexprs
+    let cexprs = List.map visitor.VisitExpr exprs
+    pretty "core.af" cexprs
+
     0

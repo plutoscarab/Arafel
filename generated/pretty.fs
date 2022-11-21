@@ -247,7 +247,8 @@ and printPattern (writer:IndentedTextWriter) value =
     | StringPat(value) ->
         writeSafe writer value
     | BoolPat(value) ->
-        writeSafe writer value
+        let b = value.ToString().ToLowerInvariant()
+        writer.Write b
     
     writer.Indent <- n
 
