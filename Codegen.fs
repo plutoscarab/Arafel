@@ -114,7 +114,7 @@ let loc dir pattern =
         |> Seq.sum
 
 let main =
-    let productions = getProductions typeof<Command>
+    let productions = getProductions typeof<Expr>
     let keywords = getProductionKeywords productions
     writeEbnf "generated/grammar.txt" productions
     writeDot "generated/productions.dot" productions

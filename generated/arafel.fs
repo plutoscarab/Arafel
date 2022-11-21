@@ -73,23 +73,6 @@ and parseCases tokens =
     }
     p tokens
 
-and parseCommand tokens =
-    let p = parser {
-        return! parser {
-            let! f0 = parseTypeDecl
-            return TypeCmd(f0)
-        }
-        return! parser {
-            let! f0 = parseLetDecl
-            return LetCmd(f0)
-        }
-        return! parser {
-            let! f0 = parseExpr
-            return ExprCmd(f0)
-        }
-    }
-    p tokens
-
 and parseElseIf tokens =
     let p = parser {
         let! f0 = andThen (literal "elif") (checkpoint (parseExpr))

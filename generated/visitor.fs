@@ -81,28 +81,6 @@ type Visitor() =
         match value with
         | Cases (expr, cases, otherwise) -> this.Cases_Cases(expr, cases, otherwise)
     
-    abstract member Command_TypeCmd: TypeDecl -> Command
-    default this.Command_TypeCmd(typeDecl) =
-        let typeDecl' = this.VisitTypeDecl typeDecl
-        TypeCmd (typeDecl')
-    
-    abstract member Command_LetCmd: LetDecl -> Command
-    default this.Command_LetCmd(letDecl) =
-        let letDecl' = this.VisitLetDecl letDecl
-        LetCmd (letDecl')
-    
-    abstract member Command_ExprCmd: Expr -> Command
-    default this.Command_ExprCmd(expr) =
-        let expr' = this.VisitExpr expr
-        ExprCmd (expr')
-    
-    abstract member VisitCommand: Command -> Command
-    default this.VisitCommand(value) =
-        match value with
-        | TypeCmd (typeDecl) -> this.Command_TypeCmd(typeDecl)
-        | LetCmd (letDecl) -> this.Command_LetCmd(letDecl)
-        | ExprCmd (expr) -> this.Command_ExprCmd(expr)
-    
     abstract member ElseIf_ElseIf: Expr * Expr -> ElseIf
     default this.ElseIf_ElseIf(condition, trueExpr) =
         let condition' = this.VisitExpr condition

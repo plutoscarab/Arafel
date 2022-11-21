@@ -11,9 +11,6 @@ digraph G {
     Case -> Expr
     Cases -> Expr
     Cases -> Case
-    Command -> TypeDecl
-    Command -> LetDecl
-    Command -> Expr
     ElseIf -> Expr
     Expr -> Prelude
     Expr -> Atom

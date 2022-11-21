@@ -70,19 +70,6 @@ and printCases (writer:IndentedTextWriter) value =
     
     writer.Indent <- n
 
-and printCommand (writer:IndentedTextWriter) value =
-    let n = writer.Indent
-    
-    match value with
-    | TypeCmd(typeDecl) ->
-        printTypeDecl writer typeDecl
-    | LetCmd(letDecl) ->
-        printLetDecl writer letDecl
-    | ExprCmd(expr) ->
-        printExpr writer expr
-    
-    writer.Indent <- n
-
 and printElseIf (writer:IndentedTextWriter) value =
     let n = writer.Indent
     

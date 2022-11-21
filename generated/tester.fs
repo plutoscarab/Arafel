@@ -47,18 +47,6 @@ and randomCases (rand: Random) depth =
         let otherwise = mkOption randomExpr rand (depth + 1)
         Cases(expr, cases, otherwise)
 
-and randomCommand (rand: Random) depth =
-    match rand.Next(3) with
-    | 0 ->
-        let typeDecl = randomTypeDecl rand (depth + 1)
-        TypeCmd(typeDecl)
-    | 1 ->
-        let letDecl = randomLetDecl rand (depth + 1)
-        LetCmd(letDecl)
-    | _ ->
-        let expr = randomExpr rand (depth + 1)
-        ExprCmd(expr)
-
 and randomElseIf (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
