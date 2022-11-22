@@ -6,77 +6,6 @@ open Syntax
 
 type Visitor() =
     
-    abstract member Atom_ExponentA: Atom * bigint -> Atom
-    default this.Atom_ExponentA(atom, exponent) =
-        let atom' = this.VisitAtom atom
-        let exponent' = exponent
-        ExponentA (atom', exponent')
-    
-    abstract member Atom_NatA: bigint -> Atom
-    default this.Atom_NatA(value) =
-        let value' = value
-        NatA (value')
-    
-    abstract member Atom_StringA: string -> Atom
-    default this.Atom_StringA(value) =
-        let value' = value
-        StringA (value')
-    
-    abstract member Atom_OperatorA: string -> Atom
-    default this.Atom_OperatorA(symbol) =
-        let symbol' = symbol
-        OperatorA (symbol')
-    
-    abstract member Atom_LambdaA: Lambda -> Atom
-    default this.Atom_LambdaA(lambda) =
-        let lambda' = this.VisitLambda lambda
-        LambdaA (lambda')
-    
-    abstract member Atom_ParensA: Expr -> Atom
-    default this.Atom_ParensA(expr) =
-        let expr' = this.VisitExpr expr
-        ParensA (expr')
-    
-    abstract member Atom_IdentifierA: string -> Atom
-    default this.Atom_IdentifierA(name) =
-        let name' = name
-        IdentifierA (name')
-    
-    abstract member Atom_CasesA: Cases -> Atom
-    default this.Atom_CasesA(cases) =
-        let cases' = this.VisitCases cases
-        CasesA (cases')
-    
-    abstract member Atom_IfThenA: IfThen -> Atom
-    default this.Atom_IfThenA(ifthen) =
-        let ifthen' = this.VisitIfThen ifthen
-        IfThenA (ifthen')
-    
-    abstract member Atom_LetA: LetDecl -> Atom
-    default this.Atom_LetA(letDecl) =
-        let letDecl' = this.VisitLetDecl letDecl
-        LetA (letDecl')
-    
-    abstract member Atom_TypeA: TypeDecl -> Atom
-    default this.Atom_TypeA(typeDecl) =
-        let typeDecl' = this.VisitTypeDecl typeDecl
-        TypeA (typeDecl')
-    
-    abstract member VisitAtom: Atom -> Atom
-    default this.VisitAtom(value) =
-        match value with
-        | ExponentA (atom, exponent) -> this.Atom_ExponentA(atom, exponent)
-        | NatA (value) -> this.Atom_NatA(value)
-        | StringA (value) -> this.Atom_StringA(value)
-        | OperatorA (symbol) -> this.Atom_OperatorA(symbol)
-        | LambdaA (lambda) -> this.Atom_LambdaA(lambda)
-        | ParensA (expr) -> this.Atom_ParensA(expr)
-        | IdentifierA (name) -> this.Atom_IdentifierA(name)
-        | CasesA (cases) -> this.Atom_CasesA(cases)
-        | IfThenA (ifthen) -> this.Atom_IfThenA(ifthen)
-        | LetA (letDecl) -> this.Atom_LetA(letDecl)
-        | TypeA (typeDecl) -> this.Atom_TypeA(typeDecl)
-    
     abstract member Case_Case: Pattern * Expr -> Case
     default this.Case_Case(pattern, expr) =
         let pattern' = this.VisitPattern pattern
@@ -111,16 +40,83 @@ type Visitor() =
         match value with
         | ElseIf (condition, trueExpr) -> this.ElseIf_ElseIf(condition, trueExpr)
     
-    abstract member Expr_Expr: Atom * Expr list -> Expr
-    default this.Expr_Expr(atom, args) =
-        let atom' = this.VisitAtom atom
+    abstract member Expr_CallE: Expr * Expr list -> Expr
+    default this.Expr_CallE(fn, args) =
+        let fn' = this.VisitExpr fn
         let args' = List.map this.VisitExpr args
-        Expr (atom', args')
+        CallE (fn', args')
+    
+    abstract member Expr_ExponentE: Expr * bigint -> Expr
+    default this.Expr_ExponentE(expr, exponent) =
+        let expr' = this.VisitExpr expr
+        let exponent' = exponent
+        ExponentE (expr', exponent')
+    
+    abstract member Expr_NatE: bigint -> Expr
+    default this.Expr_NatE(value) =
+        let value' = value
+        NatE (value')
+    
+    abstract member Expr_StringE: string -> Expr
+    default this.Expr_StringE(value) =
+        let value' = value
+        StringE (value')
+    
+    abstract member Expr_OperatorE: string -> Expr
+    default this.Expr_OperatorE(symbol) =
+        let symbol' = symbol
+        OperatorE (symbol')
+    
+    abstract member Expr_LambdaE: Lambda -> Expr
+    default this.Expr_LambdaE(lambda) =
+        let lambda' = this.VisitLambda lambda
+        LambdaE (lambda')
+    
+    abstract member Expr_ParensE: Expr -> Expr
+    default this.Expr_ParensE(expr) =
+        let expr' = this.VisitExpr expr
+        ParensE (expr')
+    
+    abstract member Expr_IdentifierE: string -> Expr
+    default this.Expr_IdentifierE(name) =
+        let name' = name
+        IdentifierE (name')
+    
+    abstract member Expr_CasesE: Cases -> Expr
+    default this.Expr_CasesE(cases) =
+        let cases' = this.VisitCases cases
+        CasesE (cases')
+    
+    abstract member Expr_IfThenE: IfThen -> Expr
+    default this.Expr_IfThenE(ifthen) =
+        let ifthen' = this.VisitIfThen ifthen
+        IfThenE (ifthen')
+    
+    abstract member Expr_LetE: LetDecl -> Expr
+    default this.Expr_LetE(letDecl) =
+        let letDecl' = this.VisitLetDecl letDecl
+        LetE (letDecl')
+    
+    abstract member Expr_TypeE: TypeDecl -> Expr
+    default this.Expr_TypeE(typeDecl) =
+        let typeDecl' = this.VisitTypeDecl typeDecl
+        TypeE (typeDecl')
     
     abstract member VisitExpr: Expr -> Expr
     default this.VisitExpr(value) =
         match value with
-        | Expr (atom, args) -> this.Expr_Expr(atom, args)
+        | CallE (fn, args) -> this.Expr_CallE(fn, args)
+        | ExponentE (expr, exponent) -> this.Expr_ExponentE(expr, exponent)
+        | NatE (value) -> this.Expr_NatE(value)
+        | StringE (value) -> this.Expr_StringE(value)
+        | OperatorE (symbol) -> this.Expr_OperatorE(symbol)
+        | LambdaE (lambda) -> this.Expr_LambdaE(lambda)
+        | ParensE (expr) -> this.Expr_ParensE(expr)
+        | IdentifierE (name) -> this.Expr_IdentifierE(name)
+        | CasesE (cases) -> this.Expr_CasesE(cases)
+        | IfThenE (ifthen) -> this.Expr_IfThenE(ifthen)
+        | LetE (letDecl) -> this.Expr_LetE(letDecl)
+        | TypeE (typeDecl) -> this.Expr_TypeE(typeDecl)
     
     abstract member IfThen_IfThen: Expr * Expr * ElseIf list * Expr -> IfThen
     default this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr) =

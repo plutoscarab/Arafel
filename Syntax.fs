@@ -44,20 +44,23 @@ and LetDecl =
         Parse("⚠ out '␤␤' _")>]
       LetDecl of name: Lexpr * expr: Expr * inExpr: Expr
 
-and Atom =
+and Expr =
+    | [<Parse("_");
+        Parse("surr '(' ')' delim ',␠' _")>]
+      CallE of fn: Expr * args: Expr list
     | [<Parse("_");
         Parse("␑SUPERSCRIPT")>]
-      ExponentA of atom: Atom * exponent: bigint
-    | [<Parse("NAT")>] NatA of value: bigint
-    | [<Parse("STRING")>] StringA of value: string
-    | [<Parse("OPERATOR")>] OperatorA of symbol: string
-    | [<Parse("_")>] LambdaA of lambda: Lambda
-    | [<Parse("surr '(' ')' ⚠ _")>] ParensA of expr: Expr
-    | [<Parse("IDENTIFIER")>] IdentifierA of name: string
-    | [<Parse("_")>] CasesA of cases: Cases
-    | [<Parse("_")>] IfThenA of ifthen: IfThen
-    | [<Parse("_")>] LetA of letDecl: LetDecl
-    | [<Parse("_")>] TypeA of typeDecl: TypeDecl
+      ExponentE of expr: Expr * exponent: bigint
+    | [<Parse("NAT")>] NatE of value: bigint
+    | [<Parse("STRING")>] StringE of value: string
+    | [<Parse("OPERATOR")>] OperatorE of symbol: string
+    | [<Parse("_")>] LambdaE of lambda: Lambda
+    | [<Parse("surr '(' ')' ⚠ _")>] ParensE of expr: Expr
+    | [<Parse("IDENTIFIER")>] IdentifierE of name: string
+    | [<Parse("_")>] CasesE of cases: Cases
+    | [<Parse("_")>] IfThenE of ifthen: IfThen
+    | [<Parse("_")>] LetE of letDecl: LetDecl
+    | [<Parse("_")>] TypeE of typeDecl: TypeDecl
 
 and Case =
     | [<Parse("_");
@@ -69,11 +72,6 @@ and Cases =
         Parse("⚠ and '␠of␏' 1+ ␤_");
         Parse("opt and '␤else␏' ⚠ ␤_")>]
       Cases of expr: Expr * cases: Case list * otherwise: Expr option
-
-and Expr =
-    | [<Parse("_");
-        Parse("opt[] surr '(' ')' delim ',␠' _")>]
-      Expr of atom: Atom * args: Expr list
 
 and IfThen =
     | [<Parse("and 'if␠' ⚠ _");

@@ -9,40 +9,7 @@ open Parse
 open Print
 open Syntax
 
-let rec printAtom (writer:IndentedTextWriter) value =
-    let n = writer.Indent
-    
-    match value with
-    | ExponentA(atom, exponent) ->
-        printAtom writer atom
-        let s = toSuperscript exponent
-        writeSafe writer s
-    | NatA(value) ->
-        writeSafe writer value
-    | StringA(value) ->
-        writeSafe writer value
-    | OperatorA(symbol) ->
-        writeSafe writer symbol
-    | LambdaA(lambda) ->
-        printLambda writer lambda
-    | ParensA(expr) ->
-        writer.Write "("
-        printExpr writer expr
-        writer.Write ")"
-    | IdentifierA(name) ->
-        writeSafe writer name
-    | CasesA(cases) ->
-        printCases writer cases
-    | IfThenA(ifthen) ->
-        printIfThen writer ifthen
-    | LetA(letDecl) ->
-        printLetDecl writer letDecl
-    | TypeA(typeDecl) ->
-        printTypeDecl writer typeDecl
-    
-    writer.Indent <- n
-
-and printCase (writer:IndentedTextWriter) value =
+let rec printCase (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
@@ -95,22 +62,45 @@ and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Expr(atom, args) ->
-        printAtom writer atom
+    | CallE(fn, args) ->
+        printExpr writer fn
+        writer.Write "("
         match args with
         | [] -> ignore()
-        | _ ->
-            writer.Write "("
-            match args with
-            | [] -> ignore()
-            | [args'] ->
-                printExpr writer args'
-            | args'::args'' ->
-                printExpr writer args'
-                for args_ in args'' do
-                    writer.Write ", "
-                    printExpr writer args_
-            writer.Write ")"
+        | [args'] ->
+            printExpr writer args'
+        | args'::args'' ->
+            printExpr writer args'
+            for args_ in args'' do
+                writer.Write ", "
+                printExpr writer args_
+        writer.Write ")"
+    | ExponentE(expr, exponent) ->
+        printExpr writer expr
+        let s = toSuperscript exponent
+        writeSafe writer s
+    | NatE(value) ->
+        writeSafe writer value
+    | StringE(value) ->
+        writeSafe writer value
+    | OperatorE(symbol) ->
+        writeSafe writer symbol
+    | LambdaE(lambda) ->
+        printLambda writer lambda
+    | ParensE(expr) ->
+        writer.Write "("
+        printExpr writer expr
+        writer.Write ")"
+    | IdentifierE(name) ->
+        writeSafe writer name
+    | CasesE(cases) ->
+        printCases writer cases
+    | IfThenE(ifthen) ->
+        printIfThen writer ifthen
+    | LetE(letDecl) ->
+        printLetDecl writer letDecl
+    | TypeE(typeDecl) ->
+        printTypeDecl writer typeDecl
     
     writer.Indent <- n
 

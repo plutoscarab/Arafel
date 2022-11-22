@@ -1,22 +1,19 @@
 digraph G {
     rankdir="BT"
     { rank=same; bool; bigint; string; }
-    Atom -> Atom
-    Atom -> bigint
-    Atom -> string
-    Atom -> Lambda
-    Atom -> Expr
-    Atom -> Cases
-    Atom -> IfThen
-    Atom -> LetDecl
-    Atom -> TypeDecl
     Case -> Pattern
     Case -> Expr
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
-    Expr -> Atom
     Expr -> Expr
+    Expr -> bigint
+    Expr -> string
+    Expr -> Lambda
+    Expr -> Cases
+    Expr -> IfThen
+    Expr -> LetDecl
+    Expr -> TypeDecl
     IfThen -> Expr
     IfThen -> ElseIf
     Lambda -> Lexpr

@@ -385,44 +385,54 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer p primaryType
         writer.Write ")"
 
-let private writeField (writer: IndentedTextWriter) pname (TupleField(_, primaryType, _, parser)) isRecursive index =
-    if isRecursive then
-        writer.WriteLine $"parse{pname}' {index}"
-    else
-        writeParser writer parser primaryType
-        writer.WriteLine ()
+let private writeField (writer: IndentedTextWriter) pname (TupleField(fname, primaryType, _, parser)) =
+    writeParser writer parser primaryType
 
-let private writeCase (writer: IndentedTextWriter) pname (UnionCase(name, fields)) isRecursive index =
-    writer.WriteLine "parser {"
+let private writeCase (writer: IndentedTextWriter) pname (UnionCase(name, fields)) asRecursive =
+    let n = writer.Indent
+    //writer.WriteLine "parser {"
+    writer.WriteLine "fun t0 ->"
     writer.Indent <- writer.Indent + 1
-
-    if isRecursive then
-        writer.WriteLine $"if toAvoid <> {index} then"
-        writer.Indent <- writer.Indent + 1
-
+    let toSkip = if asRecursive then 1 else 0
+    let mutable fnames = if asRecursive then [$"base{pname}"] else []
     let mutable i = 0
 
-    for field in fields do
-        if isRecursive && i = 1 then
-            writer.WriteLine "return! parser {"
-            writer.Indent <- writer.Indent + 1
-
-        writer.Write $"let! f{i} = "
-        writeField writer pname field (i = 0 && isRecursive) i
+    for field in List.skip toSkip fields do
+        let (TupleField(fname, _, _, _)) = field
+        fnames <- fname::fnames
+        writer.Write $"let (r{i + 1}, t{i + 1}) = ("
+        writeField writer pname field
+        writer.WriteLine $") t{i}"
+        writer.WriteLine $"match r{i + 1} with"
+        writer.WriteLine $"| Match {fname} ->"
+        writer.Indent <- writer.Indent + 1
         i <- i + 1
 
-    let fs = String.concat ", " (List.map (fun f -> $"f{f}") [0..i-1])
-    writer.WriteLine $"return {name}({fs})"
+    let fs = fnames |> List.rev |> String.concat ", "
+    writer.WriteLine $"Match ({name}({fs})), t{i}"
 
-    if isRecursive then
-        if (List.length fields) > 1 then
-            writer.Indent <- writer.Indent - 1
-            writer.WriteLine "}"
-            writer.WriteLine $"return f0"
+    while i > 0 do
         writer.Indent <- writer.Indent - 1
+        writer.WriteLine $"| SyntaxError e -> SyntaxError e, t{i}"
+        writer.WriteLine $"| Nomatch e -> Nomatch e, t{i - 1}"
+        i <- i - 1
 
-    writer.Indent <- writer.Indent - 1
-    writer.WriteLine "}"
+    //writer.Indent <- writer.Indent - 1
+    //writer.WriteLine "}"
+    writer.Indent <- n
+
+let isRecursiveCase pname (UnionCase(_, fields)) =
+    let (TupleField(_, primaryType, _, p)) = fields.[0]
+    match primaryType, p with
+    | ProductionType pt, ProductionP (_, _) -> pt = pname
+    | _ -> false
+
+let rec repeat baseValue suffix =
+    fun t ->
+        match (suffix baseValue) t with
+        | Nomatch e, _ -> Match baseValue, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match r, t2 -> (repeat r suffix) t2
 
 let writeParserFile filename modulename (productions:Production list) (keywords:string seq) =
     use file = File.CreateText(filename)
@@ -448,42 +458,58 @@ let writeParserFile filename modulename (productions:Production list) (keywords:
 
     writer.WriteLine ()
     writer.WriteLine $"]"
+
     let mutable keyword = "let rec"
 
-    for Production(name, cases, indent) in productions do
+    for Production(pname, cases, indent) in productions do
         writer.WriteLine ()
-        writer.WriteLine $"{keyword} parse{name}' toAvoid ="
+        writer.WriteLine $"{keyword} parse{pname}' () ="
         keyword <- "and"
         writer.Indent <- writer.Indent + 1
 
         if List.length(cases) = 1 then
-            writeCase writer name cases.[0] false 0
+            writeCase writer pname cases.[0] false
         else
-            writer.WriteLine "parser {"
-            writer.Indent <- writer.Indent + 1
-            let mutable index = 0
+            let (recursiveCases, normalCases) =
+                List.partition (isRecursiveCase pname) cases
 
-            for UnionCase (uname, fields) in cases do
+            let writeCases cs =
+                writer.WriteLine "parser {"
+                writer.Indent <- writer.Indent + 1
 
-                let isRecursive =
-                    let (TupleField (_, primaryType, _, p)) = fields.[0]
-                    match p with
-                    | ProductionP _ ->
-                        match primaryType with
-                        | ProductionType pt -> pt = name
-                        | _ -> false
-                    | _ -> false
+                for case in cs do
+                    writer.Write "return! "
+                    writeCase writer pname case false
 
-                writer.Write "return! "
-                writeCase writer name (UnionCase (uname, fields)) isRecursive index
-                index <- index + 1
+                writer.Indent <- writer.Indent - 1
+                writer.WriteLine "}"
 
-            writer.Indent <- writer.Indent - 1
-            writer.WriteLine "}"
+            if List.isEmpty recursiveCases then
+                writeCases cases
+            else
+                writer.Write "let baseParser = "
+                writeCases normalCases
+
+                writer.WriteLine $"let suffixes base{pname} = parser {{"
+                writer.Indent <- writer.Indent + 1
+                
+                for case in recursiveCases do
+                    let (UnionCase(uname, _)) = case
+                    writer.Write "return! "
+                    writeCase writer pname case true
+
+                writer.Indent <- writer.Indent - 1
+                writer.WriteLine "}"
+                writer.WriteLine "parser {"
+                writer.Indent <- writer.Indent + 1
+                writer.WriteLine $"let! base{pname} = baseParser"
+                writer.WriteLine $"return! repeat base{pname} suffixes"
+                writer.Indent <- writer.Indent - 1
+                writer.WriteLine "}"
 
         writer.Indent <- writer.Indent - 1
 
     writer.WriteLine ()
 
-    for Production(name, cases, indent) in productions do
-        writer.WriteLine $"and parse{name} t = (parse{name}' -1) t"
+    for Production(pname, cases, indent) in productions do
+        writer.WriteLine $"and parse{pname} = parse{pname}'()"

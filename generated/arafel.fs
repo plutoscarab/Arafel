@@ -10,185 +10,330 @@ let keywords = Set [
     "case"; "elif"; "else"; "fn"; "forall"; "if"; "let"; "of"; "then"; "type"; 
 ]
 
-let rec parseAtom' toAvoid =
+let rec parseCase' () =
+    fun t0 ->
+        let (r1, t1) = (parsePattern) t0
+        match r1 with
+        | Match pattern ->
+            let (r2, t2) = (andThen (literal ":") (parseExpr)) t1
+            match r2 with
+            | Match expr ->
+                Match (Case(pattern, expr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseCases' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "case") (checkpoint (parseExpr))) t0
+        match r1 with
+        | Match expr ->
+            let (r2, t2) = (checkpoint (andThen (literal "of") (oneOrMore (parseCase)))) t1
+            match r2 with
+            | Match cases ->
+                let (r3, t3) = (option (andThen (literal "else") (checkpoint (parseExpr)))) t2
+                match r3 with
+                | Match otherwise ->
+                    Match (Cases(expr, cases, otherwise)), t3
+                | SyntaxError e -> SyntaxError e, t3
+                | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseElseIf' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "elif") (checkpoint (parseExpr))) t0
+        match r1 with
+        | Match condition ->
+            let (r2, t2) = (checkpoint (andThen (literal "then") (parseExpr))) t1
+            match r2 with
+            | Match trueExpr ->
+                Match (ElseIf(condition, trueExpr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseExpr' () =
+    let baseParser = parser {
+        return! fun t0 ->
+            let (r1, t1) = (bigintToken Nat "Nat") t0
+            match r1 with
+            | Match value ->
+                Match (NatE(value)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (stringToken String "String") t0
+            match r1 with
+            | Match value ->
+                Match (StringE(value)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (stringToken Operator "Operator") t0
+            match r1 with
+            | Match symbol ->
+                Match (OperatorE(symbol)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (parseLambda) t0
+            match r1 with
+            | Match lambda ->
+                Match (LambdaE(lambda)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (surround (literal "(") (literal ")") (checkpoint (parseExpr))) t0
+            match r1 with
+            | Match expr ->
+                Match (ParensE(expr)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (stringToken Identifier "Identifier") t0
+            match r1 with
+            | Match name ->
+                Match (IdentifierE(name)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (parseCases) t0
+            match r1 with
+            | Match cases ->
+                Match (CasesE(cases)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (parseIfThen) t0
+            match r1 with
+            | Match ifthen ->
+                Match (IfThenE(ifthen)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (parseLetDecl) t0
+            match r1 with
+            | Match letDecl ->
+                Match (LetE(letDecl)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (parseTypeDecl) t0
+            match r1 with
+            | Match typeDecl ->
+                Match (TypeE(typeDecl)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+    }
+    let suffixes baseExpr = parser {
+        return! fun t0 ->
+            let (r1, t1) = (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr))) t0
+            match r1 with
+            | Match args ->
+                Match (CallE(baseExpr, args)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (bigintToken Superscript "Superscript") t0
+            match r1 with
+            | Match exponent ->
+                Match (ExponentE(baseExpr, exponent)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+    }
     parser {
-        return! parser {
-            if toAvoid <> 0 then
-                let! f0 = parseAtom' 0
-                return! parser {
-                    let! f1 = bigintToken Superscript "Superscript"
-                    return ExponentA(f0, f1)
-                }
-                return f0
-        }
-        return! parser {
-            let! f0 = bigintToken Nat "Nat"
-            return NatA(f0)
-        }
-        return! parser {
-            let! f0 = stringToken String "String"
-            return StringA(f0)
-        }
-        return! parser {
-            let! f0 = stringToken Operator "Operator"
-            return OperatorA(f0)
-        }
-        return! parser {
-            let! f0 = parseLambda
-            return LambdaA(f0)
-        }
-        return! parser {
-            let! f0 = surround (literal "(") (literal ")") (checkpoint (parseExpr))
-            return ParensA(f0)
-        }
-        return! parser {
-            let! f0 = stringToken Identifier "Identifier"
-            return IdentifierA(f0)
-        }
-        return! parser {
-            let! f0 = parseCases
-            return CasesA(f0)
-        }
-        return! parser {
-            let! f0 = parseIfThen
-            return IfThenA(f0)
-        }
-        return! parser {
-            let! f0 = parseLetDecl
-            return LetA(f0)
-        }
-        return! parser {
-            let! f0 = parseTypeDecl
-            return TypeA(f0)
-        }
+        let! baseExpr = baseParser
+        return! repeat baseExpr suffixes
     }
 
-and parseCase' toAvoid =
+and parseIfThen' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "if") (checkpoint (parseExpr))) t0
+        match r1 with
+        | Match condition ->
+            let (r2, t2) = (checkpoint (andThen (literal "then") (parseExpr))) t1
+            match r2 with
+            | Match trueExpr ->
+                let (r3, t3) = (zeroOrMore (parseElseIf)) t2
+                match r3 with
+                | Match elseifs ->
+                    let (r4, t4) = (checkpoint (andThen (literal "else") (parseExpr))) t3
+                    match r4 with
+                    | Match falseExpr ->
+                        Match (IfThen(condition, trueExpr, elseifs, falseExpr)), t4
+                    | SyntaxError e -> SyntaxError e, t4
+                    | Nomatch e -> Nomatch e, t3
+                | SyntaxError e -> SyntaxError e, t3
+                | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseLambda' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "fn") (surround (literal "(") (literal ")") (parseLexpr))) t0
+        match r1 with
+        | Match name ->
+            let (r2, t2) = (andThen (literal "=") (checkpoint (parseExpr))) t1
+            match r2 with
+            | Match expr ->
+                Match (Lambda(name, expr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseLetDecl' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "let") (checkpoint (parseLexpr))) t0
+        match r1 with
+        | Match name ->
+            let (r2, t2) = (checkpoint (andThen (literal "=") (parseExpr))) t1
+            match r2 with
+            | Match expr ->
+                let (r3, t3) = (checkpoint (parseExpr)) t2
+                match r3 with
+                | Match inExpr ->
+                    Match (LetDecl(name, expr, inExpr)), t3
+                | SyntaxError e -> SyntaxError e, t3
+                | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseLexpr' () =
+    fun t0 ->
+        let (r1, t1) = (parseLexprName) t0
+        match r1 with
+        | Match name ->
+            let (r2, t2) = (optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseLexpr)))) t1
+            match r2 with
+            | Match parameters ->
+                Match (Lexpr(name, parameters)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseLexprName' () =
     parser {
-        let! f0 = parsePattern
-        let! f1 = andThen (literal ":") (parseExpr)
-        return Case(f0, f1)
+        return! fun t0 ->
+            let (r1, t1) = (stringToken Identifier "Identifier") t0
+            match r1 with
+            | Match name ->
+                Match (IdentifierN(name)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (stringToken Operator "Operator") t0
+            match r1 with
+            | Match symbol ->
+                Match (OperatorN(symbol)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
     }
 
-and parseCases' toAvoid =
+and parseMonoType' () =
+    fun t0 ->
+        let (r1, t1) = (delimited (orElse (literal "->") (literal "→")) (parseLexpr)) t0
+        match r1 with
+        | Match types ->
+            Match (MonoType(types)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parsePattern' () =
     parser {
-        let! f0 = andThen (literal "case") (checkpoint (parseExpr))
-        let! f1 = checkpoint (andThen (literal "of") (oneOrMore (parseCase)))
-        let! f2 = option (andThen (literal "else") (checkpoint (parseExpr)))
-        return Cases(f0, f1, f2)
+        return! fun t0 ->
+            let (r1, t1) = (stringToken Identifier "Identifier") t0
+            match r1 with
+            | Match ctor ->
+                let (r2, t2) = (optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parsePattern)))) t1
+                match r2 with
+                | Match args ->
+                    Match (CtorPat(ctor, args)), t2
+                | SyntaxError e -> SyntaxError e, t2
+                | Nomatch e -> Nomatch e, t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (bigintToken Nat "Nat") t0
+            match r1 with
+            | Match value ->
+                Match (NatPat(value)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (stringToken String "String") t0
+            match r1 with
+            | Match value ->
+                Match (StringPat(value)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (boolToken Bool "Bool") t0
+            match r1 with
+            | Match value ->
+                Match (BoolPat(value)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
     }
 
-and parseElseIf' toAvoid =
-    parser {
-        let! f0 = andThen (literal "elif") (checkpoint (parseExpr))
-        let! f1 = checkpoint (andThen (literal "then") (parseExpr))
-        return ElseIf(f0, f1)
-    }
+and parsePolyType' () =
+    fun t0 ->
+        let (r1, t1) = (optionlist (surround (orElse (literal "forall") (literal "∀")) (checkpoint (literal ",")) (oneOrMore (stringToken Identifier "Identifier")))) t0
+        match r1 with
+        | Match foralls ->
+            let (r2, t2) = (delimited (literal "|") (parseMonoType)) t1
+            match r2 with
+            | Match cases ->
+                Match (PolyType(foralls, cases)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
 
-and parseExpr' toAvoid =
-    parser {
-        let! f0 = parseAtom
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr)))
-        return Expr(f0, f1)
-    }
+and parseTypeDecl' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))) t0
+        match r1 with
+        | Match name ->
+            let (r2, t2) = (optionlist (surround (literal "(") (literal ")") (checkpoint (delimited (literal ",") (stringToken Identifier "Identifier"))))) t1
+            match r2 with
+            | Match parameters ->
+                let (r3, t3) = (checkpoint (andThen (literal "=") (parsePolyType))) t2
+                match r3 with
+                | Match ptype ->
+                    let (r4, t4) = (parseExpr) t3
+                    match r4 with
+                    | Match inExpr ->
+                        Match (TypeDecl(name, parameters, ptype, inExpr)), t4
+                    | SyntaxError e -> SyntaxError e, t4
+                    | Nomatch e -> Nomatch e, t3
+                | SyntaxError e -> SyntaxError e, t3
+                | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
 
-and parseIfThen' toAvoid =
-    parser {
-        let! f0 = andThen (literal "if") (checkpoint (parseExpr))
-        let! f1 = checkpoint (andThen (literal "then") (parseExpr))
-        let! f2 = zeroOrMore (parseElseIf)
-        let! f3 = checkpoint (andThen (literal "else") (parseExpr))
-        return IfThen(f0, f1, f2, f3)
-    }
-
-and parseLambda' toAvoid =
-    parser {
-        let! f0 = andThen (literal "fn") (surround (literal "(") (literal ")") (parseLexpr))
-        let! f1 = andThen (literal "=") (checkpoint (parseExpr))
-        return Lambda(f0, f1)
-    }
-
-and parseLetDecl' toAvoid =
-    parser {
-        let! f0 = andThen (literal "let") (checkpoint (parseLexpr))
-        let! f1 = checkpoint (andThen (literal "=") (parseExpr))
-        let! f2 = checkpoint (parseExpr)
-        return LetDecl(f0, f1, f2)
-    }
-
-and parseLexpr' toAvoid =
-    parser {
-        let! f0 = parseLexprName
-        let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseLexpr)))
-        return Lexpr(f0, f1)
-    }
-
-and parseLexprName' toAvoid =
-    parser {
-        return! parser {
-            let! f0 = stringToken Identifier "Identifier"
-            return IdentifierN(f0)
-        }
-        return! parser {
-            let! f0 = stringToken Operator "Operator"
-            return OperatorN(f0)
-        }
-    }
-
-and parseMonoType' toAvoid =
-    parser {
-        let! f0 = delimited (orElse (literal "->") (literal "→")) (parseLexpr)
-        return MonoType(f0)
-    }
-
-and parsePattern' toAvoid =
-    parser {
-        return! parser {
-            let! f0 = stringToken Identifier "Identifier"
-            let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parsePattern)))
-            return CtorPat(f0, f1)
-        }
-        return! parser {
-            let! f0 = bigintToken Nat "Nat"
-            return NatPat(f0)
-        }
-        return! parser {
-            let! f0 = stringToken String "String"
-            return StringPat(f0)
-        }
-        return! parser {
-            let! f0 = boolToken Bool "Bool"
-            return BoolPat(f0)
-        }
-    }
-
-and parsePolyType' toAvoid =
-    parser {
-        let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (checkpoint (literal ",")) (oneOrMore (stringToken Identifier "Identifier")))
-        let! f1 = delimited (literal "|") (parseMonoType)
-        return PolyType(f0, f1)
-    }
-
-and parseTypeDecl' toAvoid =
-    parser {
-        let! f0 = andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))
-        let! f1 = optionlist (surround (literal "(") (literal ")") (checkpoint (delimited (literal ",") (stringToken Identifier "Identifier"))))
-        let! f2 = checkpoint (andThen (literal "=") (parsePolyType))
-        let! f3 = parseExpr
-        return TypeDecl(f0, f1, f2, f3)
-    }
-
-and parseAtom t = (parseAtom' -1) t
-and parseCase t = (parseCase' -1) t
-and parseCases t = (parseCases' -1) t
-and parseElseIf t = (parseElseIf' -1) t
-and parseExpr t = (parseExpr' -1) t
-and parseIfThen t = (parseIfThen' -1) t
-and parseLambda t = (parseLambda' -1) t
-and parseLetDecl t = (parseLetDecl' -1) t
-and parseLexpr t = (parseLexpr' -1) t
-and parseLexprName t = (parseLexprName' -1) t
-and parseMonoType t = (parseMonoType' -1) t
-and parsePattern t = (parsePattern' -1) t
-and parsePolyType t = (parsePolyType' -1) t
-and parseTypeDecl t = (parseTypeDecl' -1) t
+and parseCase = parseCase'()
+and parseCases = parseCases'()
+and parseElseIf = parseElseIf'()
+and parseExpr = parseExpr'()
+and parseIfThen = parseIfThen'()
+and parseLambda = parseLambda'()
+and parseLetDecl = parseLetDecl'()
+and parseLexpr = parseLexpr'()
+and parseLexprName = parseLexprName'()
+and parseMonoType = parseMonoType'()
+and parsePattern = parsePattern'()
+and parsePolyType = parsePolyType'()
+and parseTypeDecl = parseTypeDecl'()

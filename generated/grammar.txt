@@ -1,10 +1,9 @@
 /* Use, for example, at https://www.bottlecaps.de/rr/ui */
 
-Atom ::= Atom SUPERSCRIPT | NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl
 Case ::= Pattern ':' Expr
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Expr)?
 ElseIf ::= 'elif' Expr 'then' Expr
-Expr ::= Atom ('(' Expr (',' Expr)* ')')?
+Expr ::= Expr '(' Expr (',' Expr)* ')' | Expr SUPERSCRIPT | NAT | STRING | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl
 IfThen ::= 'if' Expr 'then' Expr (ElseIf)* 'else' Expr
 Lambda ::= 'fn' '(' Lexpr ')' '=' Expr
 LetDecl ::= 'let' Lexpr '=' Expr Expr

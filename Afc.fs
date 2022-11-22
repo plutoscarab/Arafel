@@ -47,7 +47,7 @@ let parseExpressions src =
             if current <> next then
                 current <- next
             else
-                current <- List.tail current
+                current <- []
     }
     |> Seq.toList
 
@@ -63,47 +63,27 @@ type CoreVisitor() =
         match name' with
         | Lexpr(n, ps) ->
             let folder p ex =
-                Expr (LambdaA (Lambda (p, ex)), [])
+                LambdaE (Lambda (p, ex))
             let lambda = List.foldBack folder ps expr'
             LetDecl (Lexpr(n, []), lambda, inExpr')
 
     // Fully curry all the arguments of function applications
-    override this.Expr_Expr(atom, args) =
+    override this.Expr_CallE(fn, args) =
         let folder ex arg =
-            Expr (ParensA (ex), [arg])
-        let zero =
-            Expr (atom, [])
-        match List.fold folder zero args with
-        | Expr(at, ar) ->
-            let atom' = this.VisitAtom at
-            let args' = List.map this.VisitExpr ar
-
-            // Parenthesis elimination
-            let mutable result = Expr (atom', args')
-
-            match atom' with
-            | ParensA pexpr ->
-                match pexpr with
-                | Expr (patom, pargs) ->
-                    if (pargs = [] || args' = [])
-                    then
-                        result <- Expr (patom, args' @ pargs) 
-            | _ -> ignore ()
-
-            result
+            CallE (ex, [arg])
+        List.fold folder fn args
     
     // Replace if-then with case
-    override this.Atom_IfThenA(ifthen) =
+    override this.Expr_IfThenE(ifthen) =
         let ifthen' = this.VisitIfThen ifthen
         match ifthen' with
         | IfThen(condition, trueExpr, elseifs, falseExpr) ->
             let folder (ElseIf (co, th)) expr =
-                let cs = CasesA (Cases (co, [
+                CasesE (Cases (co, [
                     Case (BoolPat (true), th)
                 ], Some expr))
-                Expr (cs, [])
             let elseExpr = List.foldBack folder elseifs falseExpr
-            CasesA (Cases (condition, [
+            CasesE (Cases (condition, [
                 Case (BoolPat (true), trueExpr)
             ], Some elseExpr))
 
