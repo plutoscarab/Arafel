@@ -44,12 +44,10 @@ and LetDecl =
         Parse("⚠ out '␤␤' _")>]
       LetDecl of name: Lexpr * expr: Expr * inExpr: Expr
 
-and Exponent =
-    | [<Parse("_");
-        Parse("␑SUPERSCRIPT")>] 
-      Exponent of expr: Expr * exponent: bigint
-
 and Atom =
+    | [<Parse("_");
+        Parse("␑SUPERSCRIPT")>]
+      ExponentA of atom: Atom * exponent: bigint
     | [<Parse("NAT")>] NatA of value: bigint
     | [<Parse("STRING")>] StringA of value: string
     | [<Parse("OPERATOR")>] OperatorA of symbol: string

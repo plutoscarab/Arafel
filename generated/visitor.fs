@@ -6,10 +6,11 @@ open Syntax
 
 type Visitor() =
     
-    abstract member Atom_ExponentA: Exponent -> Atom
-    default this.Atom_ExponentA(exponent) =
-        let exponent' = this.VisitExponent exponent
-        ExponentA (exponent')
+    abstract member Atom_ExponentA: Atom * bigint -> Atom
+    default this.Atom_ExponentA(atom, exponent) =
+        let atom' = this.VisitAtom atom
+        let exponent' = exponent
+        ExponentA (atom', exponent')
     
     abstract member Atom_NatA: bigint -> Atom
     default this.Atom_NatA(value) =
@@ -64,7 +65,7 @@ type Visitor() =
     abstract member VisitAtom: Atom -> Atom
     default this.VisitAtom(value) =
         match value with
-        | ExponentA (exponent) -> this.Atom_ExponentA(exponent)
+        | ExponentA (atom, exponent) -> this.Atom_ExponentA(atom, exponent)
         | NatA (value) -> this.Atom_NatA(value)
         | StringA (value) -> this.Atom_StringA(value)
         | OperatorA (symbol) -> this.Atom_OperatorA(symbol)
@@ -109,17 +110,6 @@ type Visitor() =
     default this.VisitElseIf(value) =
         match value with
         | ElseIf (condition, trueExpr) -> this.ElseIf_ElseIf(condition, trueExpr)
-    
-    abstract member Exponent_Exponent: Expr * bigint -> Exponent
-    default this.Exponent_Exponent(expr, exponent) =
-        let expr' = this.VisitExpr expr
-        let exponent' = exponent
-        Exponent (expr', exponent')
-    
-    abstract member VisitExponent: Exponent -> Exponent
-    default this.VisitExponent(value) =
-        match value with
-        | Exponent (expr, exponent) -> this.Exponent_Exponent(expr, exponent)
     
     abstract member Expr_Expr: Atom * Expr list -> Expr
     default this.Expr_Expr(atom, args) =

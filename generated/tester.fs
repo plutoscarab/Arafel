@@ -8,8 +8,9 @@ open Syntax
 let rec randomAtom (rand: Random) depth =
     match rand.Next(11) with
     | 0 ->
-        let exponent = randomExponent rand (depth + 1)
-        ExponentA(exponent)
+        let atom = randomAtom rand (depth + 1)
+        let exponent = mkBigint rand (depth + 1)
+        ExponentA(atom, exponent)
     | 1 ->
         let value = mkBigint rand (depth + 1)
         NatA(value)
@@ -62,13 +63,6 @@ and randomElseIf (rand: Random) depth =
         let condition = randomExpr rand (depth + 1)
         let trueExpr = randomExpr rand (depth + 1)
         ElseIf(condition, trueExpr)
-
-and randomExponent (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let expr = randomExpr rand (depth + 1)
-        let exponent = mkBigint rand (depth + 1)
-        Exponent(expr, exponent)
 
 and randomExpr (rand: Random) depth =
     match rand.Next(1) with

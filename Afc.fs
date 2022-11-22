@@ -34,7 +34,7 @@ let parseExpressions src =
 
     seq {
         while current <> [] do
-            let (result, next) = parseExpr current []
+            let (result, next) = parseExpr current
             
             match result with
             | Nomatch e ->

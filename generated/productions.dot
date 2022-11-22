@@ -1,7 +1,7 @@
 digraph G {
     rankdir="BT"
     { rank=same; bool; bigint; string; }
-    Atom -> Exponent
+    Atom -> Atom
     Atom -> bigint
     Atom -> string
     Atom -> Lambda
@@ -15,8 +15,6 @@ digraph G {
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
-    Exponent -> Expr
-    Exponent -> bigint
     Expr -> Atom
     Expr -> Expr
     IfThen -> Expr

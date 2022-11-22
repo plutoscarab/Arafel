@@ -26,20 +26,20 @@ let mergeErrors es =
 
 type ParserBuilder() =
     member _.Bind(p, f) =
-        fun t h ->
-            let (m, t2) = p t h
+        fun t ->
+            let (m, t2) = p t
             match m with
             | Nomatch e -> (Nomatch e), t
             | SyntaxError e -> (SyntaxError e), t2
-            | Match r -> (f r) t2 h
+            | Match r -> (f r) t2
     member _.Combine(p1, p2) =
-        fun t h ->
-            let (m, t2) = p1 t h
+        fun t ->
+            let (m, t2) = p1 t
             match m with
             | Match r -> (Match r), t2
             | SyntaxError e -> (SyntaxError e), t2
             | Nomatch e1 ->
-                let (m, t2) = p2 t h
+                let (m, t2) = p2 t
                 match m with
                 | Match r -> (Match r), t2
                 | SyntaxError e -> (SyntaxError e), t2
@@ -47,16 +47,16 @@ type ParserBuilder() =
     member _.Delay(f) =
         f()
     member _.Return(r) =
-        fun t h -> (Match r), t
+        fun t -> (Match r), t
     member _.ReturnFrom(p) = 
         p
     member _.Zero() =
-        fun t h -> Nomatch [], t
+        fun t -> Nomatch [], t
 
 let parser = new ParserBuilder()
 
 let stringToken (ctor:Cspan -> Token) ctorName =
-    fun t h ->
+    fun t ->
         let nm = (Nomatch [$"{ctorName} token"]), t
         match t with
         | [] -> nm
@@ -106,8 +106,8 @@ let private parseBool =
     | _ -> (false, false)
 
 let bigintToken (ctor:Cspan -> Token) ctorName =
-    fun t h ->
-        let (m, t2) = (stringToken ctor ctorName) t h
+    fun t ->
+        let (m, t2) = (stringToken ctor ctorName) t
         match m with
         | Nomatch e -> (Nomatch e), t
         | SyntaxError e -> (SyntaxError e), t2
@@ -117,8 +117,8 @@ let bigintToken (ctor:Cspan -> Token) ctorName =
             | (true, n) -> (Match n), t2
 
 let boolToken (ctor:Cspan -> Token) ctorName =
-    fun t h ->
-        let (m, t2) = (stringToken ctor ctorName) t h
+    fun t ->
+        let (m, t2) = (stringToken ctor ctorName) t
         match m with
         | Nomatch e -> (Nomatch e), t
         | SyntaxError e -> (SyntaxError e), t2
@@ -128,7 +128,7 @@ let boolToken (ctor:Cspan -> Token) ctorName =
             | (true, b) -> (Match b), t2
 
 let literal (s: string) =
-    fun t h ->
+    fun t ->
         match t with
         | [] -> Nomatch [$"«{s}»"], t
         | first::rest ->
@@ -150,8 +150,8 @@ let orElse p q =
     }
 
 let checkpoint p =
-    fun t h ->
-        let (m, t2) = p t h
+    fun t ->
+        let (m, t2) = p t
         match m with
         | Nomatch e -> (SyntaxError e), t2
         | SyntaxError e -> (SyntaxError e), t2
@@ -176,13 +176,13 @@ let optionlist p =
     }
 
 let rec zeroOrMore p =
-    fun t h ->
-        let (m, t2) = p t h
+    fun t ->
+        let (m, t2) = p t
         match m with
         | Nomatch _ -> (Match []), t
         | SyntaxError e -> (SyntaxError e), t2
         | Match r ->
-            let (m2, t3) = (zeroOrMore p) t2 h
+            let (m2, t3) = (zeroOrMore p) t2
             match m2 with
             | Nomatch _ -> (Match [r]), t2
             | SyntaxError e -> (SyntaxError e), t3
@@ -385,22 +385,42 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
         writeParser writer p primaryType
         writer.Write ")"
 
-let private writeField writer pname (TupleField(_, primaryType, _, parser)) isFirst =
-    writeParser writer parser primaryType
-    writer.WriteLine ()
+let private writeField (writer: IndentedTextWriter) pname (TupleField(_, primaryType, _, parser)) isRecursive index =
+    if isRecursive then
+        writer.WriteLine $"parse{pname}' {index}"
+    else
+        writeParser writer parser primaryType
+        writer.WriteLine ()
 
-let private writeCase (writer:IndentedTextWriter) pname (UnionCase(name, fields)) =
+let private writeCase (writer: IndentedTextWriter) pname (UnionCase(name, fields)) isRecursive index =
     writer.WriteLine "parser {"
     writer.Indent <- writer.Indent + 1
+
+    if isRecursive then
+        writer.WriteLine $"if toAvoid <> {index} then"
+        writer.Indent <- writer.Indent + 1
+
     let mutable i = 0
 
     for field in fields do
+        if isRecursive && i = 1 then
+            writer.WriteLine "return! parser {"
+            writer.Indent <- writer.Indent + 1
+
         writer.Write $"let! f{i} = "
-        writeField writer pname field (i = 0)
+        writeField writer pname field (i = 0 && isRecursive) i
         i <- i + 1
 
     let fs = String.concat ", " (List.map (fun f -> $"f{f}") [0..i-1])
     writer.WriteLine $"return {name}({fs})"
+
+    if isRecursive then
+        if (List.length fields) > 1 then
+            writer.Indent <- writer.Indent - 1
+            writer.WriteLine "}"
+            writer.WriteLine $"return f0"
+        writer.Indent <- writer.Indent - 1
+
     writer.Indent <- writer.Indent - 1
     writer.WriteLine "}"
 
@@ -432,34 +452,38 @@ let writeParserFile filename modulename (productions:Production list) (keywords:
 
     for Production(name, cases, indent) in productions do
         writer.WriteLine ()
-        writer.WriteLine $"{keyword} parse{name}' () ="
+        writer.WriteLine $"{keyword} parse{name}' toAvoid ="
         keyword <- "and"
         writer.Indent <- writer.Indent + 1
 
         if List.length(cases) = 1 then
-            writeCase writer name cases.[0]
+            writeCase writer name cases.[0] false 0
         else
             writer.WriteLine "parser {"
             writer.Indent <- writer.Indent + 1
+            let mutable index = 0
 
-            for unionCase in cases do
+            for UnionCase (uname, fields) in cases do
+
+                let isRecursive =
+                    let (TupleField (_, primaryType, _, p)) = fields.[0]
+                    match p with
+                    | ProductionP _ ->
+                        match primaryType with
+                        | ProductionType pt -> pt = name
+                        | _ -> false
+                    | _ -> false
+
                 writer.Write "return! "
-                writeCase writer name unionCase
+                writeCase writer name (UnionCase (uname, fields)) isRecursive index
+                index <- index + 1
 
             writer.Indent <- writer.Indent - 1
             writer.WriteLine "}"
 
         writer.Indent <- writer.Indent - 1
 
+    writer.WriteLine ()
+
     for Production(name, cases, indent) in productions do
-        writer.WriteLine ()
-        writer.WriteLine $"and parse{name} tokens history ="
-        writer.WriteLine $"    if recursion \"{name}\" tokens history then"
-        writer.WriteLine $"        Nomatch [\"non-recursion\"], tokens"
-        writer.WriteLine $"    else"
-        writer.WriteLine $"        parse{name}'() tokens ((\"{name}\", tokenIndex tokens)::history)"
-
-let recursion pname tokens history =
-    let index = tokenIndex tokens
-    not (history |> List.takeWhile (fun (_, i) -> i = index) |> List.filter (fun (n, _) -> n = pname) |> List.isEmpty)
-
+        writer.WriteLine $"and parse{name} t = (parse{name}' -1) t"

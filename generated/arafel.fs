@@ -10,11 +10,16 @@ let keywords = Set [
     "case"; "elif"; "else"; "fn"; "forall"; "if"; "let"; "of"; "then"; "type"; 
 ]
 
-let rec parseAtom' () =
+let rec parseAtom' toAvoid =
     parser {
         return! parser {
-            let! f0 = parseExponent
-            return ExponentA(f0)
+            if toAvoid <> 0 then
+                let! f0 = parseAtom' 0
+                return! parser {
+                    let! f1 = bigintToken Superscript "Superscript"
+                    return ExponentA(f0, f1)
+                }
+                return f0
         }
         return! parser {
             let! f0 = bigintToken Nat "Nat"
@@ -58,14 +63,14 @@ let rec parseAtom' () =
         }
     }
 
-and parseCase' () =
+and parseCase' toAvoid =
     parser {
         let! f0 = parsePattern
         let! f1 = andThen (literal ":") (parseExpr)
         return Case(f0, f1)
     }
 
-and parseCases' () =
+and parseCases' toAvoid =
     parser {
         let! f0 = andThen (literal "case") (checkpoint (parseExpr))
         let! f1 = checkpoint (andThen (literal "of") (oneOrMore (parseCase)))
@@ -73,28 +78,21 @@ and parseCases' () =
         return Cases(f0, f1, f2)
     }
 
-and parseElseIf' () =
+and parseElseIf' toAvoid =
     parser {
         let! f0 = andThen (literal "elif") (checkpoint (parseExpr))
         let! f1 = checkpoint (andThen (literal "then") (parseExpr))
         return ElseIf(f0, f1)
     }
 
-and parseExponent' () =
-    parser {
-        let! f0 = parseExpr
-        let! f1 = bigintToken Superscript "Superscript"
-        return Exponent(f0, f1)
-    }
-
-and parseExpr' () =
+and parseExpr' toAvoid =
     parser {
         let! f0 = parseAtom
         let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr)))
         return Expr(f0, f1)
     }
 
-and parseIfThen' () =
+and parseIfThen' toAvoid =
     parser {
         let! f0 = andThen (literal "if") (checkpoint (parseExpr))
         let! f1 = checkpoint (andThen (literal "then") (parseExpr))
@@ -103,14 +101,14 @@ and parseIfThen' () =
         return IfThen(f0, f1, f2, f3)
     }
 
-and parseLambda' () =
+and parseLambda' toAvoid =
     parser {
         let! f0 = andThen (literal "fn") (surround (literal "(") (literal ")") (parseLexpr))
         let! f1 = andThen (literal "=") (checkpoint (parseExpr))
         return Lambda(f0, f1)
     }
 
-and parseLetDecl' () =
+and parseLetDecl' toAvoid =
     parser {
         let! f0 = andThen (literal "let") (checkpoint (parseLexpr))
         let! f1 = checkpoint (andThen (literal "=") (parseExpr))
@@ -118,14 +116,14 @@ and parseLetDecl' () =
         return LetDecl(f0, f1, f2)
     }
 
-and parseLexpr' () =
+and parseLexpr' toAvoid =
     parser {
         let! f0 = parseLexprName
         let! f1 = optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parseLexpr)))
         return Lexpr(f0, f1)
     }
 
-and parseLexprName' () =
+and parseLexprName' toAvoid =
     parser {
         return! parser {
             let! f0 = stringToken Identifier "Identifier"
@@ -137,13 +135,13 @@ and parseLexprName' () =
         }
     }
 
-and parseMonoType' () =
+and parseMonoType' toAvoid =
     parser {
         let! f0 = delimited (orElse (literal "->") (literal "→")) (parseLexpr)
         return MonoType(f0)
     }
 
-and parsePattern' () =
+and parsePattern' toAvoid =
     parser {
         return! parser {
             let! f0 = stringToken Identifier "Identifier"
@@ -164,14 +162,14 @@ and parsePattern' () =
         }
     }
 
-and parsePolyType' () =
+and parsePolyType' toAvoid =
     parser {
         let! f0 = optionlist (surround (orElse (literal "forall") (literal "∀")) (checkpoint (literal ",")) (oneOrMore (stringToken Identifier "Identifier")))
         let! f1 = delimited (literal "|") (parseMonoType)
         return PolyType(f0, f1)
     }
 
-and parseTypeDecl' () =
+and parseTypeDecl' toAvoid =
     parser {
         let! f0 = andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))
         let! f1 = optionlist (surround (literal "(") (literal ")") (checkpoint (delimited (literal ",") (stringToken Identifier "Identifier"))))
@@ -180,92 +178,17 @@ and parseTypeDecl' () =
         return TypeDecl(f0, f1, f2, f3)
     }
 
-and parseAtom tokens history =
-    if recursion "Atom" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseAtom'() tokens (("Atom", tokenIndex tokens)::history)
-
-and parseCase tokens history =
-    if recursion "Case" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseCase'() tokens (("Case", tokenIndex tokens)::history)
-
-and parseCases tokens history =
-    if recursion "Cases" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseCases'() tokens (("Cases", tokenIndex tokens)::history)
-
-and parseElseIf tokens history =
-    if recursion "ElseIf" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseElseIf'() tokens (("ElseIf", tokenIndex tokens)::history)
-
-and parseExponent tokens history =
-    if recursion "Exponent" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseExponent'() tokens (("Exponent", tokenIndex tokens)::history)
-
-and parseExpr tokens history =
-    if recursion "Expr" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseExpr'() tokens (("Expr", tokenIndex tokens)::history)
-
-and parseIfThen tokens history =
-    if recursion "IfThen" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseIfThen'() tokens (("IfThen", tokenIndex tokens)::history)
-
-and parseLambda tokens history =
-    if recursion "Lambda" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseLambda'() tokens (("Lambda", tokenIndex tokens)::history)
-
-and parseLetDecl tokens history =
-    if recursion "LetDecl" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseLetDecl'() tokens (("LetDecl", tokenIndex tokens)::history)
-
-and parseLexpr tokens history =
-    if recursion "Lexpr" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseLexpr'() tokens (("Lexpr", tokenIndex tokens)::history)
-
-and parseLexprName tokens history =
-    if recursion "LexprName" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseLexprName'() tokens (("LexprName", tokenIndex tokens)::history)
-
-and parseMonoType tokens history =
-    if recursion "MonoType" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseMonoType'() tokens (("MonoType", tokenIndex tokens)::history)
-
-and parsePattern tokens history =
-    if recursion "Pattern" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parsePattern'() tokens (("Pattern", tokenIndex tokens)::history)
-
-and parsePolyType tokens history =
-    if recursion "PolyType" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parsePolyType'() tokens (("PolyType", tokenIndex tokens)::history)
-
-and parseTypeDecl tokens history =
-    if recursion "TypeDecl" tokens history then
-        Nomatch ["non-recursion"], tokens
-    else
-        parseTypeDecl'() tokens (("TypeDecl", tokenIndex tokens)::history)
+and parseAtom t = (parseAtom' -1) t
+and parseCase t = (parseCase' -1) t
+and parseCases t = (parseCases' -1) t
+and parseElseIf t = (parseElseIf' -1) t
+and parseExpr t = (parseExpr' -1) t
+and parseIfThen t = (parseIfThen' -1) t
+and parseLambda t = (parseLambda' -1) t
+and parseLetDecl t = (parseLetDecl' -1) t
+and parseLexpr t = (parseLexpr' -1) t
+and parseLexprName t = (parseLexprName' -1) t
+and parseMonoType t = (parseMonoType' -1) t
+and parsePattern t = (parsePattern' -1) t
+and parsePolyType t = (parsePolyType' -1) t
+and parseTypeDecl t = (parseTypeDecl' -1) t
