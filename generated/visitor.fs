@@ -107,6 +107,12 @@ type Visitor() =
         let typeDecl' = this.VisitTypeDecl typeDecl
         TypeE (typeDecl')
     
+    abstract member Expr_SumE: Expr * Term list -> Expr
+    default this.Expr_SumE(expr, terms) =
+        let expr' = this.VisitExpr expr
+        let terms' = List.map this.VisitTerm terms
+        SumE (expr', terms')
+    
     abstract member VisitExpr: Expr -> Expr
     default this.VisitExpr(value) =
         match value with
@@ -123,6 +129,7 @@ type Visitor() =
         | IfThenE (ifthen) -> this.Expr_IfThenE(ifthen)
         | LetE (letDecl) -> this.Expr_LetE(letDecl)
         | TypeE (typeDecl) -> this.Expr_TypeE(typeDecl)
+        | SumE (expr, terms) -> this.Expr_SumE(expr, terms)
     
     abstract member IfThen_IfThen: Expr * Expr * ElseIf list * Expr -> IfThen
     default this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr) =
@@ -236,6 +243,17 @@ type Visitor() =
     default this.VisitPolyType(value) =
         match value with
         | PolyType (foralls, cases) -> this.PolyType_PolyType(foralls, cases)
+    
+    abstract member Term_Term: string * Expr -> Term
+    default this.Term_Term(operator, expr) =
+        let operator' = operator
+        let expr' = this.VisitExpr expr
+        Term (operator', expr')
+    
+    abstract member VisitTerm: Term -> Term
+    default this.VisitTerm(value) =
+        match value with
+        | Term (operator, expr) -> this.Term_Term(operator, expr)
     
     abstract member TypeDecl_TypeDecl: string * string list * PolyType * Expr -> TypeDecl
     default this.TypeDecl_TypeDecl(name, parameters, ptype, inExpr) =

@@ -3,13 +3,14 @@
 Case ::= Pattern ':' Expr
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Expr)?
 ElseIf ::= 'elif' Expr 'then' Expr
-Expr ::= Expr '(' Expr (',' Expr)* ')' | Expr SUPERSCRIPT | NAT | STRING | BOOL | OPERATOR | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl
+Expr ::= Expr '(' Expr (',' Expr)* ')' | Expr SUPERSCRIPT | NAT | STRING | BOOL | '[' OPERATOR ']' | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl | Expr (Term)+
 IfThen ::= 'if' Expr 'then' Expr (ElseIf)* 'else' Expr
 Lambda ::= 'af' '(' Lexpr ')' '=' Expr
 LetDecl ::= 'let' Lexpr '=' Expr Expr
 Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
-LexprName ::= IDENTIFIER | OPERATOR
+LexprName ::= IDENTIFIER | '[' OPERATOR ']'
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
 Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING | BOOL
 PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
+Term ::= OPERATOR Expr
 TypeDecl ::= 'type' IDENTIFIER ('(' IDENTIFIER (',' IDENTIFIER)* ')')? '=' PolyType Expr

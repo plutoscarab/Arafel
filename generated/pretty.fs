@@ -89,7 +89,9 @@ and printExpr (writer:IndentedTextWriter) value =
         let b = value.ToString().ToLowerInvariant()
         writer.Write b
     | OperatorE(symbol) ->
+        writer.Write "["
         writeSafe writer symbol
+        writer.Write "]"
     | LambdaE(lambda) ->
         printLambda writer lambda
     | ParensE(expr) ->
@@ -106,6 +108,10 @@ and printExpr (writer:IndentedTextWriter) value =
         printLetDecl writer letDecl
     | TypeE(typeDecl) ->
         printTypeDecl writer typeDecl
+    | SumE(expr, terms) ->
+        printExpr writer expr
+        for terms' in terms do
+            printTerm writer terms'
     
     writer.Indent <- n
 
@@ -189,7 +195,9 @@ and printLexprName (writer:IndentedTextWriter) value =
     | IdentifierN(name) ->
         writeSafe writer name
     | OperatorN(symbol) ->
+        writer.Write "["
         writeSafe writer symbol
+        writer.Write "]"
     
     writer.Indent <- n
 
@@ -261,6 +269,18 @@ and printPolyType (writer:IndentedTextWriter) value =
             for cases_ in cases'' do
                 writer.Write " | "
                 printMonoType writer cases_
+    
+    writer.Indent <- n
+
+and printTerm (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | Term(operator, expr) ->
+        writer.Write " "
+        writeSafe writer operator
+        writer.Write " "
+        printExpr writer expr
     
     writer.Indent <- n
 

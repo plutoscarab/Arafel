@@ -54,6 +54,20 @@ Here we define some constant values.
 The following identifiers are keywords of the language and cannot be used:
 "af", "case", "elif", "else", "forall", "if", "let", "of", "then", "type".
 
+OPERATORS
+
+Operators are indicated by sequences of characters in Unicode categories of
+other punctuation, dash punctuation, math symbol, and other symbol, but not
+including the comma. Operators appear between expressions to form compound
+expressions. Some operators:
+
+    x + y
+    x * y
+    x /%/ y
+    x ∆∆ y
+    x ∰ y
+    3 ⊕⊕ qux ⊕⊕ zorb
+
 FUNCTIONS
 
 Functions are defined like this:
@@ -68,12 +82,16 @@ which returns the value 5.
 
 Functions can take multiple parameters.
 
-    let max(a, b) = if >(a, b) then a else b
+    let max(a, b) = if a > b then a else b
 
 Functions are values that can be passed to other functions. Anonymous functions,
 or lambda functions, are defined with "af" which is short for "a function".
 
     af(x) = floor(sqrt(x))
+
+Operators be used as function names if surrounded by square brackets.
+
+    let [∆∆](x, y) = if x > y then 0 else y - 7
 
 EXPONENTS
 
@@ -113,22 +131,6 @@ is equivalent to
 
 so that foo²(f) = foo(foo(f)) = sqrt(foo(f)(x)) = sqrt(sqrt(f(x)))
 
-BUILT-IN OPERATORS
-
-In the core (stripped-down) language, operators are treated the same as other
-call-by-name function calls. (This will change soon). The operator is the
-function name. This example uses "*" to multiply 365 by 24, and 60 by 60, and
-then multiplies those two results together.
-
-    *(*(365, 24), *(60, 60))
-
-This results in 31536000 which is the number of seconds in a normal year.
-
-The "power" operator for exponentiation is "**". It is right-associative, so 
-these two expressions are equivalent:
-
-    **(5, **(4, **(3, 2)))
-
 TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
 
 Binary tree with data in the leaf nodes:
@@ -161,7 +163,7 @@ nodes in our tree.
 
     let count(t) = case t of
         Leaf(_) : 1 
-        Node(left, right) : +(count(left), count(right))
+        Node(left, right) : count(left) + count(right)
 
     count(x)
 
@@ -170,12 +172,12 @@ This prints "3" for the tree we created above.
 
 IF .. THEN .. ELIF .. ELSE
 
-    let yy = *(
-        if =(a, 0) then 22
-            elif =(b, 0) then 311
-            elif =(c, +(a, b)) then 109
-            else 85, 
-        if isOrange then 1 else 0)
+    let yy = (
+        if a = 0 then 22
+            elif b = 0 then 311
+            elif c = a + b then 109
+            else 85)
+        * (if isOrange then 1 else 0)
 
 
 LISTS
@@ -196,7 +198,7 @@ Finite lists.
 Infinite list of natural numbers.
 
     let natsFromWithSkip(n, skip) =
-        Cons(n, natsFromWithSkip(+(n, skip), skip))
+        Cons(n, natsFromWithSkip(n + skip, skip))
 
     let allNatsFrom(n) =
         natsFromWithSkip(n, 1)
@@ -226,7 +228,7 @@ Block comment in the middle of an expression.
                 else
                     Nil
 
-    takeWhile(af(n) = <(n, 100), natsFromWithSkip(5, 2))
+    takeWhile(af(n) = n < 100, natsFromWithSkip(5, 2))
 
 Left-associative and right-associative accumulation:
 
@@ -264,10 +266,10 @@ it to each value in a list to produce a new list.
 We can use this to apply our "square" function to each item in the list.
 
     let natsFromTo(from, to) =
-        if >(from, to) then 
+        if from > to then 
             Nil 
         else 
-            Cons(from, natsFromTo(+(from, 1), to))
+            Cons(from, natsFromTo(from + 1, to))
 
     map(square, natsFromTo(1, 5))
 
@@ -285,11 +287,11 @@ CUSTOM OPERATORS
 
 Concatenate two lists.
 
-    let 😀(list1, list2) =
+    let [😀](list1, list2) =
         case list1 of
             Nil : list2
-            Cons(head, tail) : Cons(head, 😀(tail, list2))
+            Cons(head, tail) : Cons(head, tail 😀 list2)
 
-    😀(Cons(1, Cons(2, Nil)), Cons(3, Cons(4, Cons(5, Nil))))
+    Cons(1, Cons(2, Nil)) 😀 Cons(3, Cons(4, Cons(5, Nil)))
 
 Final comment.

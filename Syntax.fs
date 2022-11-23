@@ -5,7 +5,7 @@ open Print
 
 type LexprName =
     | [<Parse("IDENTIFIER")>] IdentifierN of name: string
-    | [<Parse("OPERATOR")>] OperatorN of symbol: string
+    | [<Parse("surr '[' ']' OPERATOR")>] OperatorN of symbol: string
 
 type Lexpr =
     | [<Parse("_"); 
@@ -44,6 +44,11 @@ and LetDecl =
         Parse("⚠ out '␤␤' _")>]
       LetDecl of name: Lexpr * expr: Expr * inExpr: Expr
 
+and Term =
+    | [<Parse("␠OPERATOR");
+        Parse("␠_")>]
+      Term of operator: string * expr: Expr
+
 and Expr =
     | [<Parse("_");
         Parse("surr '(' ')' delim ',␠' _")>]
@@ -54,7 +59,7 @@ and Expr =
     | [<Parse("NAT")>] NatE of value: bigint
     | [<Parse("␅STRING␅")>] StringE of value: string
     | [<Parse("BOOL")>] BoolE of value: bool
-    | [<Parse("OPERATOR")>] OperatorE of symbol: string
+    | [<Parse("surr '[' ']' OPERATOR")>] OperatorE of symbol: string
     | [<Parse("_")>] LambdaE of lambda: Lambda
     | [<Parse("surr '(' ')' ⚠ _")>] ParensE of expr: Expr
     | [<Parse("IDENTIFIER")>] IdentifierE of name: string
@@ -62,6 +67,9 @@ and Expr =
     | [<Parse("_")>] IfThenE of ifthen: IfThen
     | [<Parse("_")>] LetE of letDecl: LetDecl
     | [<Parse("_")>] TypeE of typeDecl: TypeDecl
+    | [<Parse("_");
+        Parse("1+ _")>]
+      SumE of expr: Expr * terms: Term list
 
 and Case =
     | [<Parse("_");

@@ -28,7 +28,7 @@ and randomElseIf (rand: Random) depth =
         ElseIf(condition, trueExpr)
 
 and randomExpr (rand: Random) depth =
-    match rand.Next(13) with
+    match rand.Next(14) with
     | 0 ->
         let fn = randomExpr rand (depth + 1)
         let args = mkNonempty randomExpr rand (depth + 1)
@@ -67,9 +67,13 @@ and randomExpr (rand: Random) depth =
     | 11 ->
         let letDecl = randomLetDecl rand (depth + 1)
         LetE(letDecl)
-    | _ ->
+    | 12 ->
         let typeDecl = randomTypeDecl rand (depth + 1)
         TypeE(typeDecl)
+    | _ ->
+        let expr = randomExpr rand (depth + 1)
+        let terms = mkNonempty randomTerm rand (depth + 1)
+        SumE(expr, terms)
 
 and randomIfThen (rand: Random) depth =
     match rand.Next(1) with
@@ -139,6 +143,13 @@ and randomPolyType (rand: Random) depth =
         let foralls = mkList mkString rand (depth + 1)
         let cases = mkNonempty randomMonoType rand (depth + 1)
         PolyType(foralls, cases)
+
+and randomTerm (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let operator = mkString rand (depth + 1)
+        let expr = randomExpr rand (depth + 1)
+        Term(operator, expr)
 
 and randomTypeDecl (rand: Random) depth =
     match rand.Next(1) with

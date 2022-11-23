@@ -81,7 +81,7 @@ and parseExpr' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         return! fun t0 ->
-            let (r1, t1) = (stringToken Operator "Operator") t0
+            let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
             match r1 with
             | Match symbol ->
                 Match (OperatorE(symbol)), t1
@@ -150,6 +150,13 @@ and parseExpr' () =
             match r1 with
             | Match exponent ->
                 Match (ExponentE(baseExpr, exponent)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (oneOrMore (parseTerm)) t0
+            match r1 with
+            | Match terms ->
+                Match (SumE(baseExpr, terms)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
     }
@@ -239,7 +246,7 @@ and parseLexprName' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         return! fun t0 ->
-            let (r1, t1) = (stringToken Operator "Operator") t0
+            let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
             match r1 with
             | Match symbol ->
                 Match (OperatorN(symbol)), t1
@@ -307,6 +314,20 @@ and parsePolyType' () =
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
 
+and parseTerm' () =
+    fun t0 ->
+        let (r1, t1) = (stringToken Operator "Operator") t0
+        match r1 with
+        | Match operator ->
+            let (r2, t2) = (parseExpr) t1
+            match r2 with
+            | Match expr ->
+                Match (Term(operator, expr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
 and parseTypeDecl' () =
     fun t0 ->
         let (r1, t1) = (andThen (literal "type") (checkpoint (stringToken Identifier "Identifier"))) t0
@@ -343,4 +364,5 @@ and parseLexprName = parseLexprName'()
 and parseMonoType = parseMonoType'()
 and parsePattern = parsePattern'()
 and parsePolyType = parsePolyType'()
+and parseTerm = parseTerm'()
 and parseTypeDecl = parseTypeDecl'()

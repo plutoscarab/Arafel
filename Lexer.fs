@@ -33,6 +33,17 @@ let idContinuation =
         || "'†‡′″‴⁗".Contains(s))
     |> Set.ofSeq
 
+let opChars =
+    [0..0xD7FF] @ [0xE000..0x10FFFF]
+    |> Seq.map Rune
+    |> Seq.filter (fun r ->
+        let u = Rune.GetUnicodeCategory r
+        u = UnicodeCategory.OtherPunctuation 
+        || u = UnicodeCategory.MathSymbol 
+        || u = UnicodeCategory.OtherSymbol 
+        || u = UnicodeCategory.DashPunctuation)
+    |> Set.ofSeq
+
 let tokenise (keywords:Set<string>) (cursor:Cursor) =
     seq {
         let mutable c = cursor
@@ -52,6 +63,9 @@ let tokenise (keywords:Set<string>) (cursor:Cursor) =
                 let cl = c.line
                 while isWhitespace(c.Current) && cl = c.line do
                     c <- c.Next
+            | r when c.Str = "," ->
+                yield Punctuation (c, c.Next)
+                c <- c.Next
             | r when Rune.IsLetter r || c.Str = "_" ->
                 let mutable start = c
                 while Set.contains (c.Current) idContinuation do
@@ -87,9 +101,9 @@ let tokenise (keywords:Set<string>) (cursor:Cursor) =
                     c <- c.Next
                 else
                     yield Error c
-            | r when uc = UnicodeCategory.OtherPunctuation || uc = UnicodeCategory.MathSymbol || uc = UnicodeCategory.OtherSymbol || uc = UnicodeCategory.DashPunctuation ->
+            | r when Set.contains r opChars ->
                 let mutable start = c
-                while Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherPunctuation || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.MathSymbol || Rune.GetUnicodeCategory (c.Current) = UnicodeCategory.OtherSymbol || Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.DashPunctuation do
+                while Set.contains (c.Current) opChars do
                     c <- c.Next
                 yield Operator (start, c)
             | r when uc = UnicodeCategory.OpenPunctuation || uc = UnicodeCategory.ClosePunctuation ->

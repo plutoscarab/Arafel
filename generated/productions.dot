@@ -15,6 +15,7 @@ digraph G {
     Expr -> IfThen
     Expr -> LetDecl
     Expr -> TypeDecl
+    Expr -> Term
     IfThen -> Expr
     IfThen -> ElseIf
     Lambda -> Lexpr
@@ -31,6 +32,8 @@ digraph G {
     Pattern -> bool
     PolyType -> string
     PolyType -> MonoType
+    Term -> string
+    Term -> Expr
     TypeDecl -> string
     TypeDecl -> PolyType
     TypeDecl -> Expr
