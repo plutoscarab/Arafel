@@ -24,37 +24,6 @@ type Result<'r> =
 let mergeErrors es =
     List.ofSeq (Seq.sort (Seq.distinct (Seq.ofList es)))
 
-type ParserBuilder() =
-    member _.Bind(p, f) =
-        fun t ->
-            let (m, t2) = p t
-            match m with
-            | Nomatch e -> (Nomatch e), t
-            | SyntaxError e -> (SyntaxError e), t2
-            | Match r -> (f r) t2
-    member _.Combine(p1, p2) =
-        fun t ->
-            let (m, t2) = p1 t
-            match m with
-            | Match r -> (Match r), t2
-            | SyntaxError e -> (SyntaxError e), t2
-            | Nomatch e1 ->
-                let (m, t2) = p2 t
-                match m with
-                | Match r -> (Match r), t2
-                | SyntaxError e -> (SyntaxError e), t2
-                | Nomatch e2 -> (Nomatch (mergeErrors (e1 @ e2))), t
-    member _.Delay(f) =
-        f()
-    member _.Return(r) =
-        fun t -> (Match r), t
-    member _.ReturnFrom(p) = 
-        p
-    member _.Zero() =
-        fun t -> Nomatch [], t
-
-let parser = new ParserBuilder()
-
 let stringToken (ctor:Cspan -> Token) ctorName =
     fun t ->
         let nm = (Nomatch [$"{ctorName} token"]), t
@@ -137,17 +106,22 @@ let literal (s: string) =
                 else Nomatch [$"«{s}»"], t
 
 let andThen p q =
-    parser {
-        let! _ = p
-        let! r = q
-        return r
-    }
+    fun t ->
+        match p t with
+        | Nomatch e, _ -> Nomatch e, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match _, t2 -> q t2
 
 let orElse p q =
-    parser {
-        return! p
-        return! q
-    }
+    fun t ->
+        match p t with
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match r, t2 -> Match r, t2
+        | Nomatch e, _ ->
+            match q t with
+            | Nomatch f, _ -> Nomatch (e @ f), t
+            | SyntaxError e, t3 -> SyntaxError e, t3
+            | Match r2, t3 -> Match r2, t3
 
 let checkpoint p =
     fun t ->
@@ -158,22 +132,18 @@ let checkpoint p =
         | Match r -> (Match r), t2
 
 let option p =
-    parser {
-        return! parser {
-            let! r = p
-            return Some r
-        }
-        return None
-    }
+    fun t ->
+        match p t with
+        | Nomatch _, _ -> Match None, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match r, t2 -> Match (Some r), t2
 
 let optionlist p =
-    parser {
-        return! parser {
-            let! r = p
-            return r
-        }
-        return []
-    }
+    fun t ->
+        match p t with
+        | Nomatch _, _ -> Match [], t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match r, t2 -> Match r, t2
 
 let rec zeroOrMore p =
     fun t ->
@@ -189,26 +159,41 @@ let rec zeroOrMore p =
             | Match rs -> (Match (r::rs)), t3
 
 and oneOrMore p =
-    parser {
-        let! first = p
-        let! rest = zeroOrMore p
-        return first::rest
-    }
+    fun t ->
+        match p t with
+        | Nomatch e, _ -> Nomatch e, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match r, t2 ->
+            match (zeroOrMore p) t2 with
+            | Nomatch _, _ -> Match [r], t2
+            | SyntaxError e, t3 -> Match [r], t2
+            | Match rest, t3 -> Match (r::rest), t3
 
 let delimited d p =
-    parser {
-        let! first = p
-        let! rest = zeroOrMore (andThen d p)
-        return first::rest
-    }
+    fun t ->
+        match p t with
+        | Nomatch e, _ -> Nomatch e, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match r, t2 ->
+            match (zeroOrMore (andThen d p)) t2 with
+            | Nomatch _, _ -> Match [r], t2
+            | SyntaxError e, t3 -> Match [r], t2
+            | Match rest, t3 -> Match (r::rest), t3
 
 let surround a b p =
-    parser {
-        let! _ = a
-        let! r = p
-        let! _ = b
-        return r
-    }
+    fun t ->
+        match a t with
+        | Nomatch e, _ -> Nomatch e, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match _, t2 ->
+            match p t2 with
+            | Nomatch e, _ -> Nomatch e, t
+            | SyntaxError e, t3 -> SyntaxError e, t3
+            | Match r, t3 ->
+                match b t3 with
+                | Nomatch e, _ -> Nomatch e, t
+                | SyntaxError e, t4 -> SyntaxError e, t4
+                | Match _, t4 -> Match r, t4
 
 let rec getKeywords =
     function
@@ -391,7 +376,6 @@ let private writeField (writer: IndentedTextWriter) pname (TupleField(fname, pri
 
 let private writeCase (writer: IndentedTextWriter) pname (UnionCase(name, fields)) asRecursive =
     let n = writer.Indent
-    //writer.WriteLine "parser {"
     writer.WriteLine "fun t0 ->"
     writer.Indent <- writer.Indent + 1
     let toSkip = if asRecursive then 1 else 0
@@ -418,8 +402,6 @@ let private writeCase (writer: IndentedTextWriter) pname (UnionCase(name, fields
         writer.WriteLine $"| Nomatch e -> Nomatch e, t{i - 1}"
         i <- i - 1
 
-    //writer.Indent <- writer.Indent - 1
-    //writer.WriteLine "}"
     writer.Indent <- n
 
 let isRecursiveCase pname (UnionCase(_, fields)) =
@@ -432,8 +414,36 @@ let rec repeat baseValue suffix =
     fun t ->
         match (suffix baseValue) t with
         | Nomatch e, _ -> Match baseValue, t
-        | SyntaxError e, t2 -> SyntaxError e, t2
+        | SyntaxError e, t2 -> Match baseValue, t
         | Match r, t2 -> (repeat r suffix) t2
+
+let writeCases (writer: IndentedTextWriter) pname cs recursion =
+
+    let n = writer.Indent
+    let mutable i = 0
+
+    for case in cs do
+        writer.Write $"let p{i} = "
+        writeCase writer pname case recursion
+        writer.WriteLine ()
+        i <- i + 1
+
+    writer.WriteLine "fun t ->"
+    writer.Indent <- writer.Indent + 1
+    writer.WriteLine "let mutable exp = []"
+    i <- 0
+
+    for case in cs do
+        writer.WriteLine $"match p{i} t with"
+        writer.WriteLine $"| Match r{i}, t2 -> Match r{i}, t2"
+        writer.WriteLine $"| SyntaxError e, t2 -> SyntaxError e, t2"
+        writer.WriteLine $"| Nomatch e{i}, _ ->"
+        writer.Indent <- writer.Indent + 1
+        writer.WriteLine $"exp <- e{i} @ exp"
+        i <- i + 1
+
+    writer.WriteLine "Nomatch exp, t"
+    writer.Indent <- n
 
 let writeParserFile filename modulename (productions:Production list) (keywords:string seq) =
     use file = File.CreateText(filename)
@@ -474,39 +484,26 @@ let writeParserFile filename modulename (productions:Production list) (keywords:
             let (recursiveCases, normalCases) =
                 List.partition (isRecursiveCase pname) cases
 
-            let writeCases cs =
-                writer.WriteLine "parser {"
-                writer.Indent <- writer.Indent + 1
-
-                for case in cs do
-                    writer.Write "return! "
-                    writeCase writer pname case false
-
-                writer.Indent <- writer.Indent - 1
-                writer.WriteLine "}"
-
             if List.isEmpty recursiveCases then
-                writeCases cases
+                writeCases writer pname cases false
             else
-                writer.Write "let baseParser = "
-                writeCases normalCases
-
-                writer.WriteLine $"let suffixes base{pname} = parser {{"
+                writer.WriteLine "let baseParser ="
                 writer.Indent <- writer.Indent + 1
-                
-                for case in recursiveCases do
-                    let (UnionCase(uname, _)) = case
-                    writer.Write "return! "
-                    writeCase writer pname case true
-
+                writeCases writer pname normalCases false
                 writer.Indent <- writer.Indent - 1
-                writer.WriteLine "}"
-                writer.WriteLine "parser {"
+                writer.WriteLine ()
+                writer.WriteLine $"let suffixes base{pname} ="
                 writer.Indent <- writer.Indent + 1
-                writer.WriteLine $"let! base{pname} = baseParser"
-                writer.WriteLine $"return! repeat base{pname} suffixes"
+                writeCases writer pname recursiveCases true
                 writer.Indent <- writer.Indent - 1
-                writer.WriteLine "}"
+                writer.WriteLine ()
+                writer.WriteLine "fun t ->"
+                writer.Indent <- writer.Indent + 1
+                writer.WriteLine "match baseParser t with"
+                writer.WriteLine "| Nomatch e, _ -> Nomatch e, t"
+                writer.WriteLine "| SyntaxError e, t2 -> SyntaxError e, t2"
+                writer.WriteLine $"| Match base{pname}, t2 -> (repeat base{pname} suffixes) t2"
+                writer.Indent <- writer.Indent - 1
 
         writer.Indent <- writer.Indent - 1
 

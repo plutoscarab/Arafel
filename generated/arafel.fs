@@ -58,112 +58,203 @@ and parseElseIf' () =
         | Nomatch e -> Nomatch e, t0
 
 and parseExpr' () =
-    let baseParser = parser {
-        return! fun t0 ->
+    let baseParser =
+        let p0 = fun t0 ->
             let (r1, t1) = (bigintToken Nat "Nat") t0
             match r1 with
             | Match value ->
                 Match (NatE(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p1 = fun t0 ->
             let (r1, t1) = (stringToken String "String") t0
             match r1 with
             | Match value ->
                 Match (StringE(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p2 = fun t0 ->
             let (r1, t1) = (boolToken Bool "Bool") t0
             match r1 with
             | Match value ->
                 Match (BoolE(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p3 = fun t0 ->
             let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
             match r1 with
             | Match symbol ->
                 Match (OperatorE(symbol)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p4 = fun t0 ->
             let (r1, t1) = (parseLambda) t0
             match r1 with
             | Match lambda ->
                 Match (LambdaE(lambda)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p5 = fun t0 ->
             let (r1, t1) = (surround (literal "(") (literal ")") (checkpoint (parseExpr))) t0
             match r1 with
             | Match expr ->
                 Match (ParensE(expr)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p6 = fun t0 ->
             let (r1, t1) = (stringToken Identifier "Identifier") t0
             match r1 with
             | Match name ->
                 Match (IdentifierE(name)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p7 = fun t0 ->
             let (r1, t1) = (parseCases) t0
             match r1 with
             | Match cases ->
                 Match (CasesE(cases)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p8 = fun t0 ->
             let (r1, t1) = (parseIfThen) t0
             match r1 with
             | Match ifthen ->
                 Match (IfThenE(ifthen)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p9 = fun t0 ->
             let (r1, t1) = (parseLetDecl) t0
             match r1 with
             | Match letDecl ->
                 Match (LetE(letDecl)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p10 = fun t0 ->
             let (r1, t1) = (parseTypeDecl) t0
             match r1 with
             | Match typeDecl ->
                 Match (TypeE(typeDecl)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-    }
-    let suffixes baseExpr = parser {
-        return! fun t0 ->
+        
+        fun t ->
+            let mutable exp = []
+            match p0 t with
+            | Match r0, t2 -> Match r0, t2
+            | SyntaxError e, t2 -> SyntaxError e, t2
+            | Nomatch e0, _ ->
+                exp <- e0 @ exp
+                match p1 t with
+                | Match r1, t2 -> Match r1, t2
+                | SyntaxError e, t2 -> SyntaxError e, t2
+                | Nomatch e1, _ ->
+                    exp <- e1 @ exp
+                    match p2 t with
+                    | Match r2, t2 -> Match r2, t2
+                    | SyntaxError e, t2 -> SyntaxError e, t2
+                    | Nomatch e2, _ ->
+                        exp <- e2 @ exp
+                        match p3 t with
+                        | Match r3, t2 -> Match r3, t2
+                        | SyntaxError e, t2 -> SyntaxError e, t2
+                        | Nomatch e3, _ ->
+                            exp <- e3 @ exp
+                            match p4 t with
+                            | Match r4, t2 -> Match r4, t2
+                            | SyntaxError e, t2 -> SyntaxError e, t2
+                            | Nomatch e4, _ ->
+                                exp <- e4 @ exp
+                                match p5 t with
+                                | Match r5, t2 -> Match r5, t2
+                                | SyntaxError e, t2 -> SyntaxError e, t2
+                                | Nomatch e5, _ ->
+                                    exp <- e5 @ exp
+                                    match p6 t with
+                                    | Match r6, t2 -> Match r6, t2
+                                    | SyntaxError e, t2 -> SyntaxError e, t2
+                                    | Nomatch e6, _ ->
+                                        exp <- e6 @ exp
+                                        match p7 t with
+                                        | Match r7, t2 -> Match r7, t2
+                                        | SyntaxError e, t2 -> SyntaxError e, t2
+                                        | Nomatch e7, _ ->
+                                            exp <- e7 @ exp
+                                            match p8 t with
+                                            | Match r8, t2 -> Match r8, t2
+                                            | SyntaxError e, t2 -> SyntaxError e, t2
+                                            | Nomatch e8, _ ->
+                                                exp <- e8 @ exp
+                                                match p9 t with
+                                                | Match r9, t2 -> Match r9, t2
+                                                | SyntaxError e, t2 -> SyntaxError e, t2
+                                                | Nomatch e9, _ ->
+                                                    exp <- e9 @ exp
+                                                    match p10 t with
+                                                    | Match r10, t2 -> Match r10, t2
+                                                    | SyntaxError e, t2 -> SyntaxError e, t2
+                                                    | Nomatch e10, _ ->
+                                                        exp <- e10 @ exp
+                                                        Nomatch exp, t
+    
+    let suffixes baseExpr =
+        let p0 = fun t0 ->
             let (r1, t1) = (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr))) t0
             match r1 with
             | Match args ->
                 Match (CallE(baseExpr, args)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p1 = fun t0 ->
             let (r1, t1) = (bigintToken Superscript "Superscript") t0
             match r1 with
             | Match exponent ->
                 Match (ExponentE(baseExpr, exponent)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
+        
+        let p2 = fun t0 ->
             let (r1, t1) = (oneOrMore (parseTerm)) t0
             match r1 with
             | Match terms ->
                 Match (SumE(baseExpr, terms)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
-    }
-    parser {
-        let! baseExpr = baseParser
-        return! repeat baseExpr suffixes
-    }
+        
+        fun t ->
+            let mutable exp = []
+            match p0 t with
+            | Match r0, t2 -> Match r0, t2
+            | SyntaxError e, t2 -> SyntaxError e, t2
+            | Nomatch e0, _ ->
+                exp <- e0 @ exp
+                match p1 t with
+                | Match r1, t2 -> Match r1, t2
+                | SyntaxError e, t2 -> SyntaxError e, t2
+                | Nomatch e1, _ ->
+                    exp <- e1 @ exp
+                    match p2 t with
+                    | Match r2, t2 -> Match r2, t2
+                    | SyntaxError e, t2 -> SyntaxError e, t2
+                    | Nomatch e2, _ ->
+                        exp <- e2 @ exp
+                        Nomatch exp, t
+    
+    fun t ->
+        match baseParser t with
+        | Nomatch e, _ -> Nomatch e, t
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Match baseExpr, t2 -> (repeat baseExpr suffixes) t2
 
 and parseIfThen' () =
     fun t0 ->
@@ -237,22 +328,35 @@ and parseLexpr' () =
         | Nomatch e -> Nomatch e, t0
 
 and parseLexprName' () =
-    parser {
-        return! fun t0 ->
-            let (r1, t1) = (stringToken Identifier "Identifier") t0
-            match r1 with
-            | Match name ->
-                Match (IdentifierN(name)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
-            let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
-            match r1 with
-            | Match symbol ->
-                Match (OperatorN(symbol)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-    }
+    let p0 = fun t0 ->
+        let (r1, t1) = (stringToken Identifier "Identifier") t0
+        match r1 with
+        | Match name ->
+            Match (IdentifierN(name)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p1 = fun t0 ->
+        let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
+        match r1 with
+        | Match symbol ->
+            Match (OperatorN(symbol)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    fun t ->
+        let mutable exp = []
+        match p0 t with
+        | Match r0, t2 -> Match r0, t2
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Nomatch e0, _ ->
+            exp <- e0 @ exp
+            match p1 t with
+            | Match r1, t2 -> Match r1, t2
+            | SyntaxError e, t2 -> SyntaxError e, t2
+            | Nomatch e1, _ ->
+                exp <- e1 @ exp
+                Nomatch exp, t
 
 and parseMonoType' () =
     fun t0 ->
@@ -264,41 +368,66 @@ and parseMonoType' () =
         | Nomatch e -> Nomatch e, t0
 
 and parsePattern' () =
-    parser {
-        return! fun t0 ->
-            let (r1, t1) = (stringToken Identifier "Identifier") t0
-            match r1 with
-            | Match ctor ->
-                let (r2, t2) = (optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parsePattern)))) t1
-                match r2 with
-                | Match args ->
-                    Match (CtorPat(ctor, args)), t2
-                | SyntaxError e -> SyntaxError e, t2
-                | Nomatch e -> Nomatch e, t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
-            let (r1, t1) = (bigintToken Nat "Nat") t0
-            match r1 with
-            | Match value ->
-                Match (NatPat(value)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
-            let (r1, t1) = (stringToken String "String") t0
-            match r1 with
-            | Match value ->
-                Match (StringPat(value)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        return! fun t0 ->
-            let (r1, t1) = (boolToken Bool "Bool") t0
-            match r1 with
-            | Match value ->
-                Match (BoolPat(value)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-    }
+    let p0 = fun t0 ->
+        let (r1, t1) = (stringToken Identifier "Identifier") t0
+        match r1 with
+        | Match ctor ->
+            let (r2, t2) = (optionlist (surround (literal "(") (literal ")") (delimited (literal ",") (parsePattern)))) t1
+            match r2 with
+            | Match args ->
+                Match (CtorPat(ctor, args)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p1 = fun t0 ->
+        let (r1, t1) = (bigintToken Nat "Nat") t0
+        match r1 with
+        | Match value ->
+            Match (NatPat(value)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p2 = fun t0 ->
+        let (r1, t1) = (stringToken String "String") t0
+        match r1 with
+        | Match value ->
+            Match (StringPat(value)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p3 = fun t0 ->
+        let (r1, t1) = (boolToken Bool "Bool") t0
+        match r1 with
+        | Match value ->
+            Match (BoolPat(value)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    fun t ->
+        let mutable exp = []
+        match p0 t with
+        | Match r0, t2 -> Match r0, t2
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Nomatch e0, _ ->
+            exp <- e0 @ exp
+            match p1 t with
+            | Match r1, t2 -> Match r1, t2
+            | SyntaxError e, t2 -> SyntaxError e, t2
+            | Nomatch e1, _ ->
+                exp <- e1 @ exp
+                match p2 t with
+                | Match r2, t2 -> Match r2, t2
+                | SyntaxError e, t2 -> SyntaxError e, t2
+                | Nomatch e2, _ ->
+                    exp <- e2 @ exp
+                    match p3 t with
+                    | Match r3, t2 -> Match r3, t2
+                    | SyntaxError e, t2 -> SyntaxError e, t2
+                    | Nomatch e3, _ ->
+                        exp <- e3 @ exp
+                        Nomatch exp, t
 
 and parsePolyType' () =
     fun t0 ->

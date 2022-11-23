@@ -6,10 +6,6 @@ Source files contain comments on non-indented lines and code on indented lines.
 You're reading a valid Arafel source file. Files must be encoded in UTF-8 or a
 compatible subset of it such as ASCII.
 
-COMMENTS
-
-Lines that start with whitespace are code, lines that start with text are block
-comments.
 
 LITERALS
 
@@ -37,6 +33,7 @@ Strings of text delimited by double-quotes are "str" values.
     "Hello, world!"
     ""
 
+
 IDENTIFIERS
 
 Identifiers (names used for constants, functions, parameters, etc.) start with a
@@ -53,6 +50,7 @@ Here we define some constant values.
 
 The following identifiers are keywords of the language and cannot be used:
 "af", "case", "elif", "else", "forall", "if", "let", "of", "then", "type".
+
 
 OPERATORS
 
@@ -84,14 +82,14 @@ Functions can take multiple parameters.
 
     let max(a, b) = if a > b then a else b
 
+Operators be used as function names if surrounded by square brackets.
+
+    let [∆∆](x, y) = if x > y then 0 else y - 7
+
 Functions are values that can be passed to other functions. Anonymous functions,
 or lambda functions, are defined with "af" which is short for "a function".
 
     af(x) = floor(sqrt(x))
-
-Operators be used as function names if surrounded by square brackets.
-
-    let [∆∆](x, y) = if x > y then 0 else y - 7
 
 EXPONENTS
 
@@ -174,9 +172,9 @@ IF .. THEN .. ELIF .. ELSE
 
     let yy = (
         if a = 0 then 22
-            elif b = 0 then 311
-            elif c = a + b then 109
-            else 85)
+        elif b = 0 then 311
+        elif c = a + b then 109
+        else 85)
         * (if isOrange then 1 else 0)
 
 
@@ -287,10 +285,10 @@ CUSTOM OPERATORS
 
 Concatenate two lists.
 
-    let [😀](list1, list2) =
-        case list1 of
-            Nil : list2
-            Cons(head, tail) : Cons(head, tail 😀 list2)
+    let [😀](list₁, list₂) =
+        case list₁ of
+            Nil : list₂
+            Cons(head, tail) : Cons(head, tail 😀 list₂)
 
     Cons(1, Cons(2, Nil)) 😀 Cons(3, Cons(4, Cons(5, Nil)))
 

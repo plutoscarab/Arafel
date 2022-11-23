@@ -49,6 +49,12 @@ and Term =
         Parse("␠_")>]
       Term of operator: string * expr: Expr
 
+and Factor =
+    | NatF of bigint
+    | StringF of string
+    | BoolF of bool
+    | IdentifierF of string
+
 and Expr =
     | [<Parse("_");
         Parse("surr '(' ')' delim ',␠' _")>]
