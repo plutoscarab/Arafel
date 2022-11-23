@@ -53,6 +53,7 @@ let private writeFormatter (writer:IndentedTextWriter) =
     | Outdent ->
         writer.WriteLine "writer.Indent <- writer.Indent - 1"
         writer.WriteLine ()
+    | Space -> writer.WriteLine "writer.Write \" \""
 
 let rec private writeParser (writer:IndentedTextWriter) parser primaryType name =
     match parser with

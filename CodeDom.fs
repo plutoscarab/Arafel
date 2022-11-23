@@ -5,6 +5,7 @@ type Formatter =
     | Newline
     | Indent
     | Outdent
+    | Space
 
 type Parser =
     | ProductionP of Formatter * Formatter

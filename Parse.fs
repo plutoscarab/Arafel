@@ -238,6 +238,7 @@ let private formatter =
     | '␤' -> Newline
     | '␏' -> Indent
     | '␎' -> Outdent
+    | '␠' -> Space
     | _ -> raise (Exception())
 
 let rec private decodeParser (ps: string list) =
