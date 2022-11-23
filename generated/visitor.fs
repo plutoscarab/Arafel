@@ -62,6 +62,11 @@ type Visitor() =
         let value' = value
         StringE (value')
     
+    abstract member Expr_BoolE: bool -> Expr
+    default this.Expr_BoolE(value) =
+        let value' = value
+        BoolE (value')
+    
     abstract member Expr_OperatorE: string -> Expr
     default this.Expr_OperatorE(symbol) =
         let symbol' = symbol
@@ -109,6 +114,7 @@ type Visitor() =
         | ExponentE (expr, exponent) -> this.Expr_ExponentE(expr, exponent)
         | NatE (value) -> this.Expr_NatE(value)
         | StringE (value) -> this.Expr_StringE(value)
+        | BoolE (value) -> this.Expr_BoolE(value)
         | OperatorE (symbol) -> this.Expr_OperatorE(symbol)
         | LambdaE (lambda) -> this.Expr_LambdaE(lambda)
         | ParensE (expr) -> this.Expr_ParensE(expr)

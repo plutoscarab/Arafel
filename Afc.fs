@@ -69,9 +69,11 @@ type CoreVisitor() =
 
     // Fully curry all the arguments of function applications
     override this.Expr_CallE(fn, args) =
+        let fn' = this.VisitExpr fn
+        let args' = List.map this.VisitExpr args
         let folder ex arg =
             CallE (ex, [arg])
-        List.fold folder fn args
+        List.fold folder fn' args'
     
     // Replace if-then with case
     override this.Expr_IfThenE(ifthen) =
@@ -86,6 +88,11 @@ type CoreVisitor() =
             CasesE (Cases (condition, [
                 Case (BoolPat (true), trueExpr)
             ], Some elseExpr))
+
+    // Replace exponents with **
+    override this.Expr_ExponentE(expr, exp) =
+        let expr' = this.VisitExpr expr
+        CallE (CallE (OperatorE "**", [expr']), [NatE exp])
 
 let pretty filename exprs =
     Directory.CreateDirectory "output" |> ignore

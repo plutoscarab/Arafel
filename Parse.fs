@@ -101,10 +101,10 @@ let private parseNat (s:string) =
 
 let private parseBool =
     function
-    | "false" -> (true, false)
-    | "true" -> (true, true)
+    | "false" | "𝗙" -> (true, false)
+    | "true" | "𝗧" -> (true, true)
     | _ -> (false, false)
-
+    
 let bigintToken (ctor:Cspan -> Token) ctorName =
     fun t ->
         let (m, t2) = (stringToken ctor ctorName) t

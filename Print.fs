@@ -74,20 +74,39 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         if pre = Indent then
             writer.WriteLine "writer.Indent <- writer.Indent - 1"
 
-    | TokenP(s) ->
+    | TokenP(t) ->
+        let mutable s = t
+        let ss = s.StartsWith("␑")
 
-        if s.StartsWith("␑") then
+        while s.[0] = Char.ToLowerInvariant(s.[0]) do
+            match s.[0] with
+            | '␤' -> writer.WriteLine "writer.WriteLine ()"
+            | '␅' -> writer.WriteLine "writer.Write \"\\\"\""
+            | '␠' -> writer.WriteLine "writer.Write \" \""
+            | _ -> ignore ()
+            s <- s.Substring(1)
+
+        if ss then
             writer.WriteLine $"let s = toSuperscript {name}"
             writer.WriteLine "writeSafe writer s"
         else
-            if s.StartsWith("␤") then
-                writer.WriteLine "writer.WriteLine ()"
-
-            if primaryType = BoolType then
+            match primaryType with
+            | BoolType ->
                 writer.WriteLine $"let b = {name}.ToString().ToLowerInvariant()"
                 writer.WriteLine "writer.Write b"
-            else
+            | _ ->
                 writer.WriteLine $"writeSafe writer {name}"
+
+        while s.Length > 0 && s.[0] <> Char.ToLowerInvariant(s.[0]) do
+            s <- s.Substring(1)
+
+        while s.Length > 0 do
+            match s.[0] with
+            | '␤' -> writer.WriteLine "writer.WriteLine ()"
+            | '␅' -> writer.WriteLine "writer.Write \"\\\"\""
+            | '␠' -> writer.WriteLine "writer.Write \" \""
+            | _ -> ignore ()
+            s <- s.Substring(1)
 
     | LiteralP(s) ->
 

@@ -9,6 +9,7 @@ digraph G {
     Expr -> Expr
     Expr -> bigint
     Expr -> string
+    Expr -> bool
     Expr -> Lambda
     Expr -> Cases
     Expr -> IfThen

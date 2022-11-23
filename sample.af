@@ -6,15 +6,16 @@ Source files contain comments on non-indented lines and code on indented lines.
 You're reading a valid Arafel source file. Files must be encoded in UTF-8 or a
 compatible subset of it such as ASCII.
 
+COMMENTS
 
-VALUES
+Lines that start with whitespace are code, lines that start with text are block
+comments.
 
-An Arafel program produces values. An Arafel "host" decides what to do with
-those values. The default console host just writes them to the console.
+LITERALS
 
-Nat values represent natural (non-negative) numbers. They are either 0 or a
-sequence of digits that doesn't start with zero. Digit group separators can be
-used to make it easier to read large numbers. Here are some Nat values:
+A string of decimal digits is a "nat" value (a natural number). Underscores can
+be used as digit separators to make large values more readible. Non-ASCII digits
+are allowed.
 
     0
     500
@@ -23,55 +24,110 @@ used to make it easier to read large numbers. Here are some Nat values:
     ੨੦੨੨
     𝟞𝟜
 
-Those last two values show that you can use decimal digits from scripts other
-than arabic numerals.
+Boolean values of type "bool" are shown below. The 𝗙 and 𝗧 characters are
+U+1D5D9 and U+1D5E7 Mathematical Sans-Serif Bold Capital.
 
+    false
+    true
+    𝗙
+    𝗧
 
-BUILD-IN OPERATORS
+Strings of text delimited by double-quotes are "str" values.
+
+    "Hello, world!"
+    ""
+
+IDENTIFIERS
+
+Identifiers (names used for constants, functions, parameters, etc.) start with a
+letter or underscore, and continue with letters, underscores, digits,
+apostrophes and primes, and characters in Unicode category "other number"
+excluding subscript digits.
+
+Here we define some constant values.
+
+    let foo = false
+    let x₁ = 1
+    let bar፳ = "bar"
+    let prime'′ = 53
+
+The following identifiers are keywords of the language and cannot be used:
+"af", "case", "elif", "else", "forall", "if", "let", "of", "then", "type".
+
+FUNCTIONS
+
+Functions are defined like this:
+
+    let alwaysFive(x) = 5
+
+Functions are called like this:
+
+    alwaysFive("yes")
+
+which returns the value 5.
+
+Functions can take multiple parameters.
+
+    let max(a, b) = if >(a, b) then a else b
+
+Functions are values that can be passed to other functions. Anonymous functions,
+or lambda functions, are defined with "af" which is short for "a function".
+
+    af(x) = floor(sqrt(x))
+
+EXPONENTS
+
+Expressions can be followed by superscript digits. Exponent on a "nat" value
+represents the power operation.
+
+    3²
+
+Exponent on a "str" value represent repetition of the string. This is the string
+"aaaaa":
+
+    "a"⁵
+
+Exponent on a "bool" value represents false if the value is false and the
+exponent is greater than zero. If the exponent is zero or the value is true, the
+result is true.
+
+    false
+    false
+    true
+
+Exponent on a single-argument function with a return type that matches the type
+of the first parameter represents repeated application of the function. Here is
+sqrt(sqrt(sqrt(7))):
+
+    sqrt³(7)
+
+Exponentiation on a function with multiple parameters operates on the
+fully-curried version of the function, so the first parameter must be a function
+parameter of the same type.
+
+    let foo(f, x) = sqrt(f(x))
+
+is equivalent to
+
+    let foo(f) = af(x) = sqrt(f(x))
+
+so that foo²(f) = foo(foo(f)) = sqrt(foo(f)(x)) = sqrt(sqrt(f(x)))
+
+BUILT-IN OPERATORS
 
 In the core (stripped-down) language, operators are treated the same as other
-call-by-name function calls. The operator is the function name. This example
-uses "*" to multiply 365 by 24, and 60 by 60, and then multiplies those two
-results together.
+call-by-name function calls. (This will change soon). The operator is the
+function name. This example uses "*" to multiply 365 by 24, and 60 by 60, and
+then multiplies those two results together.
 
     *(*(365, 24), *(60, 60))
 
-This prints "31536000" which is the number of seconds in a normal year.
+This results in 31536000 which is the number of seconds in a normal year.
 
 The "power" operator for exponentiation is "**". It is right-associative, so 
 these two expressions are equivalent:
 
     **(5, **(4, **(3, 2)))
-
-Superscript digits can also be used for exponentiation.
-
-    +(3², 4²)
-    105¹²
-
-Subscript digits and Unicode "other number" characters other than superscripts
-can be used in identifiers, but not as the leading character.
-
-    let x₁ = 99
-    let y፳ = 79
-
-
-FUNCTIONS
-
-Functions in Arafel are written like this which returns the square of a number:
-
-    let square(x) = *(x, x)
-
-Functions that you define this way can be used in expressions later in the
-program.
-
-    *(*(365, 24), square(60))
-
-There are many built-in functions, such as "sqrt":
-
-    let hypot(a, b) = sqrt(+(square(a), square(b)))
-
-    hypot(3, 4)
-
 
 TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
 
@@ -170,7 +226,7 @@ Block comment in the middle of an expression.
                 else
                     Nil
 
-    takeWhile(fn(n) = <(n, 100), natsFromWithSkip(5, 2))
+    takeWhile(af(n) = <(n, 100), natsFromWithSkip(5, 2))
 
 Left-associative and right-associative accumulation:
 
@@ -219,7 +275,7 @@ This produces Cons(1, Cons(4, Cons(9, Cons(16, Cons(25, Nil))))). We can also
 supply a function directly in the call to map without defining a named function
 first.
 
-    map(fn(x) = x², natsFromTo(1, 5))
+    map(af(x) = x², natsFromTo(1, 5))
 
 An unnamed function like this is called a lambda function, named after Lambda
 Calculus.

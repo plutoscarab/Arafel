@@ -1,5 +1,6 @@
 module Lexer
 
+open System
 open System.Globalization
 open System.Text
 
@@ -19,6 +20,18 @@ let rec private emptyLine (cursor:Cursor) =
         true
 
 let superchars = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+
+let idContinuation =
+    [0..0xD7FF] @ [0xE000..0x10FFFF]
+    |> Seq.map Rune
+    |> Seq.filter (fun r ->
+        let s = r.ToString()
+        s = "_"
+        || Rune.IsLetter(r)
+        || Rune.IsDigit(r)
+        || (Rune.GetUnicodeCategory(r) = UnicodeCategory.OtherNumber && not (superchars.Contains(s)))
+        || "'†‡′″‴⁗".Contains(s))
+    |> Set.ofSeq
 
 let tokenise (keywords:Set<string>) (cursor:Cursor) =
     seq {
@@ -41,14 +54,16 @@ let tokenise (keywords:Set<string>) (cursor:Cursor) =
                     c <- c.Next
             | r when Rune.IsLetter r || c.Str = "_" ->
                 let mutable start = c
-                while Rune.IsLetter(c.Current) || c.Str = "_" || Rune.IsDigit(c.Current) || (Rune.GetUnicodeCategory(c.Current) = UnicodeCategory.OtherNumber && not (superchars.Contains(c.Str))) do
+                while Set.contains (c.Current) idContinuation do
                     c <- c.Next
                 let s = spanned (start, c)
-                if s = "false" then
+                if s.Length = 0 then
+                    raise (Exception "Lexer bug: Identifier start set not subset of continuation set")
+                if s = "false" || s = "𝗙" then
                     yield Bool (start, c)
-                elif s = "true" then
+                elif s = "true" || s = "𝗧" then
                     yield Bool (start, c)
-                if Set.contains s keywords then
+                elif Set.contains s keywords then
                     yield Keyword (start, c)
                 else
                     yield Identifier (start, c)

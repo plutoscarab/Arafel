@@ -82,7 +82,12 @@ and printExpr (writer:IndentedTextWriter) value =
     | NatE(value) ->
         writeSafe writer value
     | StringE(value) ->
+        writer.Write "\""
         writeSafe writer value
+        writer.Write "\""
+    | BoolE(value) ->
+        let b = value.ToString().ToLowerInvariant()
+        writer.Write b
     | OperatorE(symbol) ->
         writeSafe writer symbol
     | LambdaE(lambda) ->
@@ -126,7 +131,7 @@ and printLambda (writer:IndentedTextWriter) value =
     
     match value with
     | Lambda(name, expr) ->
-        writer.Write "fn"
+        writer.Write "af"
         writer.Write "("
         printLexpr writer name
         writer.Write ")"

@@ -7,7 +7,7 @@ open Parse
 open Syntax
 
 let keywords = Set [
-    "case"; "elif"; "else"; "fn"; "forall"; "if"; "let"; "of"; "then"; "type"; 
+    "af"; "case"; "elif"; "else"; "forall"; "if"; "let"; "of"; "then"; "type"; 
 ]
 
 let rec parseCase' () =
@@ -71,6 +71,13 @@ and parseExpr' () =
             match r1 with
             | Match value ->
                 Match (StringE(value)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        return! fun t0 ->
+            let (r1, t1) = (boolToken Bool "Bool") t0
+            match r1 with
+            | Match value ->
+                Match (BoolE(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         return! fun t0 ->
@@ -177,7 +184,7 @@ and parseIfThen' () =
 
 and parseLambda' () =
     fun t0 ->
-        let (r1, t1) = (andThen (literal "fn") (surround (literal "(") (literal ")") (parseLexpr))) t0
+        let (r1, t1) = (andThen (literal "af") (surround (literal "(") (literal ")") (parseLexpr))) t0
         match r1 with
         | Match name ->
             let (r2, t2) = (andThen (literal "=") (checkpoint (parseExpr))) t1

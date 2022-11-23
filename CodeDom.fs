@@ -63,3 +63,4 @@ let plain (s: string) =
      .Replace("␏", "")
      .Replace("␎", "")
      .Replace("␑", "")
+     .Replace("␅", "")

@@ -28,7 +28,7 @@ and randomElseIf (rand: Random) depth =
         ElseIf(condition, trueExpr)
 
 and randomExpr (rand: Random) depth =
-    match rand.Next(12) with
+    match rand.Next(13) with
     | 0 ->
         let fn = randomExpr rand (depth + 1)
         let args = mkNonempty randomExpr rand (depth + 1)
@@ -44,24 +44,27 @@ and randomExpr (rand: Random) depth =
         let value = mkString rand (depth + 1)
         StringE(value)
     | 4 ->
+        let value = mkBool rand (depth + 1)
+        BoolE(value)
+    | 5 ->
         let symbol = mkString rand (depth + 1)
         OperatorE(symbol)
-    | 5 ->
+    | 6 ->
         let lambda = randomLambda rand (depth + 1)
         LambdaE(lambda)
-    | 6 ->
+    | 7 ->
         let expr = randomExpr rand (depth + 1)
         ParensE(expr)
-    | 7 ->
+    | 8 ->
         let name = mkString rand (depth + 1)
         IdentifierE(name)
-    | 8 ->
+    | 9 ->
         let cases = randomCases rand (depth + 1)
         CasesE(cases)
-    | 9 ->
+    | 10 ->
         let ifthen = randomIfThen rand (depth + 1)
         IfThenE(ifthen)
-    | 10 ->
+    | 11 ->
         let letDecl = randomLetDecl rand (depth + 1)
         LetE(letDecl)
     | _ ->

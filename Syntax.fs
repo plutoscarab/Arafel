@@ -52,7 +52,8 @@ and Expr =
         Parse("␑SUPERSCRIPT")>]
       ExponentE of expr: Expr * exponent: bigint
     | [<Parse("NAT")>] NatE of value: bigint
-    | [<Parse("STRING")>] StringE of value: string
+    | [<Parse("␅STRING␅")>] StringE of value: string
+    | [<Parse("BOOL")>] BoolE of value: bool
     | [<Parse("OPERATOR")>] OperatorE of symbol: string
     | [<Parse("_")>] LambdaE of lambda: Lambda
     | [<Parse("surr '(' ')' ⚠ _")>] ParensE of expr: Expr
@@ -86,6 +87,6 @@ and ElseIf =
       ElseIf of condition: Expr * trueExpr: Expr
 
 and Lambda =
-    | [<Parse("and 'fn' surr '(' ')' _");
+    | [<Parse("and 'af' surr '(' ')' _");
         Parse("and '␠=␠' ⚠ _")>]
       Lambda of name: Lexpr * expr: Expr
