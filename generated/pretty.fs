@@ -9,7 +9,64 @@ open Parse
 open Print
 open Syntax
 
-let rec printCase (writer:IndentedTextWriter) value =
+let rec printAtom (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | CallE(fn, args) ->
+        printAtom writer fn
+        writer.Write "("
+        match args with
+        | [] -> ignore()
+        | [args'] ->
+            printExpr writer args'
+        | args'::args'' ->
+            printExpr writer args'
+            for args_ in args'' do
+                writer.Write ", "
+                printExpr writer args_
+        writer.Write ")"
+    | ExponentE(atom, exponent) ->
+        printAtom writer atom
+        let s = toSuperscript exponent
+        writeSafe writer s
+    | NatE(value) ->
+        writeSafe writer value
+    | StringE(value) ->
+        writer.Write "\""
+        writeSafe writer value
+        writer.Write "\""
+    | BoolE(value) ->
+        let b = value.ToString().ToLowerInvariant()
+        writer.Write b
+    | OperatorE(symbol) ->
+        writer.Write "["
+        writeSafe writer symbol
+        writer.Write "]"
+    | LambdaE(lambda) ->
+        printLambda writer lambda
+    | ParensE(expr) ->
+        writer.Write "("
+        printExpr writer expr
+        writer.Write ")"
+    | IdentifierE(name) ->
+        writeSafe writer name
+    | CasesE(cases) ->
+        printCases writer cases
+    | IfThenE(ifthen) ->
+        printIfThen writer ifthen
+    | LetE(letDecl) ->
+        printLetDecl writer letDecl
+    | TypeE(typeDecl) ->
+        printTypeDecl writer typeDecl
+    | SumE(atom, terms) ->
+        printAtom writer atom
+        for terms' in terms do
+            printTerm writer terms'
+    
+    writer.Indent <- n
+
+and printCase (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
@@ -62,56 +119,8 @@ and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | CallE(fn, args) ->
-        printExpr writer fn
-        writer.Write "("
-        match args with
-        | [] -> ignore()
-        | [args'] ->
-            printExpr writer args'
-        | args'::args'' ->
-            printExpr writer args'
-            for args_ in args'' do
-                writer.Write ", "
-                printExpr writer args_
-        writer.Write ")"
-    | ExponentE(expr, exponent) ->
-        printExpr writer expr
-        let s = toSuperscript exponent
-        writeSafe writer s
-    | NatE(value) ->
-        writeSafe writer value
-    | StringE(value) ->
-        writer.Write "\""
-        writeSafe writer value
-        writer.Write "\""
-    | BoolE(value) ->
-        let b = value.ToString().ToLowerInvariant()
-        writer.Write b
-    | OperatorE(symbol) ->
-        writer.Write "["
-        writeSafe writer symbol
-        writer.Write "]"
-    | LambdaE(lambda) ->
-        printLambda writer lambda
-    | ParensE(expr) ->
-        writer.Write "("
-        printExpr writer expr
-        writer.Write ")"
-    | IdentifierE(name) ->
-        writeSafe writer name
-    | CasesE(cases) ->
-        printCases writer cases
-    | IfThenE(ifthen) ->
-        printIfThen writer ifthen
-    | LetE(letDecl) ->
-        printLetDecl writer letDecl
-    | TypeE(typeDecl) ->
-        printTypeDecl writer typeDecl
-    | SumE(expr, terms) ->
-        printExpr writer expr
-        for terms' in terms do
-            printTerm writer terms'
+    | Expr(atom) ->
+        printAtom writer atom
     
     writer.Indent <- n
 
@@ -276,11 +285,11 @@ and printTerm (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Term(operator, expr) ->
+    | Term(operator, atom) ->
         writer.Write " "
         writeSafe writer operator
         writer.Write " "
-        printExpr writer expr
+        printAtom writer atom
     
     writer.Indent <- n
 

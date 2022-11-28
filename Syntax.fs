@@ -47,21 +47,18 @@ and LetDecl =
 and Term =
     | [<Parse("␠OPERATOR");
         Parse("␠_")>]
-      Term of operator: string * expr: Expr
-
-and Factor =
-    | NatF of bigint
-    | StringF of string
-    | BoolF of bool
-    | IdentifierF of string
+      Term of operator: string * atom: Atom
 
 and Expr =
+  | [<Parse("_")>] Expr of atom: Atom
+
+and Atom =
     | [<Parse("_");
         Parse("surr '(' ')' delim ',␠' _")>]
-      CallE of fn: Expr * args: Expr list
+      CallE of fn: Atom * args: Expr list
     | [<Parse("_");
         Parse("␑SUPERSCRIPT")>]
-      ExponentE of expr: Expr * exponent: bigint
+      ExponentE of atom: Atom * exponent: bigint
     | [<Parse("NAT")>] NatE of value: bigint
     | [<Parse("␅STRING␅")>] StringE of value: string
     | [<Parse("BOOL")>] BoolE of value: bool
@@ -75,7 +72,7 @@ and Expr =
     | [<Parse("_")>] TypeE of typeDecl: TypeDecl
     | [<Parse("_");
         Parse("1+ _")>]
-      SumE of expr: Expr * terms: Term list
+      SumE of atom: Atom * terms: Term list
 
 and Case =
     | [<Parse("_");

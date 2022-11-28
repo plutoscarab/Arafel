@@ -5,38 +5,16 @@ open System
 open Random
 open Syntax
 
-let rec randomCase (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let pattern = randomPattern rand (depth + 1)
-        let expr = randomExpr rand (depth + 1)
-        Case(pattern, expr)
-
-and randomCases (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let expr = randomExpr rand (depth + 1)
-        let cases = mkNonempty randomCase rand (depth + 1)
-        let otherwise = mkOption randomExpr rand (depth + 1)
-        Cases(expr, cases, otherwise)
-
-and randomElseIf (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let condition = randomExpr rand (depth + 1)
-        let trueExpr = randomExpr rand (depth + 1)
-        ElseIf(condition, trueExpr)
-
-and randomExpr (rand: Random) depth =
+let rec randomAtom (rand: Random) depth =
     match rand.Next(14) with
     | 0 ->
-        let fn = randomExpr rand (depth + 1)
+        let fn = randomAtom rand (depth + 1)
         let args = mkNonempty randomExpr rand (depth + 1)
         CallE(fn, args)
     | 1 ->
-        let expr = randomExpr rand (depth + 1)
+        let atom = randomAtom rand (depth + 1)
         let exponent = mkBigint rand (depth + 1)
-        ExponentE(expr, exponent)
+        ExponentE(atom, exponent)
     | 2 ->
         let value = mkBigint rand (depth + 1)
         NatE(value)
@@ -71,9 +49,37 @@ and randomExpr (rand: Random) depth =
         let typeDecl = randomTypeDecl rand (depth + 1)
         TypeE(typeDecl)
     | _ ->
-        let expr = randomExpr rand (depth + 1)
+        let atom = randomAtom rand (depth + 1)
         let terms = mkNonempty randomTerm rand (depth + 1)
-        SumE(expr, terms)
+        SumE(atom, terms)
+
+and randomCase (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let pattern = randomPattern rand (depth + 1)
+        let expr = randomExpr rand (depth + 1)
+        Case(pattern, expr)
+
+and randomCases (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let expr = randomExpr rand (depth + 1)
+        let cases = mkNonempty randomCase rand (depth + 1)
+        let otherwise = mkOption randomExpr rand (depth + 1)
+        Cases(expr, cases, otherwise)
+
+and randomElseIf (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let condition = randomExpr rand (depth + 1)
+        let trueExpr = randomExpr rand (depth + 1)
+        ElseIf(condition, trueExpr)
+
+and randomExpr (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let atom = randomAtom rand (depth + 1)
+        Expr(atom)
 
 and randomIfThen (rand: Random) depth =
     match rand.Next(1) with
@@ -148,8 +154,8 @@ and randomTerm (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
         let operator = mkString rand (depth + 1)
-        let expr = randomExpr rand (depth + 1)
-        Term(operator, expr)
+        let atom = randomAtom rand (depth + 1)
+        Term(operator, atom)
 
 and randomTypeDecl (rand: Random) depth =
     match rand.Next(1) with

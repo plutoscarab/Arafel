@@ -10,54 +10,7 @@ let keywords = Set [
     "af"; "case"; "elif"; "else"; "forall"; "if"; "let"; "of"; "then"; "type"; 
 ]
 
-let rec parseCase' () =
-    fun t0 ->
-        let (r1, t1) = (parsePattern) t0
-        match r1 with
-        | Match pattern ->
-            let (r2, t2) = (andThen (literal ":") (parseExpr)) t1
-            match r2 with
-            | Match expr ->
-                Match (Case(pattern, expr)), t2
-            | SyntaxError e -> SyntaxError e, t2
-            | Nomatch e -> Nomatch e, t1
-        | SyntaxError e -> SyntaxError e, t1
-        | Nomatch e -> Nomatch e, t0
-
-and parseCases' () =
-    fun t0 ->
-        let (r1, t1) = (andThen (literal "case") (checkpoint (parseExpr))) t0
-        match r1 with
-        | Match expr ->
-            let (r2, t2) = (checkpoint (andThen (literal "of") (oneOrMore (parseCase)))) t1
-            match r2 with
-            | Match cases ->
-                let (r3, t3) = (option (andThen (literal "else") (checkpoint (parseExpr)))) t2
-                match r3 with
-                | Match otherwise ->
-                    Match (Cases(expr, cases, otherwise)), t3
-                | SyntaxError e -> SyntaxError e, t3
-                | Nomatch e -> Nomatch e, t2
-            | SyntaxError e -> SyntaxError e, t2
-            | Nomatch e -> Nomatch e, t1
-        | SyntaxError e -> SyntaxError e, t1
-        | Nomatch e -> Nomatch e, t0
-
-and parseElseIf' () =
-    fun t0 ->
-        let (r1, t1) = (andThen (literal "elif") (checkpoint (parseExpr))) t0
-        match r1 with
-        | Match condition ->
-            let (r2, t2) = (checkpoint (andThen (literal "then") (parseExpr))) t1
-            match r2 with
-            | Match trueExpr ->
-                Match (ElseIf(condition, trueExpr)), t2
-            | SyntaxError e -> SyntaxError e, t2
-            | Nomatch e -> Nomatch e, t1
-        | SyntaxError e -> SyntaxError e, t1
-        | Nomatch e -> Nomatch e, t0
-
-and parseExpr' () =
+let rec parseAtom' () =
     let baseParser =
         let p0 = fun t0 ->
             let (r1, t1) = (bigintToken Nat "Nat") t0
@@ -206,12 +159,12 @@ and parseExpr' () =
                                                         exp <- e10 @ exp
                                                         Nomatch exp, t
     
-    let suffixes baseExpr =
+    let suffixes baseAtom =
         let p0 = fun t0 ->
             let (r1, t1) = (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr))) t0
             match r1 with
             | Match args ->
-                Match (CallE(baseExpr, args)), t1
+                Match (CallE(baseAtom, args)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -219,7 +172,7 @@ and parseExpr' () =
             let (r1, t1) = (bigintToken Superscript "Superscript") t0
             match r1 with
             | Match exponent ->
-                Match (ExponentE(baseExpr, exponent)), t1
+                Match (ExponentE(baseAtom, exponent)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -227,7 +180,7 @@ and parseExpr' () =
             let (r1, t1) = (oneOrMore (parseTerm)) t0
             match r1 with
             | Match terms ->
-                Match (SumE(baseExpr, terms)), t1
+                Match (SumE(baseAtom, terms)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -254,7 +207,63 @@ and parseExpr' () =
         match baseParser t with
         | Nomatch e, _ -> Nomatch e, t
         | SyntaxError e, t2 -> SyntaxError e, t2
-        | Match baseExpr, t2 -> (repeat baseExpr suffixes) t2
+        | Match baseAtom, t2 -> (repeat baseAtom suffixes) t2
+
+and parseCase' () =
+    fun t0 ->
+        let (r1, t1) = (parsePattern) t0
+        match r1 with
+        | Match pattern ->
+            let (r2, t2) = (andThen (literal ":") (parseExpr)) t1
+            match r2 with
+            | Match expr ->
+                Match (Case(pattern, expr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseCases' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "case") (checkpoint (parseExpr))) t0
+        match r1 with
+        | Match expr ->
+            let (r2, t2) = (checkpoint (andThen (literal "of") (oneOrMore (parseCase)))) t1
+            match r2 with
+            | Match cases ->
+                let (r3, t3) = (option (andThen (literal "else") (checkpoint (parseExpr)))) t2
+                match r3 with
+                | Match otherwise ->
+                    Match (Cases(expr, cases, otherwise)), t3
+                | SyntaxError e -> SyntaxError e, t3
+                | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseElseIf' () =
+    fun t0 ->
+        let (r1, t1) = (andThen (literal "elif") (checkpoint (parseExpr))) t0
+        match r1 with
+        | Match condition ->
+            let (r2, t2) = (checkpoint (andThen (literal "then") (parseExpr))) t1
+            match r2 with
+            | Match trueExpr ->
+                Match (ElseIf(condition, trueExpr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
+and parseExpr' () =
+    fun t0 ->
+        let (r1, t1) = (parseAtom) t0
+        match r1 with
+        | Match atom ->
+            Match (Expr(atom)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
 
 and parseIfThen' () =
     fun t0 ->
@@ -448,10 +457,10 @@ and parseTerm' () =
         let (r1, t1) = (stringToken Operator "Operator") t0
         match r1 with
         | Match operator ->
-            let (r2, t2) = (parseExpr) t1
+            let (r2, t2) = (parseAtom) t1
             match r2 with
-            | Match expr ->
-                Match (Term(operator, expr)), t2
+            | Match atom ->
+                Match (Term(operator, atom)), t2
             | SyntaxError e -> SyntaxError e, t2
             | Nomatch e -> Nomatch e, t1
         | SyntaxError e -> SyntaxError e, t1
@@ -481,6 +490,7 @@ and parseTypeDecl' () =
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
 
+and parseAtom = parseAtom'()
 and parseCase = parseCase'()
 and parseCases = parseCases'()
 and parseElseIf = parseElseIf'()

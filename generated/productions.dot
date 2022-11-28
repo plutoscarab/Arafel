@@ -1,21 +1,23 @@
 digraph G {
     rankdir="BT"
     { rank=same; bool; bigint; string; }
+    Atom -> Atom
+    Atom -> Expr
+    Atom -> bigint
+    Atom -> string
+    Atom -> bool
+    Atom -> Lambda
+    Atom -> Cases
+    Atom -> IfThen
+    Atom -> LetDecl
+    Atom -> TypeDecl
+    Atom -> Term
     Case -> Pattern
     Case -> Expr
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
-    Expr -> Expr
-    Expr -> bigint
-    Expr -> string
-    Expr -> bool
-    Expr -> Lambda
-    Expr -> Cases
-    Expr -> IfThen
-    Expr -> LetDecl
-    Expr -> TypeDecl
-    Expr -> Term
+    Expr -> Atom
     IfThen -> Expr
     IfThen -> ElseIf
     Lambda -> Lexpr
@@ -33,7 +35,7 @@ digraph G {
     PolyType -> string
     PolyType -> MonoType
     Term -> string
-    Term -> Expr
+    Term -> Atom
     TypeDecl -> string
     TypeDecl -> PolyType
     TypeDecl -> Expr

@@ -6,6 +6,97 @@ open Syntax
 
 type Visitor() =
     
+    abstract member Atom_CallE: Atom * Expr list -> Atom
+    default this.Atom_CallE(fn, args) =
+        let fn' = this.VisitAtom fn
+        let args' = List.map this.VisitExpr args
+        CallE (fn', args')
+    
+    abstract member Atom_ExponentE: Atom * bigint -> Atom
+    default this.Atom_ExponentE(atom, exponent) =
+        let atom' = this.VisitAtom atom
+        let exponent' = exponent
+        ExponentE (atom', exponent')
+    
+    abstract member Atom_NatE: bigint -> Atom
+    default this.Atom_NatE(value) =
+        let value' = value
+        NatE (value')
+    
+    abstract member Atom_StringE: string -> Atom
+    default this.Atom_StringE(value) =
+        let value' = value
+        StringE (value')
+    
+    abstract member Atom_BoolE: bool -> Atom
+    default this.Atom_BoolE(value) =
+        let value' = value
+        BoolE (value')
+    
+    abstract member Atom_OperatorE: string -> Atom
+    default this.Atom_OperatorE(symbol) =
+        let symbol' = symbol
+        OperatorE (symbol')
+    
+    abstract member Atom_LambdaE: Lambda -> Atom
+    default this.Atom_LambdaE(lambda) =
+        let lambda' = this.VisitLambda lambda
+        LambdaE (lambda')
+    
+    abstract member Atom_ParensE: Expr -> Atom
+    default this.Atom_ParensE(expr) =
+        let expr' = this.VisitExpr expr
+        ParensE (expr')
+    
+    abstract member Atom_IdentifierE: string -> Atom
+    default this.Atom_IdentifierE(name) =
+        let name' = name
+        IdentifierE (name')
+    
+    abstract member Atom_CasesE: Cases -> Atom
+    default this.Atom_CasesE(cases) =
+        let cases' = this.VisitCases cases
+        CasesE (cases')
+    
+    abstract member Atom_IfThenE: IfThen -> Atom
+    default this.Atom_IfThenE(ifthen) =
+        let ifthen' = this.VisitIfThen ifthen
+        IfThenE (ifthen')
+    
+    abstract member Atom_LetE: LetDecl -> Atom
+    default this.Atom_LetE(letDecl) =
+        let letDecl' = this.VisitLetDecl letDecl
+        LetE (letDecl')
+    
+    abstract member Atom_TypeE: TypeDecl -> Atom
+    default this.Atom_TypeE(typeDecl) =
+        let typeDecl' = this.VisitTypeDecl typeDecl
+        TypeE (typeDecl')
+    
+    abstract member Atom_SumE: Atom * Term list -> Atom
+    default this.Atom_SumE(atom, terms) =
+        let atom' = this.VisitAtom atom
+        let terms' = List.map this.VisitTerm terms
+        SumE (atom', terms')
+    
+    abstract member VisitAtom: Atom -> Atom
+    default this.VisitAtom(value) =
+        match value with
+        | CallE (fn, args) -> this.Atom_CallE(fn, args)
+        | ExponentE (atom, exponent) -> this.Atom_ExponentE(atom, exponent)
+        | NatE (value) -> this.Atom_NatE(value)
+        | StringE (value) -> this.Atom_StringE(value)
+        | BoolE (value) -> this.Atom_BoolE(value)
+        | OperatorE (symbol) -> this.Atom_OperatorE(symbol)
+        | LambdaE (lambda) -> this.Atom_LambdaE(lambda)
+        | ParensE (expr) -> this.Atom_ParensE(expr)
+        | IdentifierE (name) -> this.Atom_IdentifierE(name)
+        | CasesE (cases) -> this.Atom_CasesE(cases)
+        | IfThenE (ifthen) -> this.Atom_IfThenE(ifthen)
+        | LetE (letDecl) -> this.Atom_LetE(letDecl)
+        | TypeE (typeDecl) -> this.Atom_TypeE(typeDecl)
+        | SumE (atom, terms) -> this.Atom_SumE(atom, terms)
+    
     abstract member Case_Case: Pattern * Expr -> Case
     default this.Case_Case(pattern, expr) =
         let pattern' = this.VisitPattern pattern
@@ -40,96 +131,15 @@ type Visitor() =
         match value with
         | ElseIf (condition, trueExpr) -> this.ElseIf_ElseIf(condition, trueExpr)
     
-    abstract member Expr_CallE: Expr * Expr list -> Expr
-    default this.Expr_CallE(fn, args) =
-        let fn' = this.VisitExpr fn
-        let args' = List.map this.VisitExpr args
-        CallE (fn', args')
-    
-    abstract member Expr_ExponentE: Expr * bigint -> Expr
-    default this.Expr_ExponentE(expr, exponent) =
-        let expr' = this.VisitExpr expr
-        let exponent' = exponent
-        ExponentE (expr', exponent')
-    
-    abstract member Expr_NatE: bigint -> Expr
-    default this.Expr_NatE(value) =
-        let value' = value
-        NatE (value')
-    
-    abstract member Expr_StringE: string -> Expr
-    default this.Expr_StringE(value) =
-        let value' = value
-        StringE (value')
-    
-    abstract member Expr_BoolE: bool -> Expr
-    default this.Expr_BoolE(value) =
-        let value' = value
-        BoolE (value')
-    
-    abstract member Expr_OperatorE: string -> Expr
-    default this.Expr_OperatorE(symbol) =
-        let symbol' = symbol
-        OperatorE (symbol')
-    
-    abstract member Expr_LambdaE: Lambda -> Expr
-    default this.Expr_LambdaE(lambda) =
-        let lambda' = this.VisitLambda lambda
-        LambdaE (lambda')
-    
-    abstract member Expr_ParensE: Expr -> Expr
-    default this.Expr_ParensE(expr) =
-        let expr' = this.VisitExpr expr
-        ParensE (expr')
-    
-    abstract member Expr_IdentifierE: string -> Expr
-    default this.Expr_IdentifierE(name) =
-        let name' = name
-        IdentifierE (name')
-    
-    abstract member Expr_CasesE: Cases -> Expr
-    default this.Expr_CasesE(cases) =
-        let cases' = this.VisitCases cases
-        CasesE (cases')
-    
-    abstract member Expr_IfThenE: IfThen -> Expr
-    default this.Expr_IfThenE(ifthen) =
-        let ifthen' = this.VisitIfThen ifthen
-        IfThenE (ifthen')
-    
-    abstract member Expr_LetE: LetDecl -> Expr
-    default this.Expr_LetE(letDecl) =
-        let letDecl' = this.VisitLetDecl letDecl
-        LetE (letDecl')
-    
-    abstract member Expr_TypeE: TypeDecl -> Expr
-    default this.Expr_TypeE(typeDecl) =
-        let typeDecl' = this.VisitTypeDecl typeDecl
-        TypeE (typeDecl')
-    
-    abstract member Expr_SumE: Expr * Term list -> Expr
-    default this.Expr_SumE(expr, terms) =
-        let expr' = this.VisitExpr expr
-        let terms' = List.map this.VisitTerm terms
-        SumE (expr', terms')
+    abstract member Expr_Expr: Atom -> Expr
+    default this.Expr_Expr(atom) =
+        let atom' = this.VisitAtom atom
+        Expr (atom')
     
     abstract member VisitExpr: Expr -> Expr
     default this.VisitExpr(value) =
         match value with
-        | CallE (fn, args) -> this.Expr_CallE(fn, args)
-        | ExponentE (expr, exponent) -> this.Expr_ExponentE(expr, exponent)
-        | NatE (value) -> this.Expr_NatE(value)
-        | StringE (value) -> this.Expr_StringE(value)
-        | BoolE (value) -> this.Expr_BoolE(value)
-        | OperatorE (symbol) -> this.Expr_OperatorE(symbol)
-        | LambdaE (lambda) -> this.Expr_LambdaE(lambda)
-        | ParensE (expr) -> this.Expr_ParensE(expr)
-        | IdentifierE (name) -> this.Expr_IdentifierE(name)
-        | CasesE (cases) -> this.Expr_CasesE(cases)
-        | IfThenE (ifthen) -> this.Expr_IfThenE(ifthen)
-        | LetE (letDecl) -> this.Expr_LetE(letDecl)
-        | TypeE (typeDecl) -> this.Expr_TypeE(typeDecl)
-        | SumE (expr, terms) -> this.Expr_SumE(expr, terms)
+        | Expr (atom) -> this.Expr_Expr(atom)
     
     abstract member IfThen_IfThen: Expr * Expr * ElseIf list * Expr -> IfThen
     default this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr) =
@@ -244,16 +254,16 @@ type Visitor() =
         match value with
         | PolyType (foralls, cases) -> this.PolyType_PolyType(foralls, cases)
     
-    abstract member Term_Term: string * Expr -> Term
-    default this.Term_Term(operator, expr) =
+    abstract member Term_Term: string * Atom -> Term
+    default this.Term_Term(operator, atom) =
         let operator' = operator
-        let expr' = this.VisitExpr expr
-        Term (operator', expr')
+        let atom' = this.VisitAtom atom
+        Term (operator', atom')
     
     abstract member VisitTerm: Term -> Term
     default this.VisitTerm(value) =
         match value with
-        | Term (operator, expr) -> this.Term_Term(operator, expr)
+        | Term (operator, atom) -> this.Term_Term(operator, atom)
     
     abstract member TypeDecl_TypeDecl: string * string list * PolyType * Expr -> TypeDecl
     default this.TypeDecl_TypeDecl(name, parameters, ptype, inExpr) =

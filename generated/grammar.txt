@@ -1,9 +1,10 @@
 /* Use, for example, at https://www.bottlecaps.de/rr/ui */
 
+Atom ::= Atom '(' Expr (',' Expr)* ')' | Atom SUPERSCRIPT | NAT | STRING | BOOL | '[' OPERATOR ']' | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl | Atom (Term)+
 Case ::= Pattern ':' Expr
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Expr)?
 ElseIf ::= 'elif' Expr 'then' Expr
-Expr ::= Expr '(' Expr (',' Expr)* ')' | Expr SUPERSCRIPT | NAT | STRING | BOOL | '[' OPERATOR ']' | Lambda | '(' Expr ')' | IDENTIFIER | Cases | IfThen | LetDecl | TypeDecl | Expr (Term)+
+Expr ::= Atom
 IfThen ::= 'if' Expr 'then' Expr (ElseIf)* 'else' Expr
 Lambda ::= 'af' '(' Lexpr ')' '=' Expr
 LetDecl ::= 'let' Lexpr '=' Expr Expr
@@ -12,5 +13,5 @@ LexprName ::= IDENTIFIER | '[' OPERATOR ']'
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
 Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING | BOOL
 PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
-Term ::= OPERATOR Expr
+Term ::= OPERATOR Atom
 TypeDecl ::= 'type' IDENTIFIER ('(' IDENTIFIER (',' IDENTIFIER)* ')')? '=' PolyType Expr
