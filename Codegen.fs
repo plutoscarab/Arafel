@@ -1,5 +1,6 @@
 open System
 open System.IO
+open System.Text
 
 open Syntax
 open Reflect
@@ -108,6 +109,31 @@ let writeLocalisation() =
     locFile.WriteLine ()
     locFile.WriteLine $"let loc = Map.find \"{coreLocale}\" locMap"
 
+let writeUnicodeChart filename (runes: Rune seq) =
+    use file = File.CreateText filename
+    let rows = runes |> Seq.groupBy (fun r -> r.Value / 16)
+    let mutable nrows = 0
+
+    for row in rows do
+        if nrows = 0 then
+            file.WriteLine "|   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | A | B | C | D | E | F |"
+            file.WriteLine "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+        let u = (fst row) * 16
+        file.Write $"| U+{u:X4} |"
+        for i in [0..15] do
+            let ch = Rune(u + i)
+            if Seq.contains ch (snd row) then
+                file.Write $" {ch} |"
+            else
+                file.Write $" |"
+        file.WriteLine ()
+        nrows <- nrows + 1
+
+        if nrows = 30 then
+            nrows <- 0
+            file.WriteLine ()
+            file.WriteLine ()
+
 let loc dir pattern =
         Directory.GetFiles(dir, pattern)
         |> Seq.map (File.ReadLines >> Seq.length)
@@ -122,6 +148,8 @@ let main =
     writePrintFile "generated/pretty.fs" "Pretty" productions
     writeTesterFile "generated/tester.fs" "Tester" productions
     writeVisitorFile "generated/visitor.fs" "Visitor" productions
+    writeUnicodeChart "generated/opChars.md" Lexer.opChars
+    writeUnicodeChart "generated/idNonLetterChars.md" (Lexer.idContinuation |> Seq.filter (fun r -> not (Rune.IsLetter(r))))
     writeLocalisation()
 
     let fs = loc "." "*.fs"
