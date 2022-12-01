@@ -6,96 +6,59 @@ open Syntax
 
 type Visitor() =
     
-    abstract member Atom_CallE: Atom * Expr list -> Atom
-    default this.Atom_CallE(fn, args) =
+    abstract member Atom_CallA: Atom * Expr list -> Atom
+    default this.Atom_CallA(fn, args) =
         let fn' = this.VisitAtom fn
         let args' = List.map this.VisitExpr args
-        CallE (fn', args')
+        CallA (fn', args')
     
-    abstract member Atom_ExponentE: Atom * bigint -> Atom
-    default this.Atom_ExponentE(atom, exponent) =
+    abstract member Atom_ExponentA: Atom * bigint -> Atom
+    default this.Atom_ExponentA(atom, exponent) =
         let atom' = this.VisitAtom atom
         let exponent' = exponent
-        ExponentE (atom', exponent')
+        ExponentA (atom', exponent')
     
-    abstract member Atom_NatE: bigint -> Atom
-    default this.Atom_NatE(value) =
+    abstract member Atom_NatA: bigint -> Atom
+    default this.Atom_NatA(value) =
         let value' = value
-        NatE (value')
+        NatA (value')
     
-    abstract member Atom_StringE: string -> Atom
-    default this.Atom_StringE(value) =
+    abstract member Atom_StringA: string -> Atom
+    default this.Atom_StringA(value) =
         let value' = value
-        StringE (value')
+        StringA (value')
     
-    abstract member Atom_BoolE: bool -> Atom
-    default this.Atom_BoolE(value) =
+    abstract member Atom_BoolA: bool -> Atom
+    default this.Atom_BoolA(value) =
         let value' = value
-        BoolE (value')
+        BoolA (value')
     
-    abstract member Atom_OperatorE: string -> Atom
-    default this.Atom_OperatorE(symbol) =
+    abstract member Atom_OperatorA: string -> Atom
+    default this.Atom_OperatorA(symbol) =
         let symbol' = symbol
-        OperatorE (symbol')
+        OperatorA (symbol')
     
-    abstract member Atom_LambdaE: Lambda -> Atom
-    default this.Atom_LambdaE(lambda) =
-        let lambda' = this.VisitLambda lambda
-        LambdaE (lambda')
-    
-    abstract member Atom_ParensE: Expr -> Atom
-    default this.Atom_ParensE(expr) =
+    abstract member Atom_ParensA: Expr -> Atom
+    default this.Atom_ParensA(expr) =
         let expr' = this.VisitExpr expr
-        ParensE (expr')
+        ParensA (expr')
     
-    abstract member Atom_IdentifierE: string -> Atom
-    default this.Atom_IdentifierE(name) =
+    abstract member Atom_IdentifierA: string -> Atom
+    default this.Atom_IdentifierA(name) =
         let name' = name
-        IdentifierE (name')
-    
-    abstract member Atom_CasesE: Cases -> Atom
-    default this.Atom_CasesE(cases) =
-        let cases' = this.VisitCases cases
-        CasesE (cases')
-    
-    abstract member Atom_IfThenE: IfThen -> Atom
-    default this.Atom_IfThenE(ifthen) =
-        let ifthen' = this.VisitIfThen ifthen
-        IfThenE (ifthen')
-    
-    abstract member Atom_LetE: LetDecl -> Atom
-    default this.Atom_LetE(letDecl) =
-        let letDecl' = this.VisitLetDecl letDecl
-        LetE (letDecl')
-    
-    abstract member Atom_TypeE: TypeDecl -> Atom
-    default this.Atom_TypeE(typeDecl) =
-        let typeDecl' = this.VisitTypeDecl typeDecl
-        TypeE (typeDecl')
-    
-    abstract member Atom_SumE: Atom * Term list -> Atom
-    default this.Atom_SumE(atom, terms) =
-        let atom' = this.VisitAtom atom
-        let terms' = List.map this.VisitTerm terms
-        SumE (atom', terms')
+        IdentifierA (name')
     
     abstract member VisitAtom: Atom -> Atom
     default this.VisitAtom(value) =
         match value with
-        | CallE (fn, args) -> this.Atom_CallE(fn, args)
-        | ExponentE (atom, exponent) -> this.Atom_ExponentE(atom, exponent)
-        | NatE (value) -> this.Atom_NatE(value)
-        | StringE (value) -> this.Atom_StringE(value)
-        | BoolE (value) -> this.Atom_BoolE(value)
-        | OperatorE (symbol) -> this.Atom_OperatorE(symbol)
-        | LambdaE (lambda) -> this.Atom_LambdaE(lambda)
-        | ParensE (expr) -> this.Atom_ParensE(expr)
-        | IdentifierE (name) -> this.Atom_IdentifierE(name)
-        | CasesE (cases) -> this.Atom_CasesE(cases)
-        | IfThenE (ifthen) -> this.Atom_IfThenE(ifthen)
-        | LetE (letDecl) -> this.Atom_LetE(letDecl)
-        | TypeE (typeDecl) -> this.Atom_TypeE(typeDecl)
-        | SumE (atom, terms) -> this.Atom_SumE(atom, terms)
+        | CallA (fn, args) -> this.Atom_CallA(fn, args)
+        | ExponentA (atom, exponent) -> this.Atom_ExponentA(atom, exponent)
+        | NatA (value) -> this.Atom_NatA(value)
+        | StringA (value) -> this.Atom_StringA(value)
+        | BoolA (value) -> this.Atom_BoolA(value)
+        | OperatorA (symbol) -> this.Atom_OperatorA(symbol)
+        | ParensA (expr) -> this.Atom_ParensA(expr)
+        | IdentifierA (name) -> this.Atom_IdentifierA(name)
     
     abstract member Case_Case: Pattern * Expr -> Case
     default this.Case_Case(pattern, expr) =
@@ -131,15 +94,47 @@ type Visitor() =
         match value with
         | ElseIf (condition, trueExpr) -> this.ElseIf_ElseIf(condition, trueExpr)
     
-    abstract member Expr_Expr: Atom -> Expr
-    default this.Expr_Expr(atom) =
-        let atom' = this.VisitAtom atom
-        Expr (atom')
+    abstract member Expr_Expr: Atom * Term list -> Expr
+    default this.Expr_Expr(term, terms) =
+        let term' = this.VisitAtom term
+        let terms' = List.map this.VisitTerm terms
+        Expr (term', terms')
+    
+    abstract member Expr_TypeE: TypeDecl -> Expr
+    default this.Expr_TypeE(typeDecl) =
+        let typeDecl' = this.VisitTypeDecl typeDecl
+        TypeE (typeDecl')
+    
+    abstract member Expr_LetE: LetDecl -> Expr
+    default this.Expr_LetE(letDecl) =
+        let letDecl' = this.VisitLetDecl letDecl
+        LetE (letDecl')
+    
+    abstract member Expr_CasesE: Cases -> Expr
+    default this.Expr_CasesE(cases) =
+        let cases' = this.VisitCases cases
+        CasesE (cases')
+    
+    abstract member Expr_IfThenE: IfThen -> Expr
+    default this.Expr_IfThenE(ifthen) =
+        let ifthen' = this.VisitIfThen ifthen
+        IfThenE (ifthen')
+    
+    abstract member Expr_LambdaE: Lexpr * Expr -> Expr
+    default this.Expr_LambdaE(name, expr) =
+        let name' = this.VisitLexpr name
+        let expr' = this.VisitExpr expr
+        LambdaE (name', expr')
     
     abstract member VisitExpr: Expr -> Expr
     default this.VisitExpr(value) =
         match value with
-        | Expr (atom) -> this.Expr_Expr(atom)
+        | Expr (term, terms) -> this.Expr_Expr(term, terms)
+        | TypeE (typeDecl) -> this.Expr_TypeE(typeDecl)
+        | LetE (letDecl) -> this.Expr_LetE(letDecl)
+        | CasesE (cases) -> this.Expr_CasesE(cases)
+        | IfThenE (ifthen) -> this.Expr_IfThenE(ifthen)
+        | LambdaE (name, expr) -> this.Expr_LambdaE(name, expr)
     
     abstract member IfThen_IfThen: Expr * Expr * ElseIf list * Expr -> IfThen
     default this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr) =
@@ -153,17 +148,6 @@ type Visitor() =
     default this.VisitIfThen(value) =
         match value with
         | IfThen (condition, trueExpr, elseifs, falseExpr) -> this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr)
-    
-    abstract member Lambda_Lambda: Lexpr * Expr -> Lambda
-    default this.Lambda_Lambda(name, expr) =
-        let name' = this.VisitLexpr name
-        let expr' = this.VisitExpr expr
-        Lambda (name', expr')
-    
-    abstract member VisitLambda: Lambda -> Lambda
-    default this.VisitLambda(value) =
-        match value with
-        | Lambda (name, expr) -> this.Lambda_Lambda(name, expr)
     
     abstract member LetDecl_LetDecl: Lexpr * Expr * Expr -> LetDecl
     default this.LetDecl_LetDecl(name, expr, inExpr) =

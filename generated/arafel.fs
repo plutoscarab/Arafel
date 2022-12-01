@@ -16,7 +16,7 @@ let rec parseAtom' () =
             let (r1, t1) = (bigintToken Nat "Nat") t0
             match r1 with
             | Match value ->
-                Match (NatE(value)), t1
+                Match (NatA(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -24,7 +24,7 @@ let rec parseAtom' () =
             let (r1, t1) = (stringToken String "String") t0
             match r1 with
             | Match value ->
-                Match (StringE(value)), t1
+                Match (StringA(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -32,7 +32,7 @@ let rec parseAtom' () =
             let (r1, t1) = (boolToken Bool "Bool") t0
             match r1 with
             | Match value ->
-                Match (BoolE(value)), t1
+                Match (BoolA(value)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -40,63 +40,23 @@ let rec parseAtom' () =
             let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
             match r1 with
             | Match symbol ->
-                Match (OperatorE(symbol)), t1
+                Match (OperatorA(symbol)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
         let p4 = fun t0 ->
-            let (r1, t1) = (parseLambda) t0
+            let (r1, t1) = (surround (literal "(") (literal ")") (checkpoint (parseExpr))) t0
             match r1 with
-            | Match lambda ->
-                Match (LambdaE(lambda)), t1
+            | Match expr ->
+                Match (ParensA(expr)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
         let p5 = fun t0 ->
-            let (r1, t1) = (surround (literal "(") (literal ")") (checkpoint (parseExpr))) t0
-            match r1 with
-            | Match expr ->
-                Match (ParensE(expr)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        
-        let p6 = fun t0 ->
             let (r1, t1) = (stringToken Identifier "Identifier") t0
             match r1 with
             | Match name ->
-                Match (IdentifierE(name)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        
-        let p7 = fun t0 ->
-            let (r1, t1) = (parseCases) t0
-            match r1 with
-            | Match cases ->
-                Match (CasesE(cases)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        
-        let p8 = fun t0 ->
-            let (r1, t1) = (parseIfThen) t0
-            match r1 with
-            | Match ifthen ->
-                Match (IfThenE(ifthen)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        
-        let p9 = fun t0 ->
-            let (r1, t1) = (parseLetDecl) t0
-            match r1 with
-            | Match letDecl ->
-                Match (LetE(letDecl)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        
-        let p10 = fun t0 ->
-            let (r1, t1) = (parseTypeDecl) t0
-            match r1 with
-            | Match typeDecl ->
-                Match (TypeE(typeDecl)), t1
+                Match (IdentifierA(name)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -132,39 +92,14 @@ let rec parseAtom' () =
                                 | SyntaxError e, t2 -> SyntaxError e, t2
                                 | Nomatch e5, _ ->
                                     exp <- e5 @ exp
-                                    match p6 t with
-                                    | Match r6, t2 -> Match r6, t2
-                                    | SyntaxError e, t2 -> SyntaxError e, t2
-                                    | Nomatch e6, _ ->
-                                        exp <- e6 @ exp
-                                        match p7 t with
-                                        | Match r7, t2 -> Match r7, t2
-                                        | SyntaxError e, t2 -> SyntaxError e, t2
-                                        | Nomatch e7, _ ->
-                                            exp <- e7 @ exp
-                                            match p8 t with
-                                            | Match r8, t2 -> Match r8, t2
-                                            | SyntaxError e, t2 -> SyntaxError e, t2
-                                            | Nomatch e8, _ ->
-                                                exp <- e8 @ exp
-                                                match p9 t with
-                                                | Match r9, t2 -> Match r9, t2
-                                                | SyntaxError e, t2 -> SyntaxError e, t2
-                                                | Nomatch e9, _ ->
-                                                    exp <- e9 @ exp
-                                                    match p10 t with
-                                                    | Match r10, t2 -> Match r10, t2
-                                                    | SyntaxError e, t2 -> SyntaxError e, t2
-                                                    | Nomatch e10, _ ->
-                                                        exp <- e10 @ exp
-                                                        Nomatch exp, t
+                                    Nomatch exp, t
     
     let suffixes baseAtom =
         let p0 = fun t0 ->
             let (r1, t1) = (surround (literal "(") (literal ")") (delimited (literal ",") (parseExpr))) t0
             match r1 with
             | Match args ->
-                Match (CallE(baseAtom, args)), t1
+                Match (CallA(baseAtom, args)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -172,15 +107,7 @@ let rec parseAtom' () =
             let (r1, t1) = (bigintToken Superscript "Superscript") t0
             match r1 with
             | Match exponent ->
-                Match (ExponentE(baseAtom, exponent)), t1
-            | SyntaxError e -> SyntaxError e, t1
-            | Nomatch e -> Nomatch e, t0
-        
-        let p2 = fun t0 ->
-            let (r1, t1) = (oneOrMore (parseTerm)) t0
-            match r1 with
-            | Match terms ->
-                Match (SumE(baseAtom, terms)), t1
+                Match (ExponentA(baseAtom, exponent)), t1
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
@@ -196,12 +123,7 @@ let rec parseAtom' () =
                 | SyntaxError e, t2 -> SyntaxError e, t2
                 | Nomatch e1, _ ->
                     exp <- e1 @ exp
-                    match p2 t with
-                    | Match r2, t2 -> Match r2, t2
-                    | SyntaxError e, t2 -> SyntaxError e, t2
-                    | Nomatch e2, _ ->
-                        exp <- e2 @ exp
-                        Nomatch exp, t
+                    Nomatch exp, t
     
     fun t ->
         match baseParser t with
@@ -257,13 +179,97 @@ and parseElseIf' () =
         | Nomatch e -> Nomatch e, t0
 
 and parseExpr' () =
-    fun t0 ->
+    let p0 = fun t0 ->
         let (r1, t1) = (parseAtom) t0
         match r1 with
-        | Match atom ->
-            Match (Expr(atom)), t1
+        | Match term ->
+            let (r2, t2) = (zeroOrMore (parseTerm)) t1
+            match r2 with
+            | Match terms ->
+                Match (Expr(term, terms)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
+    
+    let p1 = fun t0 ->
+        let (r1, t1) = (parseTypeDecl) t0
+        match r1 with
+        | Match typeDecl ->
+            Match (TypeE(typeDecl)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p2 = fun t0 ->
+        let (r1, t1) = (parseLetDecl) t0
+        match r1 with
+        | Match letDecl ->
+            Match (LetE(letDecl)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p3 = fun t0 ->
+        let (r1, t1) = (parseCases) t0
+        match r1 with
+        | Match cases ->
+            Match (CasesE(cases)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p4 = fun t0 ->
+        let (r1, t1) = (parseIfThen) t0
+        match r1 with
+        | Match ifthen ->
+            Match (IfThenE(ifthen)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    let p5 = fun t0 ->
+        let (r1, t1) = (andThen (literal "af") (surround (literal "(") (literal ")") (parseLexpr))) t0
+        match r1 with
+        | Match name ->
+            let (r2, t2) = (andThen (literal "=") (checkpoint (parseExpr))) t1
+            match r2 with
+            | Match expr ->
+                Match (LambdaE(name, expr)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
+    fun t ->
+        let mutable exp = []
+        match p0 t with
+        | Match r0, t2 -> Match r0, t2
+        | SyntaxError e, t2 -> SyntaxError e, t2
+        | Nomatch e0, _ ->
+            exp <- e0 @ exp
+            match p1 t with
+            | Match r1, t2 -> Match r1, t2
+            | SyntaxError e, t2 -> SyntaxError e, t2
+            | Nomatch e1, _ ->
+                exp <- e1 @ exp
+                match p2 t with
+                | Match r2, t2 -> Match r2, t2
+                | SyntaxError e, t2 -> SyntaxError e, t2
+                | Nomatch e2, _ ->
+                    exp <- e2 @ exp
+                    match p3 t with
+                    | Match r3, t2 -> Match r3, t2
+                    | SyntaxError e, t2 -> SyntaxError e, t2
+                    | Nomatch e3, _ ->
+                        exp <- e3 @ exp
+                        match p4 t with
+                        | Match r4, t2 -> Match r4, t2
+                        | SyntaxError e, t2 -> SyntaxError e, t2
+                        | Nomatch e4, _ ->
+                            exp <- e4 @ exp
+                            match p5 t with
+                            | Match r5, t2 -> Match r5, t2
+                            | SyntaxError e, t2 -> SyntaxError e, t2
+                            | Nomatch e5, _ ->
+                                exp <- e5 @ exp
+                                Nomatch exp, t
 
 and parseIfThen' () =
     fun t0 ->
@@ -284,20 +290,6 @@ and parseIfThen' () =
                     | Nomatch e -> Nomatch e, t3
                 | SyntaxError e -> SyntaxError e, t3
                 | Nomatch e -> Nomatch e, t2
-            | SyntaxError e -> SyntaxError e, t2
-            | Nomatch e -> Nomatch e, t1
-        | SyntaxError e -> SyntaxError e, t1
-        | Nomatch e -> Nomatch e, t0
-
-and parseLambda' () =
-    fun t0 ->
-        let (r1, t1) = (andThen (literal "af") (surround (literal "(") (literal ")") (parseLexpr))) t0
-        match r1 with
-        | Match name ->
-            let (r2, t2) = (andThen (literal "=") (checkpoint (parseExpr))) t1
-            match r2 with
-            | Match expr ->
-                Match (Lambda(name, expr)), t2
             | SyntaxError e -> SyntaxError e, t2
             | Nomatch e -> Nomatch e, t1
         | SyntaxError e -> SyntaxError e, t1
@@ -496,7 +488,6 @@ and parseCases = parseCases'()
 and parseElseIf = parseElseIf'()
 and parseExpr = parseExpr'()
 and parseIfThen = parseIfThen'()
-and parseLambda = parseLambda'()
 and parseLetDecl = parseLetDecl'()
 and parseLexpr = parseLexpr'()
 and parseLexprName = parseLexprName'()

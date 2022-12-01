@@ -50,29 +50,30 @@ and Term =
       Term of operator: string * atom: Atom
 
 and Expr =
-  | [<Parse("_")>] Expr of atom: Atom
+    | [<Parse("_");
+        Parse("0+ _")>]
+      Expr of term: Atom * terms: Term list
+    | [<Parse("_")>] TypeE of typeDecl: TypeDecl
+    | [<Parse("_")>] LetE of letDecl: LetDecl
+    | [<Parse("_")>] CasesE of cases: Cases
+    | [<Parse("_")>] IfThenE of ifthen: IfThen
+    | [<Parse("and 'af' surr '(' ')' _");
+        Parse("and '␠=␠' ⚠ _")>]
+      LambdaE of name: Lexpr * expr: Expr
 
 and Atom =
     | [<Parse("_");
         Parse("surr '(' ')' delim ',␠' _")>]
-      CallE of fn: Atom * args: Expr list
+      CallA of fn: Atom * args: Expr list
     | [<Parse("_");
         Parse("␑SUPERSCRIPT")>]
-      ExponentE of atom: Atom * exponent: bigint
-    | [<Parse("NAT")>] NatE of value: bigint
-    | [<Parse("␅STRING␅")>] StringE of value: string
-    | [<Parse("BOOL")>] BoolE of value: bool
-    | [<Parse("surr '[' ']' OPERATOR")>] OperatorE of symbol: string
-    | [<Parse("_")>] LambdaE of lambda: Lambda
-    | [<Parse("surr '(' ')' ⚠ _")>] ParensE of expr: Expr
-    | [<Parse("IDENTIFIER")>] IdentifierE of name: string
-    | [<Parse("_")>] CasesE of cases: Cases
-    | [<Parse("_")>] IfThenE of ifthen: IfThen
-    | [<Parse("_")>] LetE of letDecl: LetDecl
-    | [<Parse("_")>] TypeE of typeDecl: TypeDecl
-    | [<Parse("_");
-        Parse("1+ _")>]
-      SumE of atom: Atom * terms: Term list
+      ExponentA of atom: Atom * exponent: bigint
+    | [<Parse("NAT")>] NatA of value: bigint
+    | [<Parse("␅STRING␅")>] StringA of value: string
+    | [<Parse("BOOL")>] BoolA of value: bool
+    | [<Parse("surr '[' ']' OPERATOR")>] OperatorA of symbol: string
+    | [<Parse("surr '(' ')' ⚠ _")>] ParensA of expr: Expr
+    | [<Parse("IDENTIFIER")>] IdentifierA of name: string
 
 and Case =
     | [<Parse("_");
@@ -96,8 +97,3 @@ and ElseIf =
     | [<Parse("and '␤elif␠' ⚠ _");
         Parse("⚠ and '␠then␠' _")>]
       ElseIf of condition: Expr * trueExpr: Expr
-
-and Lambda =
-    | [<Parse("and 'af' surr '(' ')' _");
-        Parse("and '␠=␠' ⚠ _")>]
-      Lambda of name: Lexpr * expr: Expr

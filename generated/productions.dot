@@ -6,22 +6,21 @@ digraph G {
     Atom -> bigint
     Atom -> string
     Atom -> bool
-    Atom -> Lambda
-    Atom -> Cases
-    Atom -> IfThen
-    Atom -> LetDecl
-    Atom -> TypeDecl
-    Atom -> Term
     Case -> Pattern
     Case -> Expr
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
     Expr -> Atom
+    Expr -> Term
+    Expr -> TypeDecl
+    Expr -> LetDecl
+    Expr -> Cases
+    Expr -> IfThen
+    Expr -> Lexpr
+    Expr -> Expr
     IfThen -> Expr
     IfThen -> ElseIf
-    Lambda -> Lexpr
-    Lambda -> Expr
     LetDecl -> Lexpr
     LetDecl -> Expr
     Lexpr -> LexprName

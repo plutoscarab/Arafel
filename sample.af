@@ -99,17 +99,17 @@ represents the power operation.
     3²
 
 Exponent on a "str" value represent repetition of the string. This is the string
-"aaaaa":
+"ababababab":
 
-    "a"⁵
+    "ab"⁵
 
 Exponent on a "bool" value represents false if the value is false and the
 exponent is greater than zero. If the exponent is zero or the value is true, the
 result is true.
 
-    false
-    false
-    true
+    false³
+    false⁰
+    true²
 
 Exponent on a single-argument function with a return type that matches the type
 of the first parameter represents repeated application of the function. Here is

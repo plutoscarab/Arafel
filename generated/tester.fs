@@ -6,52 +6,33 @@ open Random
 open Syntax
 
 let rec randomAtom (rand: Random) depth =
-    match rand.Next(14) with
+    match rand.Next(8) with
     | 0 ->
         let fn = randomAtom rand (depth + 1)
         let args = mkNonempty randomExpr rand (depth + 1)
-        CallE(fn, args)
+        CallA(fn, args)
     | 1 ->
         let atom = randomAtom rand (depth + 1)
         let exponent = mkBigint rand (depth + 1)
-        ExponentE(atom, exponent)
+        ExponentA(atom, exponent)
     | 2 ->
         let value = mkBigint rand (depth + 1)
-        NatE(value)
+        NatA(value)
     | 3 ->
         let value = mkString rand (depth + 1)
-        StringE(value)
+        StringA(value)
     | 4 ->
         let value = mkBool rand (depth + 1)
-        BoolE(value)
+        BoolA(value)
     | 5 ->
         let symbol = mkString rand (depth + 1)
-        OperatorE(symbol)
+        OperatorA(symbol)
     | 6 ->
-        let lambda = randomLambda rand (depth + 1)
-        LambdaE(lambda)
-    | 7 ->
         let expr = randomExpr rand (depth + 1)
-        ParensE(expr)
-    | 8 ->
-        let name = mkString rand (depth + 1)
-        IdentifierE(name)
-    | 9 ->
-        let cases = randomCases rand (depth + 1)
-        CasesE(cases)
-    | 10 ->
-        let ifthen = randomIfThen rand (depth + 1)
-        IfThenE(ifthen)
-    | 11 ->
-        let letDecl = randomLetDecl rand (depth + 1)
-        LetE(letDecl)
-    | 12 ->
-        let typeDecl = randomTypeDecl rand (depth + 1)
-        TypeE(typeDecl)
+        ParensA(expr)
     | _ ->
-        let atom = randomAtom rand (depth + 1)
-        let terms = mkNonempty randomTerm rand (depth + 1)
-        SumE(atom, terms)
+        let name = mkString rand (depth + 1)
+        IdentifierA(name)
 
 and randomCase (rand: Random) depth =
     match rand.Next(1) with
@@ -76,10 +57,27 @@ and randomElseIf (rand: Random) depth =
         ElseIf(condition, trueExpr)
 
 and randomExpr (rand: Random) depth =
-    match rand.Next(1) with
+    match rand.Next(6) with
+    | 0 ->
+        let term = randomAtom rand (depth + 1)
+        let terms = mkList randomTerm rand (depth + 1)
+        Expr(term, terms)
+    | 1 ->
+        let typeDecl = randomTypeDecl rand (depth + 1)
+        TypeE(typeDecl)
+    | 2 ->
+        let letDecl = randomLetDecl rand (depth + 1)
+        LetE(letDecl)
+    | 3 ->
+        let cases = randomCases rand (depth + 1)
+        CasesE(cases)
+    | 4 ->
+        let ifthen = randomIfThen rand (depth + 1)
+        IfThenE(ifthen)
     | _ ->
-        let atom = randomAtom rand (depth + 1)
-        Expr(atom)
+        let name = randomLexpr rand (depth + 1)
+        let expr = randomExpr rand (depth + 1)
+        LambdaE(name, expr)
 
 and randomIfThen (rand: Random) depth =
     match rand.Next(1) with
@@ -89,13 +87,6 @@ and randomIfThen (rand: Random) depth =
         let elseifs = mkList randomElseIf rand (depth + 1)
         let falseExpr = randomExpr rand (depth + 1)
         IfThen(condition, trueExpr, elseifs, falseExpr)
-
-and randomLambda (rand: Random) depth =
-    match rand.Next(1) with
-    | _ ->
-        let name = randomLexpr rand (depth + 1)
-        let expr = randomExpr rand (depth + 1)
-        Lambda(name, expr)
 
 and randomLetDecl (rand: Random) depth =
     match rand.Next(1) with

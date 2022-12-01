@@ -13,7 +13,7 @@ let rec printAtom (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | CallE(fn, args) ->
+    | CallA(fn, args) ->
         printAtom writer fn
         writer.Write "("
         match args with
@@ -26,43 +26,29 @@ let rec printAtom (writer:IndentedTextWriter) value =
                 writer.Write ", "
                 printExpr writer args_
         writer.Write ")"
-    | ExponentE(atom, exponent) ->
+    | ExponentA(atom, exponent) ->
         printAtom writer atom
         let s = toSuperscript exponent
         writeSafe writer s
-    | NatE(value) ->
+    | NatA(value) ->
         writeSafe writer value
-    | StringE(value) ->
+    | StringA(value) ->
         writer.Write "\""
         writeSafe writer value
         writer.Write "\""
-    | BoolE(value) ->
+    | BoolA(value) ->
         let b = value.ToString().ToLowerInvariant()
         writer.Write b
-    | OperatorE(symbol) ->
+    | OperatorA(symbol) ->
         writer.Write "["
         writeSafe writer symbol
         writer.Write "]"
-    | LambdaE(lambda) ->
-        printLambda writer lambda
-    | ParensE(expr) ->
+    | ParensA(expr) ->
         writer.Write "("
         printExpr writer expr
         writer.Write ")"
-    | IdentifierE(name) ->
+    | IdentifierA(name) ->
         writeSafe writer name
-    | CasesE(cases) ->
-        printCases writer cases
-    | IfThenE(ifthen) ->
-        printIfThen writer ifthen
-    | LetE(letDecl) ->
-        printLetDecl writer letDecl
-    | TypeE(typeDecl) ->
-        printTypeDecl writer typeDecl
-    | SumE(atom, terms) ->
-        printAtom writer atom
-        for terms' in terms do
-            printTerm writer terms'
     
     writer.Indent <- n
 
@@ -119,8 +105,25 @@ and printExpr (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
     match value with
-    | Expr(atom) ->
-        printAtom writer atom
+    | Expr(term, terms) ->
+        printAtom writer term
+        for terms' in terms do
+            printTerm writer terms'
+    | TypeE(typeDecl) ->
+        printTypeDecl writer typeDecl
+    | LetE(letDecl) ->
+        printLetDecl writer letDecl
+    | CasesE(cases) ->
+        printCases writer cases
+    | IfThenE(ifthen) ->
+        printIfThen writer ifthen
+    | LambdaE(name, expr) ->
+        writer.Write "af"
+        writer.Write "("
+        printLexpr writer name
+        writer.Write ")"
+        writer.Write " = "
+        printExpr writer expr
     
     writer.Indent <- n
 
@@ -138,20 +141,6 @@ and printIfThen (writer:IndentedTextWriter) value =
         writer.WriteLine ""
         writer.Write "else "
         printExpr writer falseExpr
-    
-    writer.Indent <- n
-
-and printLambda (writer:IndentedTextWriter) value =
-    let n = writer.Indent
-    
-    match value with
-    | Lambda(name, expr) ->
-        writer.Write "af"
-        writer.Write "("
-        printLexpr writer name
-        writer.Write ")"
-        writer.Write " = "
-        printExpr writer expr
     
     writer.Indent <- n
 

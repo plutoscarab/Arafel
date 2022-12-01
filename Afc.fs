@@ -63,36 +63,36 @@ type CoreVisitor() =
         match name' with
         | Lexpr(n, ps) ->
             let folder p ex =
-                Expr (LambdaE (Lambda (p, ex)))
+                LambdaE (p, ex)
             let lambda = List.foldBack folder ps expr'
             LetDecl (Lexpr(n, []), lambda, inExpr')
 
     // Fully curry all the arguments of function applications
-    override this.Atom_CallE(fn, args) =
+    override this.Atom_CallA(fn, args) =
         let fn' = this.VisitAtom fn
         let args' = List.map this.VisitExpr args
         let folder ex arg =
-            CallE (ex, [arg])
+            CallA (ex, [arg])
         List.fold folder fn' args'
     
     // Replace if-then with case
-    override this.Atom_IfThenE(ifthen) =
+    override this.Expr_IfThenE(ifthen) =
         let ifthen' = this.VisitIfThen ifthen
         match ifthen' with
         | IfThen(condition, trueExpr, elseifs, falseExpr) ->
             let folder (ElseIf (co, th)) expr =
-                Expr (CasesE (Cases (co, [
+                CasesE (Cases (co, [
                     Case (BoolPat (true), th)
-                ], Some expr)))
+                ], Some expr))
             let elseExpr = List.foldBack folder elseifs falseExpr
             CasesE (Cases (condition, [
                 Case (BoolPat (true), trueExpr)
             ], Some elseExpr))
 
     // Replace exponents with **
-    override this.Atom_ExponentE(atom, exp) =
+    override this.Atom_ExponentA(atom, exp) =
         let atom' = this.VisitAtom atom
-        CallE (CallE (OperatorE "**", [Expr atom']), [Expr (NatE exp)])
+        CallA (CallA (OperatorA "**", [Expr (atom', [])]), [Expr (NatA exp, [])])
 
 let pretty filename exprs =
     Directory.CreateDirectory "output" |> ignore
