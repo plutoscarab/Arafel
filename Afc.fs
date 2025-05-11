@@ -58,7 +58,10 @@ type CoreVisitor() =
     override this.LetDecl_LetDecl(name, expr, inExpr) =
         let name' = this.VisitLexpr name
         let expr' = this.VisitExpr expr
-        let inExpr' = this.VisitExpr inExpr
+        let inExpr' = 
+            match inExpr with 
+            | Some(e) -> Some(this.VisitExpr e)
+            | None -> None
 
         match name' with
         | Lexpr(n, ps) ->
@@ -92,7 +95,7 @@ type CoreVisitor() =
     // Replace exponents with **
     override this.Atom_ExponentA(atom, exp) =
         let atom' = this.VisitAtom atom
-        CallA (CallA (OperatorA "**", [Expr (atom', [])]), [Expr (NatA exp, [])])
+        CallA (CallA (OperatorA "**", [Expr (Unatom(None, atom'), [])]), [Expr (Unatom(None, NatA exp), [])])
 
 let pretty filename exprs =
     Directory.CreateDirectory "output" |> ignore

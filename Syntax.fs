@@ -1,11 +1,10 @@
 module Syntax
 
 open Parse
-open Print
 
 type LexprName =
     | [<Parse("IDENTIFIER")>] IdentifierN of name: string
-    | [<Parse("surr '[' ']' OPERATOR")>] OperatorN of symbol: string
+    | [<Parse("OPERATOR")>] OperatorN of symbol: string
 
 type Lexpr =
     | [<Parse("_"); 
@@ -41,18 +40,18 @@ type TypeDecl =
 and LetDecl =
     | [<Parse("and 'let␠' ⚠ _");
         Parse("⚠ and '␠=␏' ␤_␎");
-        Parse("⚠ out '␤␤' _")>]
-      LetDecl of name: Lexpr * expr: Expr * inExpr: Expr
+        Parse("⚠ out '␤␤' opt and 'in' _")>]
+      LetDecl of name: Lexpr * expr: Expr * inExpr: Expr option
 
 and Term =
     | [<Parse("␠OPERATOR");
         Parse("␠_")>]
-      Term of operator: string * atom: Atom
+      Term of operator: string * atom: Unatom
 
 and Expr =
     | [<Parse("_");
         Parse("0+ _")>]
-      Expr of term: Atom * terms: Term list
+      Expr of term: Unatom * terms: Term list
     | [<Parse("_")>] TypeE of typeDecl: TypeDecl
     | [<Parse("_")>] LetE of letDecl: LetDecl
     | [<Parse("_")>] CasesE of cases: Cases
@@ -60,6 +59,21 @@ and Expr =
     | [<Parse("and 'af' surr '(' ')' _");
         Parse("and '␠=␠' ⚠ _")>]
       LambdaE of name: Lexpr * expr: Expr
+    | [<Parse("surr '{' '}' _")>] CurlyLambdaE of expr: Expr
+
+and Range =
+    | [<Parse("NAT");
+        Parse("and '..' opt NAT");
+        Parse("opt and '␠by␠' NAT")>]
+      Range of first: bigint * last: bigint option * skip: bigint option
+
+and IntSeq =
+    | [<Parse("opt[] delim ',␠' _")>] IntSeq of ranges: Range list
+
+and Unatom =
+    | [<Parse("opt OPERATOR");
+        Parse("_")>]
+      Unatom of operator: string option * atom: Atom
 
 and Atom =
     | [<Parse("_");
@@ -68,6 +82,7 @@ and Atom =
     | [<Parse("_");
         Parse("␑SUPERSCRIPT")>]
       ExponentA of atom: Atom * exponent: bigint
+    | [<Parse("surr '[' ']' _")>] IntSeqA of intSeq: IntSeq
     | [<Parse("NAT")>] NatA of value: bigint
     | [<Parse("␅STRING␅")>] StringA of value: string
     | [<Parse("BOOL")>] BoolA of value: bool

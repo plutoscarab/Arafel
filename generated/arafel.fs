@@ -7,12 +7,21 @@ open Parse
 open Syntax
 
 let keywords = Set [
-    "af"; "case"; "elif"; "else"; "forall"; "if"; "let"; "of"; "then"; "type"; 
+    "af"; "by"; "case"; "elif"; "else"; "forall"; "if"; "in"; "let"; "of"; 
+    "then"; "type"; 
 ]
 
 let rec parseAtom' () =
     let baseParser =
         let p0 = fun t0 ->
+            let (r1, t1) = (surround (literal "[") (literal "]") (parseIntSeq)) t0
+            match r1 with
+            | Match intSeq ->
+                Match (IntSeqA(intSeq)), t1
+            | SyntaxError e -> SyntaxError e, t1
+            | Nomatch e -> Nomatch e, t0
+        
+        let p1 = fun t0 ->
             let (r1, t1) = (bigintToken Nat "Nat") t0
             match r1 with
             | Match value ->
@@ -20,7 +29,7 @@ let rec parseAtom' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
-        let p1 = fun t0 ->
+        let p2 = fun t0 ->
             let (r1, t1) = (stringToken String "String") t0
             match r1 with
             | Match value ->
@@ -28,7 +37,7 @@ let rec parseAtom' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
-        let p2 = fun t0 ->
+        let p3 = fun t0 ->
             let (r1, t1) = (boolToken Bool "Bool") t0
             match r1 with
             | Match value ->
@@ -36,7 +45,7 @@ let rec parseAtom' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
-        let p3 = fun t0 ->
+        let p4 = fun t0 ->
             let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
             match r1 with
             | Match symbol ->
@@ -44,7 +53,7 @@ let rec parseAtom' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
-        let p4 = fun t0 ->
+        let p5 = fun t0 ->
             let (r1, t1) = (surround (literal "(") (literal ")") (checkpoint (parseExpr))) t0
             match r1 with
             | Match expr ->
@@ -52,7 +61,7 @@ let rec parseAtom' () =
             | SyntaxError e -> SyntaxError e, t1
             | Nomatch e -> Nomatch e, t0
         
-        let p5 = fun t0 ->
+        let p6 = fun t0 ->
             let (r1, t1) = (stringToken Identifier "Identifier") t0
             match r1 with
             | Match name ->
@@ -92,7 +101,12 @@ let rec parseAtom' () =
                                 | SyntaxError e, t2 -> SyntaxError e, t2
                                 | Nomatch e5, _ ->
                                     exp <- e5 @ exp
-                                    Nomatch exp, t
+                                    match p6 t with
+                                    | Match r6, t2 -> Match r6, t2
+                                    | SyntaxError e, t2 -> SyntaxError e, t2
+                                    | Nomatch e6, _ ->
+                                        exp <- e6 @ exp
+                                        Nomatch exp, t
     
     let suffixes baseAtom =
         let p0 = fun t0 ->
@@ -180,7 +194,7 @@ and parseElseIf' () =
 
 and parseExpr' () =
     let p0 = fun t0 ->
-        let (r1, t1) = (parseAtom) t0
+        let (r1, t1) = (parseUnatom) t0
         match r1 with
         | Match term ->
             let (r2, t2) = (zeroOrMore (parseTerm)) t1
@@ -237,6 +251,14 @@ and parseExpr' () =
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
     
+    let p6 = fun t0 ->
+        let (r1, t1) = (surround (literal "{") (literal "}") (parseExpr)) t0
+        match r1 with
+        | Match expr ->
+            Match (CurlyLambdaE(expr)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+    
     fun t ->
         let mutable exp = []
         match p0 t with
@@ -269,7 +291,12 @@ and parseExpr' () =
                             | SyntaxError e, t2 -> SyntaxError e, t2
                             | Nomatch e5, _ ->
                                 exp <- e5 @ exp
-                                Nomatch exp, t
+                                match p6 t with
+                                | Match r6, t2 -> Match r6, t2
+                                | SyntaxError e, t2 -> SyntaxError e, t2
+                                | Nomatch e6, _ ->
+                                    exp <- e6 @ exp
+                                    Nomatch exp, t
 
 and parseIfThen' () =
     fun t0 ->
@@ -295,6 +322,15 @@ and parseIfThen' () =
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
 
+and parseIntSeq' () =
+    fun t0 ->
+        let (r1, t1) = (optionlist (delimited (literal ",") (parseRange))) t0
+        match r1 with
+        | Match ranges ->
+            Match (IntSeq(ranges)), t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
 and parseLetDecl' () =
     fun t0 ->
         let (r1, t1) = (andThen (literal "let") (checkpoint (parseLexpr))) t0
@@ -303,7 +339,7 @@ and parseLetDecl' () =
             let (r2, t2) = (checkpoint (andThen (literal "=") (parseExpr))) t1
             match r2 with
             | Match expr ->
-                let (r3, t3) = (checkpoint (parseExpr)) t2
+                let (r3, t3) = (checkpoint (option (andThen (literal "in") (parseExpr)))) t2
                 match r3 with
                 | Match inExpr ->
                     Match (LetDecl(name, expr, inExpr)), t3
@@ -338,7 +374,7 @@ and parseLexprName' () =
         | Nomatch e -> Nomatch e, t0
     
     let p1 = fun t0 ->
-        let (r1, t1) = (surround (literal "[") (literal "]") (stringToken Operator "Operator")) t0
+        let (r1, t1) = (stringToken Operator "Operator") t0
         match r1 with
         | Match symbol ->
             Match (OperatorN(symbol)), t1
@@ -444,12 +480,31 @@ and parsePolyType' () =
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
 
+and parseRange' () =
+    fun t0 ->
+        let (r1, t1) = (bigintToken Nat "Nat") t0
+        match r1 with
+        | Match first ->
+            let (r2, t2) = (andThen (literal "..") (option (bigintToken Nat "Nat"))) t1
+            match r2 with
+            | Match last ->
+                let (r3, t3) = (option (andThen (literal "by") (bigintToken Nat "Nat"))) t2
+                match r3 with
+                | Match skip ->
+                    Match (Range(first, last, skip)), t3
+                | SyntaxError e -> SyntaxError e, t3
+                | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
 and parseTerm' () =
     fun t0 ->
         let (r1, t1) = (stringToken Operator "Operator") t0
         match r1 with
         | Match operator ->
-            let (r2, t2) = (parseAtom) t1
+            let (r2, t2) = (parseUnatom) t1
             match r2 with
             | Match atom ->
                 Match (Term(operator, atom)), t2
@@ -482,17 +537,34 @@ and parseTypeDecl' () =
         | SyntaxError e -> SyntaxError e, t1
         | Nomatch e -> Nomatch e, t0
 
+and parseUnatom' () =
+    fun t0 ->
+        let (r1, t1) = (option (stringToken Operator "Operator")) t0
+        match r1 with
+        | Match operator ->
+            let (r2, t2) = (parseAtom) t1
+            match r2 with
+            | Match atom ->
+                Match (Unatom(operator, atom)), t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Nomatch e -> Nomatch e, t1
+        | SyntaxError e -> SyntaxError e, t1
+        | Nomatch e -> Nomatch e, t0
+
 and parseAtom = parseAtom'()
 and parseCase = parseCase'()
 and parseCases = parseCases'()
 and parseElseIf = parseElseIf'()
 and parseExpr = parseExpr'()
 and parseIfThen = parseIfThen'()
+and parseIntSeq = parseIntSeq'()
 and parseLetDecl = parseLetDecl'()
 and parseLexpr = parseLexpr'()
 and parseLexprName = parseLexprName'()
 and parseMonoType = parseMonoType'()
 and parsePattern = parsePattern'()
 and parsePolyType = parsePolyType'()
+and parseRange = parseRange'()
 and parseTerm = parseTerm'()
 and parseTypeDecl = parseTypeDecl'()
+and parseUnatom = parseUnatom'()

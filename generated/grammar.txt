@@ -1,16 +1,19 @@
 /* Use, for example, at https://www.bottlecaps.de/rr/ui */
 
-Atom ::= Atom '(' Expr (',' Expr)* ')' | Atom SUPERSCRIPT | NAT | STRING | BOOL | '[' OPERATOR ']' | '(' Expr ')' | IDENTIFIER
+Atom ::= Atom '(' Expr (',' Expr)* ')' | Atom SUPERSCRIPT | '[' IntSeq ']' | NAT | STRING | BOOL | '[' OPERATOR ']' | '(' Expr ')' | IDENTIFIER
 Case ::= Pattern ':' Expr
 Cases ::= 'case' Expr 'of' (Case)+ ('else' Expr)?
 ElseIf ::= 'elif' Expr 'then' Expr
-Expr ::= Atom (Term)* | TypeDecl | LetDecl | Cases | IfThen | 'af' '(' Lexpr ')' '=' Expr
+Expr ::= Unatom (Term)* | TypeDecl | LetDecl | Cases | IfThen | 'af' '(' Lexpr ')' '=' Expr | '{' Expr '}'
 IfThen ::= 'if' Expr 'then' Expr (ElseIf)* 'else' Expr
-LetDecl ::= 'let' Lexpr '=' Expr Expr
+IntSeq ::= (Range (',' Range)*)?
+LetDecl ::= 'let' Lexpr '=' Expr ('in' Expr)?
 Lexpr ::= LexprName ('(' Lexpr (',' Lexpr)* ')')?
-LexprName ::= IDENTIFIER | '[' OPERATOR ']'
+LexprName ::= IDENTIFIER | OPERATOR
 MonoType ::= Lexpr (('->' | '→') Lexpr)*
 Pattern ::= IDENTIFIER ('(' Pattern (',' Pattern)* ')')? | NAT | STRING | BOOL
 PolyType ::= (('forall' | '∀') (IDENTIFIER)+ ',')? MonoType ('|' MonoType)*
-Term ::= OPERATOR Atom
+Range ::= NAT '..' (NAT)? ('by' NAT)?
+Term ::= OPERATOR Unatom
 TypeDecl ::= 'type' IDENTIFIER ('(' IDENTIFIER (',' IDENTIFIER)* ')')? '=' PolyType Expr
+Unatom ::= (OPERATOR)? Atom

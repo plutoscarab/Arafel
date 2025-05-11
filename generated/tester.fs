@@ -6,7 +6,7 @@ open Random
 open Syntax
 
 let rec randomAtom (rand: Random) depth =
-    match rand.Next(8) with
+    match rand.Next(9) with
     | 0 ->
         let fn = randomAtom rand (depth + 1)
         let args = mkNonempty randomExpr rand (depth + 1)
@@ -16,18 +16,21 @@ let rec randomAtom (rand: Random) depth =
         let exponent = mkBigint rand (depth + 1)
         ExponentA(atom, exponent)
     | 2 ->
+        let intSeq = randomIntSeq rand (depth + 1)
+        IntSeqA(intSeq)
+    | 3 ->
         let value = mkBigint rand (depth + 1)
         NatA(value)
-    | 3 ->
+    | 4 ->
         let value = mkString rand (depth + 1)
         StringA(value)
-    | 4 ->
+    | 5 ->
         let value = mkBool rand (depth + 1)
         BoolA(value)
-    | 5 ->
+    | 6 ->
         let symbol = mkString rand (depth + 1)
         OperatorA(symbol)
-    | 6 ->
+    | 7 ->
         let expr = randomExpr rand (depth + 1)
         ParensA(expr)
     | _ ->
@@ -57,9 +60,9 @@ and randomElseIf (rand: Random) depth =
         ElseIf(condition, trueExpr)
 
 and randomExpr (rand: Random) depth =
-    match rand.Next(6) with
+    match rand.Next(7) with
     | 0 ->
-        let term = randomAtom rand (depth + 1)
+        let term = randomUnatom rand (depth + 1)
         let terms = mkList randomTerm rand (depth + 1)
         Expr(term, terms)
     | 1 ->
@@ -74,10 +77,13 @@ and randomExpr (rand: Random) depth =
     | 4 ->
         let ifthen = randomIfThen rand (depth + 1)
         IfThenE(ifthen)
-    | _ ->
+    | 5 ->
         let name = randomLexpr rand (depth + 1)
         let expr = randomExpr rand (depth + 1)
         LambdaE(name, expr)
+    | _ ->
+        let expr = randomExpr rand (depth + 1)
+        CurlyLambdaE(expr)
 
 and randomIfThen (rand: Random) depth =
     match rand.Next(1) with
@@ -88,12 +94,18 @@ and randomIfThen (rand: Random) depth =
         let falseExpr = randomExpr rand (depth + 1)
         IfThen(condition, trueExpr, elseifs, falseExpr)
 
+and randomIntSeq (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let ranges = mkList randomRange rand (depth + 1)
+        IntSeq(ranges)
+
 and randomLetDecl (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
         let name = randomLexpr rand (depth + 1)
         let expr = randomExpr rand (depth + 1)
-        let inExpr = randomExpr rand (depth + 1)
+        let inExpr = mkOption randomExpr rand (depth + 1)
         LetDecl(name, expr, inExpr)
 
 and randomLexpr (rand: Random) depth =
@@ -141,11 +153,19 @@ and randomPolyType (rand: Random) depth =
         let cases = mkNonempty randomMonoType rand (depth + 1)
         PolyType(foralls, cases)
 
+and randomRange (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let first = mkBigint rand (depth + 1)
+        let last = mkOption mkBigint rand (depth + 1)
+        let skip = mkOption mkBigint rand (depth + 1)
+        Range(first, last, skip)
+
 and randomTerm (rand: Random) depth =
     match rand.Next(1) with
     | _ ->
         let operator = mkString rand (depth + 1)
-        let atom = randomAtom rand (depth + 1)
+        let atom = randomUnatom rand (depth + 1)
         Term(operator, atom)
 
 and randomTypeDecl (rand: Random) depth =
@@ -156,3 +176,10 @@ and randomTypeDecl (rand: Random) depth =
         let ptype = randomPolyType rand (depth + 1)
         let inExpr = randomExpr rand (depth + 1)
         TypeDecl(name, parameters, ptype, inExpr)
+
+and randomUnatom (rand: Random) depth =
+    match rand.Next(1) with
+    | _ ->
+        let operator = mkOption mkString rand (depth + 1)
+        let atom = randomAtom rand (depth + 1)
+        Unatom(operator, atom)

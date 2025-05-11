@@ -30,6 +30,10 @@ let rec printAtom (writer:IndentedTextWriter) value =
         printAtom writer atom
         let s = toSuperscript exponent
         writeSafe writer s
+    | IntSeqA(intSeq) ->
+        writer.Write "["
+        printIntSeq writer intSeq
+        writer.Write "]"
     | NatA(value) ->
         writeSafe writer value
     | StringA(value) ->
@@ -106,7 +110,7 @@ and printExpr (writer:IndentedTextWriter) value =
     
     match value with
     | Expr(term, terms) ->
-        printAtom writer term
+        printUnatom writer term
         for terms' in terms do
             printTerm writer terms'
     | TypeE(typeDecl) ->
@@ -124,6 +128,10 @@ and printExpr (writer:IndentedTextWriter) value =
         writer.Write ")"
         writer.Write " = "
         printExpr writer expr
+    | CurlyLambdaE(expr) ->
+        writer.Write "{"
+        printExpr writer expr
+        writer.Write "}"
     
     writer.Indent <- n
 
@@ -144,6 +152,26 @@ and printIfThen (writer:IndentedTextWriter) value =
     
     writer.Indent <- n
 
+and printIntSeq (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | IntSeq(ranges) ->
+        match ranges with
+        | [] -> ignore()
+        | _ ->
+            match ranges with
+            | [] -> ignore()
+            | [ranges'] ->
+                printRange writer ranges'
+            | ranges'::ranges'' ->
+                printRange writer ranges'
+                for ranges_ in ranges'' do
+                    writer.Write ", "
+                    printRange writer ranges_
+    
+    writer.Indent <- n
+
 and printLetDecl (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
@@ -159,7 +187,11 @@ and printLetDecl (writer:IndentedTextWriter) value =
         
         writer.WriteLine ""
         writer.WriteLine ""
-        printExpr writer inExpr
+        match inExpr with
+        | None -> ignore()
+        | Some inExpr' ->
+            writer.Write "in"
+            printExpr writer inExpr'
     
     writer.Indent <- n
 
@@ -193,9 +225,7 @@ and printLexprName (writer:IndentedTextWriter) value =
     | IdentifierN(name) ->
         writeSafe writer name
     | OperatorN(symbol) ->
-        writer.Write "["
         writeSafe writer symbol
-        writer.Write "]"
     
     writer.Indent <- n
 
@@ -270,6 +300,25 @@ and printPolyType (writer:IndentedTextWriter) value =
     
     writer.Indent <- n
 
+and printRange (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | Range(first, last, skip) ->
+        writeSafe writer first
+        writer.Write ".."
+        match last with
+        | None -> ignore()
+        | Some last' ->
+            writeSafe writer last'
+        match skip with
+        | None -> ignore()
+        | Some skip' ->
+            writer.Write " by "
+            writeSafe writer skip'
+    
+    writer.Indent <- n
+
 and printTerm (writer:IndentedTextWriter) value =
     let n = writer.Indent
     
@@ -278,7 +327,7 @@ and printTerm (writer:IndentedTextWriter) value =
         writer.Write " "
         writeSafe writer operator
         writer.Write " "
-        printAtom writer atom
+        printUnatom writer atom
     
     writer.Indent <- n
 
@@ -308,5 +357,18 @@ and printTypeDecl (writer:IndentedTextWriter) value =
         writer.WriteLine ()
         writer.WriteLine ()
         printExpr writer inExpr
+    
+    writer.Indent <- n
+
+and printUnatom (writer:IndentedTextWriter) value =
+    let n = writer.Indent
+    
+    match value with
+    | Unatom(operator, atom) ->
+        match operator with
+        | None -> ignore()
+        | Some operator' ->
+            writeSafe writer operator'
+        printAtom writer atom
     
     writer.Indent <- n

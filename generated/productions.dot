@@ -4,6 +4,7 @@ digraph G {
     Atom -> Atom
     Atom -> Expr
     Atom -> bigint
+    Atom -> IntSeq
     Atom -> string
     Atom -> bool
     Case -> Pattern
@@ -11,7 +12,7 @@ digraph G {
     Cases -> Expr
     Cases -> Case
     ElseIf -> Expr
-    Expr -> Atom
+    Expr -> Unatom
     Expr -> Term
     Expr -> TypeDecl
     Expr -> LetDecl
@@ -21,6 +22,7 @@ digraph G {
     Expr -> Expr
     IfThen -> Expr
     IfThen -> ElseIf
+    IntSeq -> Range
     LetDecl -> Lexpr
     LetDecl -> Expr
     Lexpr -> LexprName
@@ -33,9 +35,12 @@ digraph G {
     Pattern -> bool
     PolyType -> string
     PolyType -> MonoType
+    Range -> bigint
     Term -> string
-    Term -> Atom
+    Term -> Unatom
     TypeDecl -> string
     TypeDecl -> PolyType
     TypeDecl -> Expr
+    Unatom -> string
+    Unatom -> Atom
 }

@@ -1,4 +1,5 @@
 open System
+open System.Diagnostics
 open System.IO
 open System.Text
 
@@ -134,6 +135,31 @@ let writeUnicodeChart filename (runes: Rune seq) =
             file.WriteLine ()
             file.WriteLine ()
 
+let executeCommand executable args =
+    let startInfo = ProcessStartInfo()
+    startInfo.FileName <- executable
+    startInfo.RedirectStandardOutput <- true
+    startInfo.RedirectStandardError <- true
+    startInfo.UseShellExecute <- false
+    startInfo.CreateNoWindow <- true
+
+    for a in args do
+      startInfo.ArgumentList.Add(a)
+
+    use p = new Process()
+    p.StartInfo <- startInfo
+    p.Start() |> ignore
+    let output = new Text.StringBuilder()
+    let error = new Text.StringBuilder()
+    p.OutputDataReceived.Add(fun args -> output.Append(args.Data) |> ignore)
+    p.ErrorDataReceived.Add(fun args -> error.Append(args.Data) |> ignore)
+    p.BeginErrorReadLine()
+    p.BeginOutputReadLine()
+    p.WaitForExit()
+
+let writeRailroadDiagram filename grammar =
+    executeCommand "cmd.exe" ["/C"; "java"; "-jar"; "rr.war"; "-out:" + filename; grammar]
+
 let loc dir pattern =
         Directory.GetFiles(dir, pattern)
         |> Seq.map (File.ReadLines >> Seq.length)
@@ -150,6 +176,7 @@ let main =
     writeVisitorFile "generated/visitor.fs" "Visitor" productions
     writeUnicodeChart "generated/opChars.md" Lexer.opChars
     writeUnicodeChart "generated/idNonLetterChars.md" (Lexer.idContinuation |> Seq.filter (fun r -> not (Rune.IsLetter(r))))
+    writeRailroadDiagram "generated/railroad.html" "generated/grammar.txt"
     writeLocalisation()
 
     let fs = loc "." "*.fs"

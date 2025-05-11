@@ -9,7 +9,7 @@ compatible subset of it such as ASCII.
 
 LITERALS
 
-A string of decimal digits is a "nat" value (a natural number). Underscores can
+A string of decimal digits is a "Nat" value (a natural number). Underscores can
 be used as digit separators to make large values more readible. Non-ASCII digits
 are allowed.
 
@@ -28,7 +28,7 @@ U+1D5D9 and U+1D5E7 Mathematical Sans-Serif Bold Capital.
     𝗙
     𝗧
 
-Strings of text delimited by double-quotes are "str" values.
+Strings of text delimited by double-quotes are "Str" values.
 
     "Hello, world!"
     ""
@@ -39,7 +39,7 @@ IDENTIFIERS
 Identifiers (names used for constants, functions, parameters, etc.) start with a
 letter or underscore, and continue with letters, underscores, digits,
 apostrophes and primes, and characters in Unicode category "other number"
-excluding subscript digits.
+excluding superscript digits.
 
 Here we define some constant values.
 
@@ -82,26 +82,35 @@ Functions can take multiple parameters.
 
     let max(a, b) = if a > b then a else b
 
-Operators be used as function names if surrounded by square brackets.
+Custom infix and prefix operators are defined using function syntax.
 
-    let [∆∆](x, y) = if x > y then 0 else y - 7
+    let ⭔(x, y) = if x > y then 0 else y - 7
+    foo ⭔ bar
+
+    let ⊜(t) = (t + 1) % 24
+    ⊜52
 
 Functions are values that can be passed to other functions. Anonymous functions,
 or lambda functions, are defined with "af" which is short for "a function".
+Here's a function that takes a function as a parameter and then calls it three
+times, and then this function is given an anonymous function as input.
 
-    af(x) = floor(sqrt(x))
+    let callThrice(f, x) = f(f(f(x)))
+    let result = callThrice(af(x) = 1/(x-floor(x)), 103993/33102)
+
+If the lambda expression only refers to a single unbound identifier, the curly
+brace form can be used instead. This example uses the "\" operator which is
+the unary reciprocal operator.
+
+    let result' = callThrice({\(x - floor(x))}, 103993/33102)
+
 
 EXPONENTS
 
-Expressions can be followed by superscript digits. Exponent on a "nat" value
+Expressions can be followed by superscript digits. Exponent on a "Nat" value
 represents the power operation.
 
     3²
-
-Exponent on a "str" value represent repetition of the string. This is the string
-"ababababab":
-
-    "ab"⁵
 
 Exponent on a "bool" value represents false if the value is false and the
 exponent is greater than zero. If the exponent is zero or the value is true, the
@@ -123,11 +132,13 @@ parameter of the same type.
 
     let foo(f, x) = sqrt(f(x))
 
-is equivalent to
+is equivalent to the curried version
 
     let foo(f) = af(x) = sqrt(f(x))
 
-so that foo²(f) = foo(foo(f)) = sqrt(foo(f)(x)) = sqrt(sqrt(f(x)))
+so that foo²(f) = foo(foo(f)). That means that 
+foo²(f,x) = sqrt(foo(f)(x)) = sqrt(sqrt(f(x)))
+
 
 TAGGED UNIONS 𝑎.𝑘.𝑎. DISCRIMINATED UNIONS 𝑎.𝑘.𝑎. SUM TYPES
 
@@ -168,7 +179,7 @@ nodes in our tree.
 This prints "3" for the tree we created above.
 
 
-IF .. THEN .. ELIF .. ELSE
+CONDITIONAL EXPRESSIONS (IF)
 
     let yy = (
         if a = 0 then 22
@@ -180,7 +191,7 @@ IF .. THEN .. ELIF .. ELSE
 
 LISTS
 
-There is no build-in support for lists yet. Define lists using
+There is limited build-in support for lists yet. Define linked lists using
 
     type List(a) = Nil | Cons(a, List(a))
 
@@ -193,15 +204,35 @@ Finite lists.
     Cons(1, Nil)
     Cons(1, Cons(2, Cons(3, Nil)))
 
-Infinite list of natural numbers.
+There is a special syntax for lists of natural numbers. Empty list:
 
-    let natsFromWithSkip(n, skip) =
-        Cons(n, natsFromWithSkip(n + skip, skip))
+    []
+    
+Infinite list of all Nats:
 
-    let allNatsFrom(n) =
-        natsFromWithSkip(n, 1)
+    [0..]
 
-    let allNats = allNatsFrom(0)
+List from 1 to 10.
+
+    [1..10]
+
+Odd numbers from 1 to 99.
+
+    [1..99 by 2]
+
+Multiples of 5.
+
+    [0.. by 5]
+
+Cubes of numbers from 0 to 20.
+
+    [0..20]³
+
+Some arbitrary numbers.
+
+    [1..10, 11..30 by 2, 31..60 by 3, 61..100 by 4, 100.. by 5]
+    
+by 2, 31..60 by 3, 61..100 by 4, 100.. by 5
 
 List item extraction:
 
@@ -218,7 +249,8 @@ Odd numbers 5 through 99:
         case list of
             Nil : Nil
 
-Block comment in the middle of an expression.
+Sorry for the interruption! Block comment in the middle of an expression.
+Okay, here's the rest.
 
             Cons(head, tail) :
                 if pred(head) then
@@ -285,7 +317,7 @@ CUSTOM OPERATORS
 
 Concatenate two lists.
 
-    let [😀](list₁, list₂) =
+    let 😀(list₁, list₂) =
         case list₁ of
             Nil : list₂
             Cons(head, tail) : Cons(head, tail 😀 list₂)

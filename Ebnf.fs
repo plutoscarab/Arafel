@@ -107,6 +107,7 @@ let rec getParserEbnf parser =
     | ListP p -> "(" + (getParserEbnf p) + ")*"
     | NonEmptyListP p -> "(" + (getParserEbnf p) + ")+"
     | AndP (p, q) -> getParserEbnf(p) + " " + getParserEbnf(q)
+    | AndFirstP (p, q) -> getParserEbnf(p) + " " + getParserEbnf(q)
     | OrP (p, q) -> "(" + getParserEbnf(p) + " | " + getParserEbnf(q) + ")"
     | DelimitedP (d, p) -> getParserEbnf(p) + " (" + getParserEbnf(d) + " " + getParserEbnf(p) + ")*"
     | SurroundP (a, b, p) -> getParserEbnf(a) + " " + getParserEbnf(p) + " " + getParserEbnf(b)   

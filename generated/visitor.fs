@@ -18,6 +18,11 @@ type Visitor() =
         let exponent' = exponent
         ExponentA (atom', exponent')
     
+    abstract member Atom_IntSeqA: IntSeq -> Atom
+    default this.Atom_IntSeqA(intSeq) =
+        let intSeq' = this.VisitIntSeq intSeq
+        IntSeqA (intSeq')
+    
     abstract member Atom_NatA: bigint -> Atom
     default this.Atom_NatA(value) =
         let value' = value
@@ -53,6 +58,7 @@ type Visitor() =
         match value with
         | CallA (fn, args) -> this.Atom_CallA(fn, args)
         | ExponentA (atom, exponent) -> this.Atom_ExponentA(atom, exponent)
+        | IntSeqA (intSeq) -> this.Atom_IntSeqA(intSeq)
         | NatA (value) -> this.Atom_NatA(value)
         | StringA (value) -> this.Atom_StringA(value)
         | BoolA (value) -> this.Atom_BoolA(value)
@@ -94,9 +100,9 @@ type Visitor() =
         match value with
         | ElseIf (condition, trueExpr) -> this.ElseIf_ElseIf(condition, trueExpr)
     
-    abstract member Expr_Expr: Atom * Term list -> Expr
+    abstract member Expr_Expr: Unatom * Term list -> Expr
     default this.Expr_Expr(term, terms) =
-        let term' = this.VisitAtom term
+        let term' = this.VisitUnatom term
         let terms' = List.map this.VisitTerm terms
         Expr (term', terms')
     
@@ -126,6 +132,11 @@ type Visitor() =
         let expr' = this.VisitExpr expr
         LambdaE (name', expr')
     
+    abstract member Expr_CurlyLambdaE: Expr -> Expr
+    default this.Expr_CurlyLambdaE(expr) =
+        let expr' = this.VisitExpr expr
+        CurlyLambdaE (expr')
+    
     abstract member VisitExpr: Expr -> Expr
     default this.VisitExpr(value) =
         match value with
@@ -135,6 +146,7 @@ type Visitor() =
         | CasesE (cases) -> this.Expr_CasesE(cases)
         | IfThenE (ifthen) -> this.Expr_IfThenE(ifthen)
         | LambdaE (name, expr) -> this.Expr_LambdaE(name, expr)
+        | CurlyLambdaE (expr) -> this.Expr_CurlyLambdaE(expr)
     
     abstract member IfThen_IfThen: Expr * Expr * ElseIf list * Expr -> IfThen
     default this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr) =
@@ -149,11 +161,21 @@ type Visitor() =
         match value with
         | IfThen (condition, trueExpr, elseifs, falseExpr) -> this.IfThen_IfThen(condition, trueExpr, elseifs, falseExpr)
     
-    abstract member LetDecl_LetDecl: Lexpr * Expr * Expr -> LetDecl
+    abstract member IntSeq_IntSeq: Range list -> IntSeq
+    default this.IntSeq_IntSeq(ranges) =
+        let ranges' = List.map this.VisitRange ranges
+        IntSeq (ranges')
+    
+    abstract member VisitIntSeq: IntSeq -> IntSeq
+    default this.VisitIntSeq(value) =
+        match value with
+        | IntSeq (ranges) -> this.IntSeq_IntSeq(ranges)
+    
+    abstract member LetDecl_LetDecl: Lexpr * Expr * Expr option -> LetDecl
     default this.LetDecl_LetDecl(name, expr, inExpr) =
         let name' = this.VisitLexpr name
         let expr' = this.VisitExpr expr
-        let inExpr' = this.VisitExpr inExpr
+        let inExpr' = Option.map this.VisitExpr inExpr
         LetDecl (name', expr', inExpr')
     
     abstract member VisitLetDecl: LetDecl -> LetDecl
@@ -238,10 +260,22 @@ type Visitor() =
         match value with
         | PolyType (foralls, cases) -> this.PolyType_PolyType(foralls, cases)
     
-    abstract member Term_Term: string * Atom -> Term
+    abstract member Range_Range: bigint * bigint option * bigint option -> Range
+    default this.Range_Range(first, last, skip) =
+        let first' = first
+        let last' = last
+        let skip' = skip
+        Range (first', last', skip')
+    
+    abstract member VisitRange: Range -> Range
+    default this.VisitRange(value) =
+        match value with
+        | Range (first, last, skip) -> this.Range_Range(first, last, skip)
+    
+    abstract member Term_Term: string * Unatom -> Term
     default this.Term_Term(operator, atom) =
         let operator' = operator
-        let atom' = this.VisitAtom atom
+        let atom' = this.VisitUnatom atom
         Term (operator', atom')
     
     abstract member VisitTerm: Term -> Term
@@ -261,3 +295,14 @@ type Visitor() =
     default this.VisitTypeDecl(value) =
         match value with
         | TypeDecl (name, parameters, ptype, inExpr) -> this.TypeDecl_TypeDecl(name, parameters, ptype, inExpr)
+    
+    abstract member Unatom_Unatom: string option * Atom -> Unatom
+    default this.Unatom_Unatom(operator, atom) =
+        let operator' = operator
+        let atom' = this.VisitAtom atom
+        Unatom (operator', atom')
+    
+    abstract member VisitUnatom: Unatom -> Unatom
+    default this.VisitUnatom(value) =
+        match value with
+        | Unatom (operator, atom) -> this.Unatom_Unatom(operator, atom)

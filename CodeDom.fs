@@ -18,6 +18,7 @@ type Parser =
     | CheckpointP of Parser
     | OutP of string * Parser
     | AndP of Parser * Parser
+    | AndFirstP of Parser * Parser
     | OrP of Parser * Parser
     | DelimitedP of Parser * Parser
     | SurroundP of Parser * Parser * Parser
@@ -54,6 +55,7 @@ let rec isNonempty =
     | NonEmptyListP _ -> true
     | DelimitedP _ -> true
     | AndP (_, p) -> isNonempty p
+    | AndFirstP (p, _) -> isNonempty p
     | SurroundP (_, _, p) -> isNonempty p
     | CheckpointP p -> isNonempty p
     | _ -> false

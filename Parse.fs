@@ -2,7 +2,6 @@ module Parse
 
 open System
 open System.CodeDom.Compiler
-open System.Collections.Generic
 open System.IO
 open System.Text
 
@@ -11,9 +10,9 @@ open Cursor
 open Lexer
 open Tokens
 
-[<AttributeUsage(AttributeTargets.Property, AllowMultiple = true)>]
+[<AttributeUsage(AttributeTargets.All, AllowMultiple = true)>]
 type ParseAttribute(syntax:string) =
-    inherit System.Attribute()
+    inherit Attribute()
     member _.Syntax = syntax
 
 type Result<'r> =
@@ -60,7 +59,7 @@ let private parseNat (s:string) =
                 parseNat' rest n
             else
                 let v = Convert.ToInt32(Rune.GetNumericValue r)
-                let u = if v = -1 then (superchars.IndexOf(rs)) else v
+                let u = if v = -1 then superchars.IndexOf(rs) else v
                 if u = -1 then
                     false, bigint 0
                 else 
@@ -70,31 +69,31 @@ let private parseNat (s:string) =
 
 let private parseBool =
     function
-    | "false" | "𝗙" -> (true, false)
-    | "true" | "𝗧" -> (true, true)
-    | _ -> (false, false)
+    | "false" | "𝗙" -> true, false
+    | "true" | "𝗧" -> true, true
+    | _ -> false, false
     
 let bigintToken (ctor:Cspan -> Token) ctorName =
     fun t ->
-        let (m, t2) = (stringToken ctor ctorName) t
+        let m, t2 = (stringToken ctor ctorName) t
         match m with
-        | Nomatch e -> (Nomatch e), t
-        | SyntaxError e -> (SyntaxError e), t2
+        | Nomatch e -> Nomatch e, t
+        | SyntaxError e -> SyntaxError e, t2
         | Match s ->
             match parseNat s with
-            | (false, _) -> (Nomatch ["Nat value"]), t
-            | (true, n) -> (Match n), t2
+            | false, _ -> Nomatch ["Nat value"], t
+            | true, n -> Match n, t2
 
 let boolToken (ctor:Cspan -> Token) ctorName =
     fun t ->
         let (m, t2) = (stringToken ctor ctorName) t
         match m with
-        | Nomatch e -> (Nomatch e), t
-        | SyntaxError e -> (SyntaxError e), t2
+        | Nomatch e -> Nomatch e, t
+        | SyntaxError e -> SyntaxError e, t2
         | Match s ->
             match parseBool s with
-            | (false, _) -> (Nomatch ["Bool value"]), t
-            | (true, b) -> (Match b), t2
+            | false, _ -> Nomatch ["Bool value"], t
+            | true, b -> Match b, t2
 
 let literal (s: string) =
     fun t ->
@@ -102,61 +101,77 @@ let literal (s: string) =
         | [] -> Nomatch [$"«{s}»"], t
         | first::rest ->
             if tokenText first = s
-                then (Match ()), rest
+                then Match (), rest
                 else Nomatch [$"«{s}»"], t
 
 let andThen p q =
     fun t ->
-        match p t with
-        | Nomatch e, _ -> Nomatch e, t
-        | SyntaxError e, t2 -> SyntaxError e, t2
-        | Match _, t2 -> q t2
+        let m, t2 = p t
+        match m with
+        | Nomatch e -> Nomatch e, t
+        | SyntaxError e -> SyntaxError e, t2
+        | Match _ -> q t2
+
+let andFirst p (q: 'a -> Result<unit> * 'a) =
+    fun t ->
+        let m, t2 = p t
+        match m with
+        | Nomatch e -> Nomatch e, t
+        | SyntaxError e -> SyntaxError e, t2
+        | Match r -> 
+            let m2, t3 = q t2
+            match m2 with
+            | Nomatch e -> Nomatch e, t2
+            | SyntaxError e -> SyntaxError e, t2
+            | Match _ -> Match r, t3
 
 let orElse p q =
     fun t ->
-        match p t with
-        | SyntaxError e, t2 -> SyntaxError e, t2
-        | Match r, t2 -> Match r, t2
+        let pt = p t in
+        match pt with
         | Nomatch e, _ ->
-            match q t with
+            let qt = q t in
+            match qt with
             | Nomatch f, _ -> Nomatch (e @ f), t
-            | SyntaxError e, t3 -> SyntaxError e, t3
-            | Match r2, t3 -> Match r2, t3
+            | _ -> qt
+        | _ -> pt
 
 let checkpoint p =
     fun t ->
-        let (m, t2) = p t
+        let m, t2 = p t
         match m with
-        | Nomatch e -> (SyntaxError e), t2
-        | SyntaxError e -> (SyntaxError e), t2
-        | Match r -> (Match r), t2
+        | Nomatch e -> SyntaxError e, t2
+        | SyntaxError e -> SyntaxError e, t2
+        | Match r -> Match r, t2
 
 let option p =
     fun t ->
-        match p t with
-        | Nomatch _, _ -> Match None, t
-        | SyntaxError e, t2 -> SyntaxError e, t2
-        | Match r, t2 -> Match (Some r), t2
+        let m, t2 = p t
+        match m with
+        | Nomatch _ -> Match None, t
+        | SyntaxError e -> SyntaxError e, t2
+        | Match r -> Match (Some r), t2
 
 let optionlist p =
     fun t ->
-        match p t with
-        | Nomatch _, _ -> Match [], t
-        | SyntaxError e, t2 -> SyntaxError e, t2
-        | Match r, t2 -> Match r, t2
+        let m, t2 = p t
+        match m with
+        | Nomatch _ -> Match [], t
+        | SyntaxError e -> SyntaxError e, t2
+        | Match r -> Match r, t2
 
 let rec zeroOrMore p =
     fun t ->
-        let (m, t2) = p t
+        let m, t2 = p t
         match m with
-        | Nomatch _ -> (Match []), t
-        | SyntaxError e -> (SyntaxError e), t2
+        | Nomatch _ -> Match [], t
+        | SyntaxError e -> SyntaxError e, t2
         | Match r ->
-            let (m2, t3) = (zeroOrMore p) t2
+            let m2, t3 = (zeroOrMore p) t2
             match m2 with
-            | Nomatch _ -> (Match [r]), t2
-            | SyntaxError e -> (SyntaxError e), t3
-            | Match rs -> (Match (r::rs)), t3
+            | Nomatch _ -> Match [r], t2
+            | SyntaxError e -> SyntaxError e, t3
+            | Match rs -> Match (r::rs), t3
 
 and oneOrMore p =
     fun t ->
@@ -210,6 +225,8 @@ let rec getKeywords =
     | CheckpointP p -> getKeywords p
     | AndP (p, q) ->
         Seq.concat [getKeywords p; getKeywords q]
+    | AndFirstP (p, q) ->
+        Seq.concat [getKeywords p; getKeywords q]
     | OrP (p, q) ->
         Seq.concat [getKeywords p; getKeywords q]
     | DelimitedP (p, q) ->
@@ -249,6 +266,10 @@ let rec private decodeParser (ps: string list) =
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
         AndP (p, q), rest''
+    | "first"::rest ->
+        let (p, rest') = decodeParser rest
+        let (q, rest'') = decodeParser rest'
+        AndFirstP (p, q), rest''
     | "or"::rest ->
         let (p, rest') = decodeParser rest
         let (q, rest'') = decodeParser rest'
@@ -340,6 +361,14 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType =
     | AndP (p, q) ->
 
         writer.Write "andThen ("
+        writeParser writer p primaryType
+        writer.Write ") ("
+        writeParser writer q primaryType
+        writer.Write ")"
+
+    | AndFirstP (p, q) ->
+
+        writer.Write "andFirst ("
         writeParser writer p primaryType
         writer.Write ") ("
         writeParser writer q primaryType

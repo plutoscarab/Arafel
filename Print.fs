@@ -168,7 +168,8 @@ let rec private writeParser (writer:IndentedTextWriter) parser primaryType name 
         writeParser writer p primaryType (name + "'")
         writer.Indent <- writer.Indent - 1
 
-    | AndP(p, q) ->
+    | AndP(p, q)
+    | AndFirstP(p, q) ->
 
         writeParser writer p primaryType name
         writeParser writer q primaryType name
